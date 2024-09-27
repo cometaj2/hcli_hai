@@ -1,0 +1,29 @@
+.TH HCLI_HG 1 "SEPTEMBER 2023" Linux "User Manuals"
+.SH NAME
+hcli_hai \- A python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with GPT-3.5-Turbo via terminal input and output streams.
+.SH SYNOPSIS
+.B hcli_hai
+[
+.I option
+|
+.I <command>
+]
+.SH DESCRIPTION
+.B hcli_hai
+HCLI hai is a python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with GPT-3.5-Turbo via terminal input and output streams.
+
+.SH COMMANDS
+.IP "path"
+Provides the installation path of hcli_hai, which can be used to help locate the path of the HCLI app to use in an HCLI Connector.
+.IP help
+This help file.
+.SH OPTIONS
+.IP --version
+.B hcli_hai
+version and the version of it's dependencies.
+.SH EXAMPLE
+hcli_hai path
+
+hcli_hai --version
+
+gunicorn --workers=1 --threads=1 "hcli_core:connector(\\"`hcli_hai path`\\")"
