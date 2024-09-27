@@ -41,6 +41,7 @@ jobs:
           pip install hcli-core
           pip install huckle
           pip install gunicorn==20.1.0
+          python manage.py write-requirements
           pip install -r requirements.txt
           pip install -e .
           python -m pytest -v
