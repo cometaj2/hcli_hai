@@ -4,11 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.3.0]
+- Add support for Anthropic's Claude AI (default)
+
 ## [0.2.0]
 - Documentation update.
 - Rename to hcli_hai to reclaim the hg namespace to become more generic with llms. We're retaining history
 - Add support for python 3.12 testing
-- Add support for Anthropic's Claude AI
+- Inceptive add for Anthropic's Claude AI (not yet supported)
 ________________________________________________________________________
 
 ## [0.1.6]

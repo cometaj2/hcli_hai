@@ -3,7 +3,7 @@
 HCLI hai
 ========
 
-HCLI hai is a python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with GPT-3.5-Turbo via terminal input and output streams.
+HCLI hai is a python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with Anthropic's Claude Sonnet (default) or GPT-3.5-Turbo via terminal input and output streams.
 
 ----
 
@@ -66,12 +66,12 @@ Supports
 To Do
 -----
 
-- A memory layer for the GPT-3.5-Turbo HCLI (hai).
+- A memory layer for the the AI HCLI (hai).
     - Automatic context switching per NLP on received input stream.
     - Context blending to mary different contexts.
     - Automatic context compression to yield a more substantial memory footprint per context window.
 - Additional commands to better save and restore conversations/contexts.
-- A shell mode for the GPT-3.5-Turbo HCLI (hai) to enable shell CLI execution per sought goal.
+- A shell mode for the AI HCLI (hai) to enable shell CLI execution per sought goal.
 
 Bugs
 ----
