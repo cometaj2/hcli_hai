@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hcli_hai"
 dynamic = ["version", "dependencies"]
-description='HCLI hai is a python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with Anthropic's Claude or OpenAI's GPT AI models via terminal input and output streams.'
+description="HCLI hai is a python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with Anthropic's Claude or OpenAI's GPT AI models via terminal input and output streams."
 readme = "README.rst"
 authors = [{name = "Jeff Michaud", email = "cometaj2@comcast.net"}]
 license = {text = "MIT"}
