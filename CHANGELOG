@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.0.0]
+- Rework HCLI template and commands
+- Add .hai folder structure in users's home directory to help track hai config and multiple contexts
+- Add context listing with summary title
+- Add context selection from existing context list
+- Remove context modification in favor of creation of new contexts
+
 ## [0.3.1]
 - Update PyPi description.
 

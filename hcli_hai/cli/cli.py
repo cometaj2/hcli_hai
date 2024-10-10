@@ -15,6 +15,7 @@ from anthropic import Anthropic
 logging = logger.Logger()
 logging.setLevel(logger.INFO)
 
+
 class CLI:
     commands = None
     inputstream = None
@@ -25,28 +26,29 @@ class CLI:
         self.ai = ai.AI()
 
     def execute(self):
-        self.ai.read_context()
-
-        if self.commands[1] == "chat":
-            if len(self.commands) == 2:
-                if self.inputstream != None:
-                    return self.ai.chat(self.inputstream)
-
-            elif len(self.commands) == 3 and self.commands[2] == "dump":
-               return self.ai.dump()
+        if len(self.commands) == 1:
+            if self.inputstream != None:
+                return self.ai.chat(self.inputstream)
 
         if self.commands[1] == "clear":
-            self.ai.clear()
+            return self.ai.clear()
 
         if self.commands[1] == "context":
-            if self.commands[2] == "get":
-                return self.ai.context_get()
+            context = self.ai.get_context()
+            return io.BytesIO(json.dumps(context, indent=4).encode('utf-8') + "\n".encode('utf-8'))
 
-            if self.commands[2] == "set":
-                return self.ai.context_set(self.inputstream)
+        if self.commands[1] == "ls":
+            contexts = self.ai.ls()
+            return io.BytesIO(json.dumps(contexts, indent=4).encode('utf-8') + "\n".encode('utf-8'))
 
         if self.commands[1] == "behavior":
-            if self.commands[2] == "set":
-                return self.ai.behavior_set(self.inputstream)
+            return self.ai.behavior(self.inputstream)
+
+        if len(self.commands) == 3:
+            if self.commands[1] == "set":
+                self.ai.set(self.commands[2])
+
+            if self.commands[1] == "rm":
+                return
 
         return None
