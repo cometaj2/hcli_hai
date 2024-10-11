@@ -116,7 +116,7 @@ class Context:
             for item in context:
                 role = item.get('role', 'Unknown')
                 content = item.get('content', '')
-                readable_context.append(f"----{role.capitalize()}:\n\n{content}\n\n")
+                readable_context.append(f"----{role.capitalize()}:\n\n{content}\n")
 
         result = "".join(readable_context)
         return result
