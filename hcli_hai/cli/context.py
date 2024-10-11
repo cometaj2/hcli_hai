@@ -120,6 +120,7 @@ class Context:
 
         if not os.path.exists(self.context_file):
             with open(self.context_file, 'w') as f:
+                self.title = None
                 self.context = [{ "role" : "system", "content" : "" }]
                 titled_context = { 'title': self.title, 'context': self.context }
                 json.dump(titled_context, f)
