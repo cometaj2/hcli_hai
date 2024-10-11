@@ -182,7 +182,7 @@ class Context:
         return title
 
     def collapse(self, text):
-        max_words = 15
+        max_words = 20
 
         words = nltk.word_tokenize(text)
         title_words = words[:max_words]

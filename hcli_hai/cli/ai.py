@@ -11,6 +11,7 @@ import context
 import config
 import uuid
 
+from datetime import datetime
 from openai import OpenAI
 from anthropic import Anthropic
 
@@ -87,25 +88,54 @@ class AI:
 
     def ls(self):
         contexts = []
-
         share = self.config.dot_hai_context
 
         # Iterate through all items in the folder
         for item in os.listdir(share):
             item_path = os.path.join(share, item)
-
             # Check if the item is a directory
             if os.path.isdir(item_path):
-                try:
-                    contexts.append(item)
-                except ValueError:
-                    pass
 
-        return contexts
+                context_file = os.path.join(item_path, 'context.json')
+                if os.path.exists(context_file):
+                    try:
+                        with open(context_file, 'r') as f:
+                            data = json.load(f)
+                            title = data.get('title', item)  # Use directory name as fallback
+                            update_time = os.path.getmtime(context_file)
+                            contexts.append({
+                                'context_id': item,
+                                'title': title,
+                                'update_time': update_time
+                            })
+                    except json.JSONDecodeError:
+                        # If there's an error reading the JSON, just use the directory name
+                        contexts.append({
+                            'context_id': item,
+                            'title': 'N/A',
+                            'update_time': os.path.getmtime(context_file) if os.path.exists(context_file) else 0
+                        })
+                else:
+                    # If context.json doesn't exist, use the directory name as both name and title
+                    contexts.append({
+                        'context_id': item,
+                        'title': 'N/A',
+                        'update_time': 0
+                    })
+
+        # Sort contexts by creation time, newest first
+        sorted_contexts = sorted(contexts, key=lambda x: x['update_time'], reverse=False)
+
+        # Format the creation time and remove it from the final output
+        for context in sorted_contexts:
+            context['update_time'] = datetime.fromtimestamp(context['update_time']).strftime('%Y-%m-%d %H:%M:%S')
+
+        return sorted_contexts
 
     def set(self, id):
         contexts = self.ls()
-        if id in contexts:
+        context_ids = [context['context_id'] for context in contexts]
+        if id in context_ids:
             self.context.set(id)
         else:
             logging.warning("provided context id is not found in available contexts.")
