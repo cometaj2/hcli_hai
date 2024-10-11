@@ -62,6 +62,10 @@ Supports
 - Chatting by sending command line input streams (e.g. via pipes).
 - Getting and setting a context to setup a new conversation or to save a conversation.
 - Behavior setting to allow for persistent chatbot behavior (e.g. the Do Anything Now (DAN) prompt).
+- .hai folder structure in a users's home directory to help track hai configuration and contexts.
+- Context listing, summary title, and latest context.json update time to help contextualize the listing.
+- Context selection from existing context list
+- Deletion of context
 
 To Do
 -----

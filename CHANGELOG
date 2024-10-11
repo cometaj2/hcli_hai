@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.0.2]
+- Fix CHANGELOG typo
+- Update README with addition missing "supports" information
+- Remove unused context code
+- Update test to assume the creation of a new context
+
 ## [1.0.1]
 - Fix missing numpy dependency
 - Remove support for python 3.8 and 3.9 because of numpy incompatibilities with python 3.12
@@ -12,7 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Rework HCLI template and commands
 - Add .hai folder structure in users's home directory to help track hai config and multiple contexts
 - Add context storage alongside a summary title
-- Add context listing, summary title, and latest context.json update time to help contextualized the information
+- Add context listing, summary title, and latest context.json update time to help contextualize the information
 - Add context selection from existing context list
 - Add deletion of context
 - Remove context modification in favor of creation of new contexts

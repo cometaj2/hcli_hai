@@ -20,6 +20,7 @@ def test_function():
     set -x
 
     export PATH=$PATH:~/.huckle/bin
+    hai new
     hai context
     kill $(ps aux | grep '[g]unicorn' | awk '{print $2}')
     """

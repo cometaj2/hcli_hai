@@ -66,15 +66,12 @@ class Context:
             message = "Context tokens: " + str(self.total_tokens) + ". Trimming the oldest entries to remain under " + str(self.max_context_length) + " tokens."
             logging.info(message)
 
-    def dump(self):
-       if os.path.exists(self.context_file):
-           f = open(self.context_file, "rb")
-           return io.BytesIO(f.read())
-
     def clear(self):
         if os.path.exists(self.context_file):
             os.remove(self.context_file)
-            self.new()
+            return self.new()
+
+        return None
 
     def behavior(self, inputstream):
         if os.path.exists(self.context_file):
