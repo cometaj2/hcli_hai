@@ -31,10 +31,13 @@ class Context:
     def __new__(cls):
         if cls.instance is None:
             cls.instance = super().__new__(cls)
-            cls.instance.config = c.Config()
-            cls.instance.context_file = cls.instance.config.dot_hai_context + "/" + cls.instance.config.context + "/context.json"
-            cls.instance.get_context()
+            cls.instance.init()
         return cls.instance
+
+    def init(self):
+        self.config = c.Config()
+        self.context_file = self.config.dot_hai_context + "/" + self.config.context + "/context.json"
+        self.get_context()
 
     def count(self):
         encoding = tiktoken.get_encoding(self.encoding_base)
@@ -83,20 +86,24 @@ class Context:
             return None
 
     def append(self, question):
-        print(self.context.append)
+        logging.debug(question)
         self.context.append(question)
 
     def get_context(self):
+        self.context_file = self.config.dot_hai_context + "/" + self.config.context + "/context.json"
         if os.path.exists(self.context_file):
             try:
                 with open(self.context_file, 'r') as f:
-                    self.context = json.load(f)
+                    titled_context = json.load(f)
+                    self.title = titled_context.get('title', '')
+                    self.context = titled_context.get('context', {})
+                    return titled_context
             except:
-                self.new()
+                return self.new()
         else:
-            self.new()
+            return self.new()
 
-        return self.context
+        return None
 
     def messages(self):
         return self.context
@@ -114,9 +121,13 @@ class Context:
         if not os.path.exists(self.context_file):
             with open(self.context_file, 'w') as f:
                 self.context = [{ "role" : "system", "content" : "" }]
-                json.dump(self.context, f)
+                titled_context = { 'title': self.title, 'context': self.context }
+                json.dump(titled_context, f)
+                return titled_context
 
         self.total_tokens = 0
+
+        return None
 
     def save(self):
         titled_context = { 'title': self.title, 'context': self.context }
@@ -126,8 +137,8 @@ class Context:
 
     def set(self, id):
         self.config.context = id
-        self.context_file = self.config.dot_hai_context + "/" + self.config.context + "/context.json"
         self.config.save()
+        self.context_file = self.config.dot_hai_context + "/" + self.config.context + "/context.json"
 
     def ensure_nltk_data(self):
         try:

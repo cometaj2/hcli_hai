@@ -29,14 +29,15 @@ class Config:
     def __new__(cls):
         if cls.instance is None:
             cls.instance = super().__new__(cls)
-
-            cls.instance.parser = ConfigParser()
-            cls.instance.parser.read(cls.instance.dot_hai_config_file)
-
-            cls.instance.create_configuration()
-            cls.instance.parse_configuration()
-
+            cls.instance.init()
         return cls.instance
+
+    def init(self):
+        self.parser = ConfigParser()
+        self.parser.read(self.dot_hai_config_file)
+
+        self.create_configuration()
+        self.parse_configuration()
 
     # parses the configuration of a given cli to set configured execution
     def parse_configuration(self):

@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.0.0]
 - Rework HCLI template and commands
 - Add .hai folder structure in users's home directory to help track hai config and multiple contexts
-- Add context listing with summary title
+- Add context storage alongside a summary title
+- Add context listing
 - Add context selection from existing context list
 - Remove context modification in favor of creation of new contexts
 

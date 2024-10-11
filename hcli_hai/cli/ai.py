@@ -9,6 +9,7 @@ import instance
 import config
 import context
 import config
+import uuid
 
 from openai import OpenAI
 from anthropic import Anthropic
@@ -70,7 +71,7 @@ class AI:
             output = output_content
             output = output + "\n"
 
-#             self.context.generate_title()
+            self.context.generate_title()
             self.context.save()
 
             return io.BytesIO(output.encode("utf-8"))
@@ -108,3 +109,9 @@ class AI:
             self.context.set(id)
         else:
             logging.warning("provided context id is not found in available contexts.")
+
+    def new(self):
+        if os.path.exists(self.config.dot_hai_config_file):
+            os.remove(self.config.dot_hai_config_file)
+        self.config.init()
+        self.context.init()

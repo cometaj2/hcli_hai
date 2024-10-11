@@ -41,6 +41,10 @@ class CLI:
             contexts = self.ai.ls()
             return io.BytesIO(json.dumps(contexts, indent=4).encode('utf-8') + "\n".encode('utf-8'))
 
+        if self.commands[1] == "new":
+            self.ai.new()
+            return None
+
         if self.commands[1] == "behavior":
             return self.ai.behavior(self.inputstream)
 
