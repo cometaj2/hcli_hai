@@ -74,13 +74,15 @@ class Context:
         return None
 
     def behavior(self, inputstream):
+        self.context_file = self.config.dot_hai_context + "/" + self.config.context + "/context.json"
         if os.path.exists(self.context_file):
-            f = open(self.context_file, "w")
-            inputstream = inputstream.read().decode('utf-8')
-            behavior = { "role" : "system", "content" : inputstream }
-            self.context[0] = behavior
-            json.dump(self.context, f)
-            return None
+            with open(self.context_file, 'w') as f:
+                inputstream = inputstream.read().decode('utf-8')
+                behavior = { "role" : "system", "content" : inputstream }
+                self.context[0] = behavior
+                titled_context = { 'title': self.title, 'context': self.context }
+                json.dump(titled_context, f)
+                return None
 
         return None
 
@@ -103,6 +105,21 @@ class Context:
             return self.new()
 
         return None
+
+    # Ouput for human consumption and longstanding conversation tracking
+    def get_readable_context(self):
+        context_data = self.get_context()
+        readable_context = []
+        if context_data:
+            readable_context.append(f"----Title: {context_data.get('title', 'No title')}\n\n")
+            context = context_data.get('context', [])
+            for item in context:
+                role = item.get('role', 'Unknown')
+                content = item.get('content', '')
+                readable_context.append(f"----{role.capitalize()}:\n\n{content}\n\n")
+
+        result = "".join(readable_context)
+        return result
 
     def messages(self):
         return self.context

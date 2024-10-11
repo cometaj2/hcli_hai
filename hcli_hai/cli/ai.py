@@ -81,6 +81,9 @@ class AI:
     def get_context(self):
         return self.context.get_context()
 
+    def get_readable_context(self):
+        return self.context.get_readable_context()
+
     def clear(self):
         self.context.clear()
 

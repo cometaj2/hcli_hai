@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.2.0]
+- Add functionality to return a human readable version of the full current context
+- Fix broken behavior context update
+
 ## [1.1.0]
 - Add functionality to return the current context as context id
 - Add additional command examples in the hai template

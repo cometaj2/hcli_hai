@@ -18,6 +18,10 @@
             "http": "get"
         },
         {
+            "command": "hai context -h",
+            "http": "get"
+        },
+        {
             "command": "hai current",
             "http": "get"
         },
@@ -49,7 +53,7 @@
                 },
                 {
                     "name": "synopsis",
-                    "description": "hai <none | command>"
+                    "description": "hai <command>"
                 },
                 {
                     "name": "description",
@@ -149,11 +153,18 @@
                 },
                 {
                     "name": "synopsis",
-                    "description": "hai context"
+                    "description": "hai context [-h]"
                 },
                 {
                     "name": "description",
                     "description": "The \"context\" command allows you to view the current context. The context is what makes the chatbot remember what was previously discussed so that a more coherent conversation can take place."
+                }
+            ],
+            "option": [
+                {
+                    "href": "haicontext-h",
+                    "name": "-h",
+                    "description": "The \"-h\" option prints a human readable version of the full current context."
                 }
             ]
         },

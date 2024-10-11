@@ -35,8 +35,12 @@ class CLI:
             return
 
         if self.commands[1] == "context":
-            context = self.ai.get_context()
-            return io.BytesIO(json.dumps(context, indent=4).encode('utf-8') + "\n".encode('utf-8'))
+            if len(self.commands) == 2:
+                context = self.ai.get_context()
+                return io.BytesIO(json.dumps(context, indent=4).encode('utf-8') + "\n".encode('utf-8'))
+            if len(self.commands) == 3:
+                readable_context = self.ai.get_readable_context()
+                return io.BytesIO(readable_context.encode('utf-8') + "\n".encode('utf-8'))
 
         if self.commands[1] == "ls":
             contexts = self.ai.ls()
