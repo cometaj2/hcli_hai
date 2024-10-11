@@ -53,6 +53,6 @@ class CLI:
                 self.ai.set(self.commands[2])
 
             if self.commands[1] == "rm":
-                return
+                self.ai.rm(self.commands[2])
 
         return None

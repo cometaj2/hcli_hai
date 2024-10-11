@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add context storage alongside a summary title
 - Add context listing, summary title, and latest context.json update time to help contextualized the information
 - Add context selection from existing context list
+- Add deletion of context
 - Remove context modification in favor of creation of new contexts
 
 ## [0.3.1]

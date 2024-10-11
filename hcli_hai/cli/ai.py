@@ -10,6 +10,7 @@ import config
 import context
 import config
 import uuid
+import shutil
 
 from datetime import datetime
 from openai import OpenAI
@@ -145,3 +146,9 @@ class AI:
             os.remove(self.config.dot_hai_config_file)
         self.config.init()
         self.context.init()
+
+    def rm(self, id):
+        context_folder = os.path.join(self.config.dot_hai_context, id)
+        if os.path.exists(context_folder):
+            shutil.rmtree(context_folder)
+            logging.info("removed " + context_folder)
