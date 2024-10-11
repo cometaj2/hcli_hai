@@ -147,8 +147,13 @@ class AI:
         self.config.init()
         self.context.init()
 
+        return None
+
     def rm(self, id):
         context_folder = os.path.join(self.config.dot_hai_context, id)
         if os.path.exists(context_folder):
             shutil.rmtree(context_folder)
             logging.info("removed " + context_folder)
+
+    def current(self):
+        return self.config.context

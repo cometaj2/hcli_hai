@@ -82,6 +82,8 @@ class Context:
             json.dump(self.context, f)
             return None
 
+        return None
+
     def append(self, question):
         logging.debug(question)
         self.context.append(question)

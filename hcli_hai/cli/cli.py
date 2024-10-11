@@ -31,7 +31,8 @@ class CLI:
                 return self.ai.chat(self.inputstream)
 
         if self.commands[1] == "clear":
-            return self.ai.clear()
+            self.ai.clear()
+            return
 
         if self.commands[1] == "context":
             context = self.ai.get_context()
@@ -43,10 +44,15 @@ class CLI:
 
         if self.commands[1] == "new":
             self.ai.new()
-            return None
+            return
+
+        if self.commands[1] == "current":
+            current = self.ai.current()
+            return io.BytesIO(current.encode('utf-8') + "\n".encode('utf-8'))
 
         if self.commands[1] == "behavior":
-            return self.ai.behavior(self.inputstream)
+            self.ai.behavior(self.inputstream)
+            return
 
         if len(self.commands) == 3:
             if self.commands[1] == "set":
