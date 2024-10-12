@@ -5,7 +5,7 @@ import sys
 import inspect
 import traceback
 import logger
-import instance
+import model
 import config
 import context
 import config
@@ -38,7 +38,7 @@ class AI:
                 try:
                     #client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
                     #response = client.chat.completions.create(
-                    #                                           **instance.openai_baseline,
+                    #                                           **model.openai_baseline,
                     #                                           messages=self.context
                     #                                       )
                     client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
@@ -48,7 +48,7 @@ class AI:
                     user_messages = [msg for msg in self.context.messages() if msg["role"] != "system"]
 
                     response = client.messages.create(
-                                                         **instance.anthropic_claude_3_5_sonnet,
+                                                         **model.claude_3_5_sonnet_20240620,
                                                          system=system_message,
                                                          messages=user_messages
                                                      )
@@ -150,7 +150,7 @@ class AI:
         self.config.init()
         self.context.init()
 
-        return None
+        return self.current()
 
     def rm(self, id):
         context_folder = os.path.join(self.config.dot_hai_context, id)

@@ -6,7 +6,6 @@ import inspect
 import traceback
 import tiktoken
 import logger
-import instance
 import ai
 
 from openai import OpenAI
@@ -47,8 +46,8 @@ class CLI:
             return io.BytesIO(json.dumps(contexts, indent=4).encode('utf-8') + "\n".encode('utf-8'))
 
         if self.commands[1] == "new":
-            self.ai.new()
-            return
+            current = self.ai.new()
+            return io.BytesIO(current.encode('utf-8') + "\n".encode('utf-8'))
 
         if self.commands[1] == "current":
             current = self.ai.current()
