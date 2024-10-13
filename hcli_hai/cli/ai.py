@@ -15,6 +15,7 @@ import shutil
 from datetime import datetime
 from openai import OpenAI
 from anthropic import Anthropic
+from model import models
 
 logging = logger.Logger()
 
@@ -28,55 +29,60 @@ class AI:
         self.context = context.Context()
 
     def chat(self, inputstream):
-        inputstream = inputstream.read().decode('utf-8')
-        if inputstream != "":
-            question = { "role" : "user", "content" : inputstream }
-            self.context.append(question)
-            self.context.trim()
+        if self.config.model is not None:
+            inputstream = inputstream.read().decode('utf-8')
+            if inputstream != "":
+                question = { "role" : "user", "content" : inputstream }
+                self.context.append(question)
+                self.context.trim()
 
-            if self.context.total_tokens != 0:
-                try:
-                    #client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
-                    #response = client.chat.completions.create(
-                    #                                           **model.openai_baseline,
-                    #                                           messages=self.context
-                    #                                       )
-                    client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+                if self.context.total_tokens != 0:
+                    try:
+                        #client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
+                        #response = client.chat.completions.create(
+                        #                                           **model.openai_baseline,
+                        #                                           messages=self.context
+                        #                                       )
+                        client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-                    # Separate system message from user messages
-                    system_message = next((msg["content"] for msg in self.context.messages() if msg["role"] == "system"), "")
-                    user_messages = [msg for msg in self.context.messages() if msg["role"] != "system"]
+                        # Separate system message from user messages
+                        model = models[self.config.model]
+                        system_message = next((msg["content"] for msg in self.context.messages() if msg["role"] == "system"), "")
+                        user_messages = [msg for msg in self.context.messages() if msg["role"] != "system"]
 
-                    response = client.messages.create(
-                                                         **model.claude_3_5_sonnet_20240620,
-                                                         system=system_message,
-                                                         messages=user_messages
-                                                     )
+                        response = client.messages.create(
+                                                             **model,
+                                                             system=system_message,
+                                                             messages=user_messages
+                                                         )
 
-                    logging.debug(response)
+                        logging.debug(response)
 
-                except Exception as e:
-                    return io.BytesIO(traceback.format_exc().encode("utf-8"))
-            else:
-                error = "The token trim backoff reached 0. This means that you sent a stream that was too large to fit within the total allowable context limit of " + str(self.context.max_context_length) + " tokens, and the last trimming operation ended up completely wiping out the conversation context.\n"
-                return io.BytesIO(error.encode("utf-8"))
+                    except Exception as e:
+                        logging.error(traceback.format_exc())
+                        return None
+                else:
+                    error = "The token trim backoff reached 0. This means that you sent a stream that was too large to fit within the total allowable context limit of " + str(self.context.max_context_length) + " tokens, and the last trimming operation ended up completely wiping out the conversation context.\n"
+                    return io.BytesIO(error.encode("utf-8"))
 
-#             # Output for context retention
-#             output_response = response.choices[0].message
-            output_response = response
+    #             # Output for context retention
+    #             output_response = response.choices[0].message
+                output_response = response
 
-            # Extract the text content from the response
-            output_content = " ".join([block.text for block in output_response.content if block.type == 'text'])
+                # Extract the text content from the response
+                output_content = " ".join([block.text for block in output_response.content if block.type == 'text'])
 
-            self.context.append({ "role" : output_response.role, "content" : output_content})
+                self.context.append({ "role" : output_response.role, "content" : output_content})
 
-            output = output_content
-            output = output + "\n"
+                output = output_content
+                output = output + "\n"
 
-            self.context.generate_title()
-            self.context.save()
+                self.context.generate_title()
+                self.context.save()
 
-            return io.BytesIO(output.encode("utf-8"))
+                return io.BytesIO(output.encode("utf-8"))
+        else:
+            logging.warning("No model selected. Select one from the list of models.")
 
     def get_context(self):
         return self.context.get_context()
@@ -160,3 +166,14 @@ class AI:
 
     def current(self):
         return self.config.context
+
+    def list_models(self):
+        return self.config.list_models()
+
+    def model(self):
+        return self.config.model
+
+    def set_model(self, model):
+        models = self.list_models()
+        if model in models:
+            self.config.model = model

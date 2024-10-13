@@ -26,6 +26,18 @@
             "http": "get"
         },
         {
+            "command": "hai model",
+            "http": "get"
+        },
+        {
+            "command": "hai model ls",
+            "http": "get"
+        },
+        {
+            "command": "hai model set {p}",
+            "http": "post"
+        },
+        {
             "command": "hai ls",
             "http": "get"
         },
@@ -101,6 +113,11 @@
                     "description": "The \"set\" command sets the current context for the conversation per the provided context id."
                 },
                 {
+                    "href": "haimodel",
+                    "name": "model",
+                    "description": "The \"model\" command allows you to work with models to list them, list the current model, and to set a new model to use."
+                },
+                {
                     "href": "haibehavior",
                     "name": "behavior",
                     "description": "The \"behavior\" command allows you to set the persistent chatbot's behavior for the current context (e.g. the Do Anything Now (DAN) prompt)."
@@ -124,6 +141,75 @@
                     "description": "The \"clear\" command clears the current context and starts a new conversation in the current context."
                 }
             ]
+        },
+        {
+            "id": "haimodel",
+            "name": "model",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "model - allows you to work with with models."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai model <ls | set>"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"model\" command allows you to work with models to list them, list the current model, and to set a new model to use. Without a command to list or set, the currently set model is returned"
+                }
+            ],
+            "command": [
+                {
+                    "href": "haimodells",
+                    "name": "ls",
+                    "description": "The \"ls\" command lists all usable models."
+                },
+                {
+                    "href": "haimodelset",
+                    "name": "set",
+                    "description": "The \"set\" command sets the current model per the allowed list of usable models."
+                }
+            ]
+        },
+        {
+            "id": "haimodells",
+            "name": "ls",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "ls - lists all usable models."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai model ls"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"ls\" command lists all available models to select from."
+                }
+            ]
+        },
+        {
+            "id": "haimodelset",
+            "name": "set",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "set - sets the current model."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai model set <model>"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"set\" command sets the current model per the allowed list of usable models."
+                }
+            ],
+            "parameter": {
+                "href": "haimodelsetparameter"
+            }
         },
         {
             "id": "hainew",

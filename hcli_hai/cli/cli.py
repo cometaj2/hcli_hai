@@ -26,7 +26,7 @@ class CLI:
 
     def execute(self):
         if len(self.commands) == 1:
-            if self.inputstream != None:
+            if self.inputstream is not None:
                 return self.ai.chat(self.inputstream)
 
         if self.commands[1] == "clear":
@@ -54,14 +54,36 @@ class CLI:
             return io.BytesIO(current.encode('utf-8') + "\n".encode('utf-8'))
 
         if self.commands[1] == "behavior":
-            self.ai.behavior(self.inputstream)
+            if self.inputstream is not None:
+                self.ai.behavior(self.inputstream)
             return
 
-        if len(self.commands) == 3:
-            if self.commands[1] == "set":
-                self.ai.set(self.commands[2])
+        if self.commands[1] == "model":
+            if len(self.commands) == 2:
+                model = self.ai.model()
+                if model is not None:
+                    return io.BytesIO(model.encode('utf-8') + "\n".encode('utf-8'))
+                else:
+                    return io.BytesIO(b"None\n")
 
-            if self.commands[1] == "rm":
+            if len(self.commands) == 3:
+                if self.commands[2] == "ls":
+                    models = self.ai.list_models()
+                    return io.BytesIO(json.dumps(models, indent=4).encode('utf-8') + "\n".encode('utf-8'))
+
+            if len(self.commands) == 4:
+                if self.commands[2] == "set":
+                    self.ai.set_model(self.commands[3])
+                    return
+
+        if self.commands[1] == "set":
+            if len(self.commands) == 3:
+                self.ai.set(self.commands[2])
+                return
+
+        if self.commands[1] == "rm":
+            if len(self.commands) == 3:
                 self.ai.rm(self.commands[2])
+                return
 
         return None

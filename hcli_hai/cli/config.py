@@ -3,6 +3,7 @@ from io import StringIO
 from os import listdir
 from os.path import isfile, join, isdir
 from os import path, listdir
+from model import models
 
 import hutils
 
@@ -23,6 +24,7 @@ class Config:
     dot_hai_config_file = dot_hai_config + "/config"
     dot_hai_context = dot_hai + "/share"
     context = ""
+    model = None
     parser = None
     instance = None
 
@@ -74,3 +76,7 @@ class Config:
             self.parser.set("default", "context", self.context)
             with open(self.dot_hai_config_file, "w") as config:
                 self.parser.write(config)
+
+    def list_models(self):
+        model_names = list(models.keys())
+        return model_names

@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.4.0]
+- Add functionality to work with models to return the current model, list available models and set a model
+- Add default model of None by default in the configuration for now to avoid accidental use of an undesirable model
+
 ## [1.3.0]
-- Rename instance.py to model.py and update models for naming consistency (_)
+- Rename instance.py to model.py and update model keys for naming consistency
 - Add return of current context id when using hai new
 - Add claude 3 haiku model to the model list
 
