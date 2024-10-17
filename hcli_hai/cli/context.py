@@ -5,13 +5,14 @@ import logger
 import tiktoken
 import config as c
 import hutils
+import summary as s
 
-import nltk
-from sumy.parsers.plaintext import PlaintextParser
-from sumy.nlp.tokenizers import Tokenizer
-from sumy.summarizers.lsa import LsaSummarizer
-from sumy.nlp.stemmers import Stemmer
-from sumy.utils import get_stop_words
+# import nltk
+# from sumy.parsers.plaintext import PlaintextParser
+# from sumy.nlp.tokenizers import Tokenizer
+# from sumy.summarizers.lsa import LsaSummarizer
+# from sumy.nlp.stemmers import Stemmer
+# from sumy.utils import get_stop_words
 
 logging = logger.Logger()
 
@@ -26,6 +27,7 @@ class Context:
     context = None
     context_file = None
     config = None
+    summary = None
     instance = None
 
     def __new__(cls):
@@ -37,6 +39,7 @@ class Context:
     def init(self):
         self.config = c.Config()
         self.context_file = self.config.dot_hai_context + "/" + self.config.context + "/context.json"
+        self.summary = s.AdvancedTitleGenerator()
         self.get_context()
 
     def count(self):
@@ -157,56 +160,15 @@ class Context:
         self.config.save()
         self.context_file = self.config.dot_hai_context + "/" + self.config.context + "/context.json"
 
-    def ensure_nltk_data(self):
-        try:
-            nltk.data.find('tokenizers/punkt')
-        except LookupError:
-            logging.debug("downloading required NLTK data...")
-            nltk.download('punkt', quiet=True)
-            nltk.download('punkt_tab', quiet=True)
-
-    # produces a summary then a title for the current contextthat's at most 10 words long from a limited bit of conversation context.
+    # produces a summary then a title for the current context that's at most 10 words long from a limited bit of conversation context.
     def generate_title(self):
-        self.ensure_nltk_data()
-
-        language = "english"
-        sentences_count = 1
-
         text = ""
         for item in self.context:
             if "content" in item:
                 text += item["content"]
 
-        # Create a parser for the text
-        parser = PlaintextParser.from_string(text, Tokenizer(language))
-
-        # Initialize the LSA summarizer
-        stemmer = Stemmer(language)
-        summarizer = LsaSummarizer(stemmer)
-        summarizer.stop_words = get_stop_words(language)
-
-        # Generate the summary
-        summary = summarizer(parser.document, sentences_count)
-
-        # Join the sentences into a single string
-        summary_text = " ".join(str(sentence) for sentence in summary)
-        title = self.collapse(summary_text)
-
+        title = self.summary.generate_title(text)
         logging.debug("title: " + title)
         self.title = title
 
-        return title
-
-    def collapse(self, text):
-        max_words = 20
-
-        words = nltk.word_tokenize(text)
-        title_words = words[:max_words]
-        title = " ".join(title_words)
-
-        # If the last word is truncated, remove it
-        if len(words) > max_words:
-            title = " ".join(title_words[:-1])
-            title += "..."
-
-        return title
+        return self.title
