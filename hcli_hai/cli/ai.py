@@ -5,7 +5,6 @@ import sys
 import inspect
 import traceback
 import logger
-import model
 import config
 import context
 import config
@@ -133,7 +132,7 @@ class AI:
                         'update_time': 0
                     })
 
-        # Sort contexts by creation time, newest first
+        # Sort contexts by creation time, newest at the bottom of the list
         sorted_contexts = sorted(contexts, key=lambda x: x['update_time'], reverse=False)
 
         # Format the creation time and remove it from the final output
