@@ -29,4 +29,4 @@ def test_function():
     out, err = p2.communicate()
     result = out.decode('utf-8')
 
-    assert(result == '{\n    "title": null,\n    "context": [\n        {\n            "role": "system",\n            "content": ""\n        }\n    ]\n}\n')
+    assert(result == '{\n    "messages": [\n        {\n            "content": "",\n            "role": "system"\n        }\n    ],\n    "name": "",\n    "title": ""\n}\n')
