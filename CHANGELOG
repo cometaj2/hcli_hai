@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.0.0]
+- Add latest Claude Sonnet model (claude-3-5-sonnet-20241022) to the models list
+- Add hai model ls alphabetical sorting
+- Add functionality to custom name the current context or get the name of the current context.
+- Increase maximum context window to 200K by default for now
+- Remove partial OpenAI implementation for now and associated library
+- Simplify context file path redundancies in context
+- Add thread safety to context and context manager
+- Update context.json format structure to better accomodate the split of context and context manager
+
 ## [1.5.2]
 - Update to tiktoken version 0.8.0
 - Update to anthropic version 0.36.2

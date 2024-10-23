@@ -36,7 +36,7 @@ class CLI:
         if self.commands[1] == "context":
             if len(self.commands) == 2:
                 context = self.ai.get_context()
-                return io.BytesIO(json.dumps(context, indent=4).encode('utf-8') + "\n".encode('utf-8'))
+                return io.BytesIO(context.serialize().encode('utf-8') + "\n".encode('utf-8'))
             if len(self.commands) == 3:
                 readable_context = self.ai.get_readable_context()
                 return io.BytesIO(readable_context.encode('utf-8') + "\n".encode('utf-8'))
@@ -57,6 +57,19 @@ class CLI:
             if self.inputstream is not None:
                 self.ai.behavior(self.inputstream)
             return
+
+        if self.commands[1] == "name":
+            if len(self.commands) == 2:
+                name = self.ai.name()
+                if name is not None:
+                    return io.BytesIO(name.encode('utf-8') + "\n".encode('utf-8'))
+                else:
+                    return io.BytesIO(b"None\n")
+
+            if len(self.commands) == 4:
+                if self.commands[2] == "set":
+                    self.ai.set_name(self.commands[3])
+                    return None
 
         if self.commands[1] == "model":
             if len(self.commands) == 2:

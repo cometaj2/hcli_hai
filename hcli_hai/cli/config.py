@@ -13,6 +13,7 @@ import shutil
 import json
 import logger
 import uuid
+import context as c
 
 logging = logger.Logger()
 
@@ -77,6 +78,51 @@ class Config:
             with open(self.dot_hai_config_file, "w") as config:
                 self.parser.write(config)
 
+    def get_context(self):
+        context_file_path = self.context_file_path()
+        if os.path.exists(context_file_path):
+            try:
+                with open(context_file_path, 'r') as f:
+                    context = c.Context(json.load(f))
+                    return context
+            except:
+                return self.new()
+        else:
+            return self.new()
+
+        return None
+
+    def new(self):
+        share = self.dot_hai_context
+        current_context = self.dot_hai_context + "/" + self.context
+
+        if not os.path.exists(share):
+            hutils.create_folder(share)
+
+        if not os.path.exists(current_context):
+            hutils.create_folder(current_context)
+
+        context_file_path = self.context_file_path()
+        if not os.path.exists(context_file_path):
+            with open(context_file_path, 'w') as f:
+                context = c.Context()
+                f.write(context.serialize())
+                return context
+
+        return None
+
+    def clear(self):
+        context_file_path = self.context_file_path()
+        if os.path.exists(context_file_path):
+            os.remove(context_file_path)
+            return self.new()
+
+        return None
+
+    def context_file_path(self):
+        return os.path.join(self.dot_hai_context, self.context, "context.json")
+
     def list_models(self):
         model_names = list(models.keys())
+        model_names.sort()
         return model_names

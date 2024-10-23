@@ -14,6 +14,14 @@
             "http": "post"
         },
         {
+            "command": "hai name",
+            "http": "get"
+        },
+        {
+            "command": "hai name set {p}",
+            "http": "post"
+        },
+        {
             "command": "hai context",
             "http": "get"
         },
@@ -91,6 +99,11 @@
                     "href": "haicontext",
                     "name": "context",
                     "description": "The \"context\" command allows you to view the current context."
+                },
+                {
+                    "href": "hainame",
+                    "name": "name",
+                    "description": "The \"name\" command allows you to view the user provided name for the current context."
                 },
                 {
                     "href": "haicurrent",
@@ -228,6 +241,52 @@
                     "description": "The \"new\" command creates a brand new context and switches to it as the current context."
                 }
             ]
+        },
+        {
+            "id": "hainame",
+            "name": "name",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "name - name of the current context."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai name"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"name\" command allows you to view the user provided name for the current context."
+                }
+            ],
+            "command": [
+                {
+                    "href": "hainameset",
+                    "name": "set",
+                    "description": "The \"set\" command allows you to set the user provided name for the current context."
+                }
+            ]
+        },
+        {
+            "id": "hainameset",
+            "name": "set",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "set - sets the name for the current context."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai name set <user provided name>"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"set\" command allows you to set the user provided name for the current context."
+                }
+            ],
+            "parameter": {
+                "href": "hainamesetparameter"
+            }
         },
         {
             "id": "haicontext",

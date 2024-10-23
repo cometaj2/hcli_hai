@@ -1,7 +1,9 @@
 import re
+
 from collections import defaultdict
 from heapq import nlargest
 from typing import List, Dict
+
 
 class AdvancedTitleGenerator:
     def __init__(self):
@@ -40,6 +42,7 @@ class AdvancedTitleGenerator:
         summary = ' '.join([sentences[i] for i in sorted(summary_sentences)])
         return summary
 
+    # produces a summary then a title for the current context that's at most 10 words long from a limited bit of conversation context.
     def generate_title(self, text: str, max_words: int = 20) -> str:
         # Generate a summary
         summary = self.generate_summary(text, num_sentences=1)
