@@ -16,6 +16,7 @@ from openai import OpenAI
 from anthropic import Anthropic
 from model import models
 
+
 logging = logger.Logger()
 
 
@@ -36,13 +37,11 @@ class AI:
                 self.contextmgr.append(question)
                 self.contextmgr.trim()
 
-                if self.contextmgr.total_tokens != 0:
+                tokens = self.contextmgr.counter.get_stats(self.contextmgr.context)
+                logging.info("Request  - total context tokens: " + str(tokens['total_tokens']))
+
+                if self.contextmgr.counter.total_tokens != 0:
                     try:
-                        #client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
-                        #response = client.chat.completions.create(
-                        #                                           **model.openai_baseline,
-                        #                                           messages=self.context
-                        #                                       )
                         client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
                         # Separate system message from user messages
@@ -62,11 +61,12 @@ class AI:
                         logging.error(traceback.format_exc())
                         return None
                 else:
-                    error = "The token trim backoff reached 0. This means that you sent a stream that was too large to fit within the total allowable context limit of " + str(self.contextmgr.max_context_length) + " tokens, and the last trimming operation ended up completely wiping out the conversation context.\n"
-                    return io.BytesIO(error.encode("utf-8"))
+                    warning = "The token trim backoff completely collapsed. This means that the stream was too large to fit within the total allowable context limit of " + str(self.contextmgr.counter.max_context_length) + " tokens, and the last trimming operation ended up completely wiping out the remaining conversation context."
+                    logging.warning(warning)
+                    self.contextmgr.save()
 
-    #             # Output for context retention
-    #             output_response = response.choices[0].message
+                    return warning
+
                 output_response = response
 
                 # Extract the text content from the response
@@ -74,15 +74,19 @@ class AI:
 
                 self.contextmgr.append({ "role" : output_response.role, "content" : output_content})
 
+                tokens = self.contextmgr.counter.get_stats(self.contextmgr.context)
+                logging.info("Response - total context tokens: " + str(tokens['total_tokens']))
+
                 output = output_content
-                output = output + "\n"
 
                 self.contextmgr.generate_title()
                 self.contextmgr.save()
 
-                return io.BytesIO(output.encode("utf-8"))
+                return output
         else:
-            logging.warning("No model selected. Select one from the list of models.")
+            warning = "No model selected. Select one from the list of models."
+            logging.warning(warning)
+            return warning
 
     def get_context(self):
         return self.contextmgr.get_context()

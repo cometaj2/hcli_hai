@@ -27,7 +27,8 @@ class CLI:
     def execute(self):
         if len(self.commands) == 1:
             if self.inputstream is not None:
-                return self.ai.chat(self.inputstream)
+                response = self.ai.chat(self.inputstream)
+                return io.BytesIO(response.encode('utf-8') + "\n".encode('utf-8'))
 
         if self.commands[1] == "clear":
             self.ai.clear()

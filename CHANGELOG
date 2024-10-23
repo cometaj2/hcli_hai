@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Update context.json format structure to better accomodate the split of context and context manager
 - Updated human readable context formatting implementation
 - Added utilities grouping
+- Updated token count logic with cl100k_base
+- Updated save in context to be the only function that saves a file
 
 ## [1.5.2]
 - Update to tiktoken version 0.8.0

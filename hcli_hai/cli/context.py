@@ -119,42 +119,41 @@ class ContextManager:
 
     def init(self):
         with self.rlock:
-            self.message_tokens = 0
-            self.context_tokens = 0
-            self.total_tokens = 0
-            self.max_context_length = 200000
-            self.encoding_base = "p50k_base"
+            self.counter = TrimCounter()
             self.config = c.Config()
             self.context = self.get_context()
 
-    def __count(self):
-        with self.rlock:
-            encoding = tiktoken.get_encoding(self.encoding_base)
-
-            self.message_tokens = 0
-            for item in self.context.messages:
-                if "content" in item:
-                    self.message_tokens += len(encoding.encode(item["content"]))
-
-            self.context_tokens = 0
-            for item in self.context.messages:
-                self.context_tokens += len(encoding.encode(json.dumps(item)))
-
-            self.total_tokens = self.message_tokens + self.context_tokens
-            message = "Context tokens: " + str(self.total_tokens)
-            logging.info(message)
-
-            if self.total_tokens > self.max_context_length:
-                return True
-
-            return False
+#     def __count(self):
+#         with self.rlock:
+#             encoding = tiktoken.get_encoding(self.encoding_base)
+# 
+#             self.message_tokens = 0
+#             for item in self.context.messages:
+#                 if "content" in item:
+#                     self.message_tokens += len(encoding.encode(item["content"]))
+# 
+#             self.context_tokens = 0
+#             for item in self.context.messages:
+#                 self.context_tokens += len(encoding.encode(json.dumps(item)))
+# 
+#             self.total_tokens = self.message_tokens + self.context_tokens
+#             message = "Context tokens: " + str(self.total_tokens)
+#             logging.info(message)
+# 
+#             if self.total_tokens > self.max_context_length:
+#                 return True
+# 
+#             return False
+# 
+#     def trim(self):
+#         with self.rlock:
+#             while(self.__count()):
+#                 self.context.messages.pop(1)
+#                 message = "Context tokens: " + str(self.total_tokens) + ". Trimming the oldest entries to remain under " + str(self.max_context_length) + " tokens."
+#                 logging.info(message)
 
     def trim(self):
-        with self.rlock:
-            while(self.__count()):
-                self.context.messages.pop(1)
-                message = "Context tokens: " + str(self.total_tokens) + ". Trimming the oldest entries to remain under " + str(self.max_context_length) + " tokens."
-                logging.info(message)
+        self.counter.trim(self.context)
 
     def clear(self):
         with self.rlock:
@@ -162,14 +161,14 @@ class ContextManager:
 
     def behavior(self, inputstream):
         with self.rlock:
-            context_file_path = self.config.context_file_path()
-            if os.path.exists(context_file_path):
-                with open(context_file_path, 'w') as f:
-                    inputstream = inputstream.read().decode('utf-8')
-                    behavior = { "role" : "system", "content" : inputstream }
-                    self.context.messages[0] = behavior
-                    f.write(self.context.serialize())
-                    return None
+            inputstream = inputstream.read().decode('utf-8').rstrip()
+            behavior = { "role" : "system", "content" : inputstream }
+
+            current_messages = self.context.messages
+            current_messages[0] = behavior
+            self.context.messages = current_messages
+
+            self.save()
 
             return None
 
@@ -243,7 +242,7 @@ class ContextManager:
             self.context.name = name
             self.save()
 
-    # produces a summary then a title for the current context that's at most 10 words long from a limited bit of conversation context.
+    # produces a summary then a title for the current context.
     def generate_title(self):
         with self.rlock:
             text = ""
@@ -258,3 +257,53 @@ class ContextManager:
             self.save()
 
             return self.context.title
+
+class TrimCounter:
+    def __init__(self):
+        self.encoding_base = "cl100k_base"
+        self.max_context_length = 200000
+        self.total_tokens = 0
+        self._encoding = tiktoken.get_encoding(self.encoding_base)
+        self._cached_encodings = {}
+
+    def get_token_counts(self, messages):
+        total_tokens = 0
+
+        for message in messages:
+            if "content" in message:
+                content = message["content"]
+                if content not in self._cached_encodings:
+                    self._cached_encodings[content] = len(self._encoding.encode(content))
+                total_tokens += self._cached_encodings[content]
+
+        return {
+            "total_tokens": total_tokens,
+            "exceeds_max": total_tokens > self.max_context_length
+        }
+
+    def __count(self, messages):
+        counts = self.get_token_counts(messages)
+        self.total_tokens = counts["total_tokens"]
+
+        if counts["exceeds_max"]:
+            logging.warning(f"Exceeding maximum context length by {self.total_tokens - self.max_context_length} tokens")
+
+        return counts["exceeds_max"]
+
+    def trim(self, context):
+        while self.__count(context.messages):
+            if len(context.messages) > 1:
+
+                # Create new list without the second message (index 1)
+                new_messages = [context.messages[0]] + context.messages[2:]
+                context.messages = new_messages
+
+                logging.info(f"Context tokens: {self.total_tokens}. Trimming the oldest entries to remain under {self.max_context_length} tokens.")
+            else:
+                logging.warning("Cannot trim further: only system message remains")
+                break
+
+        return context.messages
+
+    def get_stats(self, context):
+        return self.get_token_counts(context.messages)
