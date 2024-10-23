@@ -31,6 +31,7 @@ class AI:
         if self.config.model is not None:
             inputstream = inputstream.read().decode('utf-8')
             if inputstream != "":
+                inputstream = inputstream.rstrip()
                 question = { "role" : "user", "content" : inputstream }
                 self.contextmgr.append(question)
                 self.contextmgr.trim()

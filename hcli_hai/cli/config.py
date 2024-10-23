@@ -5,7 +5,7 @@ from os.path import isfile, join, isdir
 from os import path, listdir
 from model import models
 
-import hutils
+from utils import hutils
 
 import os
 import sys

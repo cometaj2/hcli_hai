@@ -4,10 +4,12 @@ import os
 import logger
 import tiktoken
 import config as c
-import hutils
-import summary as s
 import resource
 import threading
+
+from utils import hutils
+from utils import formatting as f
+from utils import summary as s
 
 logging = logger.Logger()
 
@@ -77,12 +79,14 @@ class Context:
     @property
     def messages(self):
         with self.rlock:
-            return list(self._messages)  # Return a copy to prevent external modifications
+            # Return a deep copy to prevent external modifications while preserving the list structure
+            return [{k: v for k, v in msg.items()} for msg in self._messages]
 
     @messages.setter
     def messages(self, value):
         with self.rlock:
-            self._messages = list(value)  # Make a copy to prevent external modifications
+            # Make a deep copy when setting
+            self._messages = [{k: v for k, v in msg.items()} for msg in value]
 
     def serialize(self):
         with self.rlock:
@@ -107,15 +111,21 @@ class ContextManager:
                 cls.instance.__init()
             return cls.instance
 
+    # rlock is only initialized once but the rest of the state can be reinitialized
     def __init(self):
         self.rlock = threading.RLock()
-        self.message_tokens = 0
-        self.context_tokens = 0
-        self.total_tokens = 0
-        self.max_context_length = 200000
-        self.encoding_base = "p50k_base"
-        self.config = c.Config()
-        self.context = self.get_context()
+        with self.rlock:
+            self.init()
+
+    def init(self):
+        with self.rlock:
+            self.message_tokens = 0
+            self.context_tokens = 0
+            self.total_tokens = 0
+            self.max_context_length = 200000
+            self.encoding_base = "p50k_base"
+            self.config = c.Config()
+            self.context = self.get_context()
 
     def __count(self):
         with self.rlock:
@@ -165,8 +175,13 @@ class ContextManager:
 
     def append(self, question):
         with self.rlock:
+            if not isinstance(question, dict) or 'role' not in question or 'content' not in question:
+                raise ValueError("Invalid message format. Expected dict with 'role' and 'content' keys")
+
             logging.debug(question)
-            self.context.messages.append(question)
+            current_messages = self.context.messages
+            current_messages.append(question)
+            self.context.messages = current_messages  # This ensures proper copying
 
     def get_context(self):
         with self.rlock:
@@ -176,19 +191,26 @@ class ContextManager:
     # Ouput for human consumption and longstanding conversation tracking
     def get_readable_context(self):
         with self.rlock:
-#             context_data = self.get_context()
-            readable_context = []
-            if self.context is not None:
-                readable_context.append(f"----Name: {self.context.name}\n\n")
-                readable_context.append(f"----Title: {self.context.title}\n\n")
-                messages = self.context.messages
-                for item in messages:
-                    role = item.get('role', 'Unknown')
-                    content = item.get('content', '')
-                    readable_context.append(f"----{role.capitalize()}:\n\n{content}\n")
+            self.context = self.config.get_context()
 
-            result = "".join(readable_context)
-            return result
+            if self.context is None:
+                return ""
+
+            sections = []
+
+            # Add name section
+            sections.append(f.Formatting.format("Name", self.context.name))
+
+            # Add title section
+            sections.append(f.Formatting.format("Title", self.context.title))
+
+            # Add message sections
+            for item in self.context.messages:
+                role = item.get('role', 'Unknown').capitalize()
+                content = item.get('content', '')
+                sections.append(f.Formatting.format(role, content))
+
+            return "".join(sections)
 
     def messages(self):
         with self.rlock:
