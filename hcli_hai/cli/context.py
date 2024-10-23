@@ -96,44 +96,6 @@ class Context:
             return json.dumps(clean_dict, sort_keys=True, indent=4)
 
 
-# class Context:
-#     def __init__(self, model=None):
-# 
-#         self.title = ""
-#         self.name = ""
-#         self.messages = [{"role": "system", "content": ""}]
-# 
-#         # If model is provided, load it
-#         if model is not None:
-# 
-#             # If model is a JSON string, parse it
-#             if isinstance(model, str):
-# 
-#                 try:
-#                     data = json.loads(model)
-#                     self.__load_dict(data)
-#                 except json.JSONDecodeError:
-#                     logging.error("Invalid JSON string provided")
-#                     raise ValueError("Invalid JSON string provided")
-# 
-#             # If model is already a dictionary
-#             elif isinstance(model, dict):
-#                 self.__load_dict(model)
-# 
-#             # If model is another object
-#             else:
-#                 for key, value in vars(model).items():
-#                     setattr(self, key, value)
-# 
-#     def __load_dict(self, data):
-#         for key, value in data.items():
-#             setattr(self, key, value)
-# 
-#     def serialize(self):
-#         return json.dumps(self, default=lambda o: o.__dict__,
-#                          sort_keys=True,
-#                          indent=4)
-
 class ContextManager:
     init_lock = threading.Lock()
     instance = None
