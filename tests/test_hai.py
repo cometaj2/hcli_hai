@@ -1,9 +1,7 @@
-from __future__ import absolute_import, division, print_function
-
 import subprocess
 import os
 
-def test_function():
+def test_hai_context():
     setup = """
     #!/bin/bash
     set -x
@@ -30,7 +28,6 @@ def test_function():
     eval $(huckle env)
     hai new > /dev/null 2>&1
     hai context
-    kill $(ps aux | grep '[g]unicorn' | awk '{print $2}')
     """
 
     p2 = subprocess.Popen(['bash', '-c', hello], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -41,3 +38,23 @@ def test_function():
     print(result)
 
     assert(result == '{\n    "messages": [\n        {\n            "content": "",\n            "role": "system"\n        }\n    ],\n    "name": "",\n    "title": ""\n}\n')
+
+def test_hai_name():
+    hello = """
+    #!/bin/bash
+    set -x
+
+    eval $(huckle env)
+    hai name set hello
+    hai name
+    ps aux | grep '[g]unicorn' | awk '{print $2}' | xargs kill
+    """
+
+    p3 = subprocess.Popen(['bash', '-c', hello], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p3.communicate()
+    error = err.decode('utf-8')
+    result = out.decode('utf-8')
+    print(error)
+    print(result)
+
+    assert(result == 'hello\n')
