@@ -42,6 +42,8 @@ def test_function():
 
     p1 = subprocess.Popen(['bash', '-c', setup], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     out, err = p1.communicate()
+    print("Setup stdout:", out.decode('utf-8'))
+    print("Setup stderr:", err.decode('utf-8'))
 
     hello = """
     #!/bin/bash
