@@ -12,7 +12,6 @@ import uuid
 import shutil
 
 from datetime import datetime
-from openai import OpenAI
 from anthropic import Anthropic
 from model import models
 

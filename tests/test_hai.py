@@ -8,42 +8,20 @@ def test_function():
     #!/bin/bash
     set -x
 
-    # Try to kill any existing gunicorn processes
-    pkill gunicorn || true
-
-    # Start gunicorn with more verbose logging and capture output
-    gunicorn --workers=1 --threads=1 --log-level debug --bind 127.0.0.1:8000 "hcli_core:connector(\\"$CLI_PATH\\")" --daemon --capture-output --error-logfile - --access-logfile - &
-    GUNICORN_PID=$!
-
-    # Wait and check if server is running
-    echo "Waiting for server to start..."
-    sleep 5
-
-    # Check if gunicorn is still running
-    if ! ps -p $GUNICORN_PID > /dev/null; then
-        echo "Gunicorn process died. Checking logs:"
-        cat /tmp/gunicorn-error.log || true
-        exit 1
-    fi
-
-    # Test server connection
-    if ! curl -v http://127.0.0.1:8000 2>&1; then
-        echo "Server failed to start. Process info:"
-        ps aux | grep gunicorn
-        echo "Checking for listening ports:"
-        netstat -tulpn | grep LISTEN
-        echo "Checking logs:"
-        cat /tmp/gunicorn-error.log || true
-        exit 1
-    fi
-
+    gunicorn --workers=1 --threads=1 "hcli_core:connector(\\"`hcli_hai path`\\")" --error-log ./error.log --daemon
+    sleep 3
     huckle cli install http://127.0.0.1:8000
+
+    cat ./error.log
     """
 
-    p1 = subprocess.Popen(['bash', '-c', setup], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    p1 = subprocess.Popen(['bash', '-c', setup], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p1.communicate()
-    print("Setup stdout:", out.decode('utf-8'))
-    print("Setup stderr:", err.decode('utf-8'))
+
+    error = err.decode('utf-8')
+    result = out.decode('utf-8')
+    print(error)
+    print(result)
 
     hello = """
     #!/bin/bash
@@ -55,8 +33,11 @@ def test_function():
     kill $(ps aux | grep '[g]unicorn' | awk '{print $2}')
     """
 
-    p2 = subprocess.Popen(['bash', '-c', hello], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    p2 = subprocess.Popen(['bash', '-c', hello], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p2.communicate()
+    error = err.decode('utf-8')
     result = out.decode('utf-8')
+    print(error)
+    print(result)
 
     assert(result == '{\n    "messages": [\n        {\n            "content": "",\n            "role": "system"\n        }\n    ],\n    "name": "",\n    "title": ""\n}\n')

@@ -8,7 +8,6 @@ import tiktoken
 import logger
 import ai
 
-from openai import OpenAI
 from anthropic import Anthropic
 
 logging = logger.Logger()
