@@ -8,8 +8,20 @@ def test_function():
     #!/bin/bash
     set -x
 
-    gunicorn --workers=1 --threads=1 "hcli_core:connector(\\"`hcli_hai path`\\")" --daemon
-    sleep 3
+    # Try to kill any existing gunicorn processes
+    pkill gunicorn || true
+
+    # Start gunicorn with more verbose logging
+    gunicorn --workers=1 --threads=1 --log-level debug --bind 127.0.0.1:8000 "hcli_core:connector(\\"`hcli_hai path`\\")" --daemon
+
+    # Wait and check if server is running
+    sleep 5
+    if ! curl -v http://127.0.0.1:8000 2>&1; then
+        echo "Server failed to start"
+        ps aux | grep gunicorn
+        exit 1
+    fi
+
     huckle cli install http://127.0.0.1:8000
     """
 
