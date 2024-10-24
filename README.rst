@@ -3,7 +3,7 @@
 HCLI hai
 ========
 
-HCLI hai is a python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with Anthropic's Claude via terminal input and output streams.
+HCLI hai is a python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with Anthropic's Claude models via terminal input and output streams.
 
 ----
 
@@ -51,7 +51,7 @@ Note that no CLI is actually installed by Huckle. Huckle reads the HCLI semantic
 
 Versioning
 ----------
-    
+
 This project makes use of semantic versioning (http://semver.org) and may make use of the "devx",
 "prealphax", "alphax" "betax", and "rcx" extensions where x is a number (e.g. 0.3.0-prealpha1)
 on github.
@@ -62,6 +62,8 @@ Supports
 - Chatting via input/output streams (e.g. via pipes).
 - .hai folder structure in a users's home directory to help track hai configuration and contexts.
 - Creating, listing, deleting and changing conversation contexts.
+- Automatic title creation based on context
+- Custom context naming to help organize contexts
 - Behavior setting to allow for persistent chatbot behavior (e.g. the Do Anything Now (DAN) prompt).
 
 To Do
