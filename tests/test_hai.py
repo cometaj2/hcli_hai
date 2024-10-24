@@ -19,7 +19,7 @@ def test_function():
     #!/bin/bash
     set -x
 
-    export PATH=$PATH:~/.huckle/bin
+    eval $(huckle env)
     hai new > /dev/null 2>&1
     hai context
     kill $(ps aux | grep '[g]unicorn' | awk '{print $2}')
