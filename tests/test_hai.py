@@ -9,6 +9,7 @@ def test_function():
     set -x
 
     gunicorn --workers=1 --threads=1 "hcli_core:connector(\\"`hcli_hai path`\\")" --daemon
+    sleep 3
     huckle cli install http://127.0.0.1:8000
     """
 
