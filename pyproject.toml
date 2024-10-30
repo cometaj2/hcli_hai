@@ -31,7 +31,10 @@ version = {attr = "hcli_hai.package.__version__"}
 dependencies = {file = "requirements.txt"}
 
 [tool.setuptools]
-packages = ["hcli_hai"]
+packages = ["hcli_hai",
+            "hcli_hai.cli",
+            "hcli_hai.cli.utils",
+            "hcli_hai.data"]
 include-package-data = true
 
 [tool.setuptools.package-data]
