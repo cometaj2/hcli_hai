@@ -27,7 +27,7 @@ class CLI:
         if len(self.commands) == 1:
             if self.inputstream is not None:
                 response = self.ai.chat(self.inputstream)
-                return io.BytesIO(response.encode('utf-8') + "\n".encode('utf-8'))
+                return io.BytesIO(response.encode('utf-8'))
 
         if self.commands[1] == "clear":
             self.ai.clear()
@@ -36,22 +36,22 @@ class CLI:
         if self.commands[1] == "context":
             if len(self.commands) == 2:
                 context = self.ai.get_context()
-                return io.BytesIO(context.serialize().encode('utf-8') + "\n".encode('utf-8'))
+                return io.BytesIO(context.serialize().encode('utf-8'))
             if len(self.commands) == 3:
                 readable_context = self.ai.get_readable_context()
-                return io.BytesIO(readable_context.encode('utf-8') + "\n".encode('utf-8'))
+                return io.BytesIO(readable_context.encode('utf-8'))
 
         if self.commands[1] == "ls":
             contexts = self.ai.ls()
-            return io.BytesIO(json.dumps(contexts, indent=4).encode('utf-8') + "\n".encode('utf-8'))
+            return io.BytesIO(json.dumps(contexts, indent=4).encode('utf-8'))
 
         if self.commands[1] == "new":
             current = self.ai.new()
-            return io.BytesIO(current.encode('utf-8') + "\n".encode('utf-8'))
+            return io.BytesIO(current.encode('utf-8'))
 
         if self.commands[1] == "current":
             current = self.ai.current()
-            return io.BytesIO(current.encode('utf-8') + "\n".encode('utf-8'))
+            return io.BytesIO(current.encode('utf-8'))
 
         if self.commands[1] == "behavior":
             if self.inputstream is not None:
@@ -62,9 +62,9 @@ class CLI:
             if len(self.commands) == 2:
                 name = self.ai.name()
                 if name is not None:
-                    return io.BytesIO(name.encode('utf-8') + "\n".encode('utf-8'))
+                    return io.BytesIO(name.encode('utf-8'))
                 else:
-                    return io.BytesIO(b"None\n")
+                    return io.BytesIO(b"None")
 
             if len(self.commands) == 4:
                 if self.commands[2] == "set":
@@ -75,14 +75,14 @@ class CLI:
             if len(self.commands) == 2:
                 model = self.ai.model()
                 if model is not None:
-                    return io.BytesIO(model.encode('utf-8') + "\n".encode('utf-8'))
+                    return io.BytesIO(model.encode('utf-8'))
                 else:
-                    return io.BytesIO(b"None\n")
+                    return io.BytesIO(b"None")
 
             if len(self.commands) == 3:
                 if self.commands[2] == "ls":
                     models = self.ai.list_models()
-                    return io.BytesIO(json.dumps(models, indent=4).encode('utf-8') + "\n".encode('utf-8'))
+                    return io.BytesIO(json.dumps(models, indent=4).encode('utf-8'))
 
             if len(self.commands) == 4:
                 if self.commands[2] == "set":
