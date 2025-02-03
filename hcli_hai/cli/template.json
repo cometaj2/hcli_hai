@@ -42,6 +42,10 @@
             "http": "get"
         },
         {
+            "command": "hai model ls --json",
+            "http": "get"
+        },
+        {
             "command": "hai model set {p}",
             "http": "post"
         },
@@ -195,11 +199,18 @@
                 },
                 {
                     "name": "synopsis",
-                    "description": "hai model ls"
+                    "description": "hai model ls [--json]"
                 },
                 {
                     "name": "description",
                     "description": "The \"ls\" command lists all available models to select from."
+                }
+            ],
+            "option": [
+                {
+                    "href": "haimodells--json",
+                    "name": "--json",
+                    "description": "The \"--json\" option lists all usable models in JSON format."
                 }
             ]
         },
@@ -309,7 +320,7 @@
                 {
                     "href": "haicontext--json",
                     "name": "--json",
-                    "description": "The \"--json\" option prints a json version of current context to help with programmatic integration."
+                    "description": "The \"--json\" allows you to view the current context in JSON format."
                 }
             ]
         },

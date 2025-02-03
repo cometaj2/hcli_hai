@@ -82,9 +82,17 @@ class CLI:
             if len(self.commands) == 3:
                 if self.commands[2] == "ls":
                     models = self.ai.list_models()
-                    return io.BytesIO(json.dumps(models, indent=4).encode('utf-8'))
+                    models_string = ""
+                    for model in models:
+                        models_string += model + "\n"
+                    models_string = models_string.rstrip()
+                    return io.BytesIO(models_string.encode('utf-8'))
 
             if len(self.commands) == 4:
+                if self.commands[2] == "ls":
+                    if self.commands[3] == '--json':
+                        models = self.ai.list_models()
+                        return io.BytesIO(json.dumps(models, indent=4).encode('utf-8'))
                 if self.commands[2] == "set":
                     self.ai.set_model(self.commands[3])
                     return
