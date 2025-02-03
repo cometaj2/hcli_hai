@@ -80,6 +80,13 @@ class CLI:
                     return io.BytesIO(b"None")
 
             if len(self.commands) == 3:
+                if self.commands[2] == "--json":
+                    model = self.ai.model()
+                    if model is not None:
+                        return io.BytesIO(json.dumps([model], indent=4).encode('utf-8'))
+                    else:
+                        return io.BytesIO(json.dumps(["None"], indent=4).encode('utf-8'))
+
                 if self.commands[2] == "ls":
                     models = self.ai.list_models()
                     models_string = ""

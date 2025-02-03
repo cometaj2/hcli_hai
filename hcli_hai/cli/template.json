@@ -38,6 +38,10 @@
             "http": "get"
         },
         {
+            "command": "hai model --json",
+            "http": "get"
+        },
+        {
             "command": "hai model ls",
             "http": "get"
         },
@@ -186,6 +190,13 @@
                     "href": "haimodelset",
                     "name": "set",
                     "description": "The \"set\" command sets the current model per the allowed list of usable models."
+                }
+            ],
+            "option": [
+                {
+                    "href": "haimodel--json",
+                    "name": "--json",
+                    "description": "The \"--json\" option shows the currently set model in JSON format."
                 }
             ]
         },
