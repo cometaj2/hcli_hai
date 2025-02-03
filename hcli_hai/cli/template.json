@@ -26,7 +26,7 @@
             "http": "get"
         },
         {
-            "command": "hai context -h",
+            "command": "hai context --json",
             "http": "get"
         },
         {
@@ -294,22 +294,22 @@
             "section": [
                 {
                     "name": "name",
-                    "description": "context - allows you to work with the conversation context."
+                    "description": "context - allows you to view the current conversation context."
                 },
                 {
                     "name": "synopsis",
-                    "description": "hai context [-h]"
+                    "description": "hai context [--json]"
                 },
                 {
                     "name": "description",
-                    "description": "The \"context\" command allows you to view the current context. The context is what makes the chatbot remember what was previously discussed so that a more coherent conversation can take place."
+                    "description": "The \"context\" command allows you to view the current context in a human readable format. The context is what makes the chatbot remember what was previously discussed so that a more coherent conversation can take place."
                 }
             ],
             "option": [
                 {
-                    "href": "haicontext-h",
-                    "name": "-h",
-                    "description": "The \"-h\" option prints a human readable version of the full current context."
+                    "href": "haicontext--json",
+                    "name": "--json",
+                    "description": "The \"--json\" option prints a json version of current context to help with programmatic integration."
                 }
             ]
         },
