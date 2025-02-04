@@ -209,7 +209,7 @@ class ContextManager:
                 content = item.get('content', '')
                 sections.append(f.Formatting.format(role, content))
 
-            return "".join(sections)
+            return "".join(sections).rstrip()
 
     def messages(self):
         with self.rlock:

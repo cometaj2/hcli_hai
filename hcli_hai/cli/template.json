@@ -14,6 +14,10 @@
             "http": "post"
         },
         {
+            "command": "hai new --json",
+            "http": "post"
+        },
+        {
             "command": "hai name",
             "http": "get"
         },
@@ -31,6 +35,10 @@
         },
         {
             "command": "hai current",
+            "http": "get"
+        },
+        {
+            "command": "hai current --json",
             "http": "get"
         },
         {
@@ -55,6 +63,10 @@
         },
         {
             "command": "hai ls",
+            "http": "get"
+        },
+        {
+            "command": "hai ls --json",
             "http": "get"
         },
         {
@@ -196,7 +208,7 @@
                 {
                     "href": "haimodel--json",
                     "name": "--json",
-                    "description": "The \"--json\" option shows the currently set model in JSON format."
+                    "description": "Return a JSON formatted output."
                 }
             ]
         },
@@ -221,7 +233,7 @@
                 {
                     "href": "haimodells--json",
                     "name": "--json",
-                    "description": "The \"--json\" option lists all usable models in JSON format."
+                    "description": "Return a JSON formatted output."
                 }
             ]
         },
@@ -261,6 +273,13 @@
                 {
                     "name": "description",
                     "description": "The \"new\" command creates a brand new context and switches to it as the current context."
+                }
+            ],
+            "option": [
+                {
+                    "href": "hainew--json",
+                    "name": "--json",
+                    "description": "Return a JSON formatted output."
                 }
             ]
         },
@@ -331,7 +350,7 @@
                 {
                     "href": "haicontext--json",
                     "name": "--json",
-                    "description": "The \"--json\" allows you to view the current context in JSON format."
+                    "description": "Return a JSON formatted output."
                 }
             ]
         },
@@ -349,7 +368,7 @@
                 },
                 {
                     "name": "description",
-                    "description": "The \"current\" command allows you to fetch the context id (a uuid4) of the current context."
+                    "description": "The \"current\" command allows you to fetch the context id of the current context."
                 }
             ]
         },
@@ -381,11 +400,18 @@
                 },
                 {
                     "name": "synopsis",
-                    "description": "hai ls"
+                    "description": "hai ls [--json]"
                 },
                 {
                     "name": "description",
                     "description": "The \"ls\" command lists all usable contexts by context id. Each context is also tied to an auto generated title that acts as a summary and helps provide a bit of additional information about the related context. The list is sorted by context update time."
+                }
+            ],
+            "option": [
+                {
+                    "href": "hails--json",
+                    "name": "--json",
+                    "description": "Return a JSON formatted output."
                 }
             ]
         },

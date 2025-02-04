@@ -12,7 +12,7 @@ import sys
 import shutil
 import json
 import logger
-import uuid
+import base64
 import context as c
 
 logging = logger.Logger()
@@ -42,6 +42,12 @@ class Config:
         self.create_configuration()
         self.parse_configuration()
 
+    # base32 approach (10 chars) to help avoid 1/I 0/O visual discrepancies.
+    def generate_id(self):
+        random_bytes = os.urandom(6)  # 6 bytes = 10 chars in base32
+        id = base64.b32encode(random_bytes).decode('utf-8').rstrip('=')
+        return id
+
     # parses the configuration of a given cli to set configured execution
     def parse_configuration(self):
         if self.parser.has_section("default"):
@@ -62,7 +68,7 @@ class Config:
             hutils.create_file(self.dot_hai_config_file)
 
             self.parser.read_file(StringIO(u"[default]"))
-            self.parser.set("default", "context", str(uuid.uuid4()))
+            self.parser.set("default", "context", str(self.generate_id()))
             with open(self.dot_hai_config_file, "w") as config:
                 self.parser.write(config)
         else:

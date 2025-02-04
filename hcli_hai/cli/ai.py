@@ -8,7 +8,6 @@ import logger
 import config
 import context as c
 import config
-import uuid
 import shutil
 
 from datetime import datetime
