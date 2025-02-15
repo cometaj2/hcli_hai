@@ -37,7 +37,7 @@ def test_hai_context():
     print(error)
     print(result)
 
-    assert(result == '{\n    "messages": [\n        {\n            "content": "",\n            "role": "system"\n        }\n    ],\n    "name": "",\n    "title": ""\n}\n')
+    assert('{\n    "messages": [\n        {\n            "content": "",\n            "role": "system"\n        }\n    ],\n    "name": "",\n    "title": ""\n}\n' == result)
 
 def test_hai_name():
     hello = """
@@ -57,4 +57,4 @@ def test_hai_name():
     print(error)
     print(result)
 
-    assert(result == 'hello\n')
+    assert('hello\n' == result)
