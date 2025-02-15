@@ -27,7 +27,7 @@ def test_hai_context():
 
     eval $(huckle env)
     hai new > /dev/null 2>&1
-    hai context
+    hai context --json
     """
 
     p2 = subprocess.Popen(['bash', '-c', hello], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -37,7 +37,7 @@ def test_hai_context():
     print(error)
     print(result)
 
-    assert(result == '{\n    "messages": [\n        {\n            "content": "",\n            "role": "system"\n        }\n    ],\n    "name": "",\n    "title": ""\n}')
+    assert(result == '{\n    "messages": [\n        {\n            "content": "",\n            "role": "system"\n        }\n    ],\n    "name": "",\n    "title": ""\n}\n')
 
 def test_hai_name():
     hello = """
@@ -57,4 +57,4 @@ def test_hai_name():
     print(error)
     print(result)
 
-    assert(result == 'hello')
+    assert(result == 'hello\n')

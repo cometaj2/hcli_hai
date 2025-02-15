@@ -1,0 +1,32 @@
+[2025-02-15 12:19:19 -0800] [92195] [INFO] Starting gunicorn 23.0.0
+[2025-02-15 12:19:19 -0800] [92195] [INFO] Listening at: http://127.0.0.1:8000 (92195)
+[2025-02-15 12:19:19 -0800] [92195] [INFO] Using worker: sync
+[2025-02-15 12:19:19 -0800] [92196] [INFO] Booting worker with pid: 92196
+[2025-02-15 12:19:23 -0800] [92196] [INFO] Worker exiting (pid: 92196)
+[2025-02-15 12:19:23 -0800] [92195] [INFO] Handling signal: term
+[2025-02-15 12:19:23 -0800] [92195] [ERROR] Worker (pid:92196) was sent SIGTERM!
+[2025-02-15 12:19:23 -0800] [92195] [INFO] Shutting down: Master
+[2025-02-15 12:20:17 -0800] [92380] [INFO] Starting gunicorn 23.0.0
+[2025-02-15 12:20:17 -0800] [92380] [INFO] Listening at: http://127.0.0.1:8000 (92380)
+[2025-02-15 12:20:17 -0800] [92380] [INFO] Using worker: sync
+[2025-02-15 12:20:17 -0800] [92381] [INFO] Booting worker with pid: 92381
+[2025-02-15 12:20:22 -0800] [92381] [INFO] Worker exiting (pid: 92381)
+[2025-02-15 12:20:22 -0800] [92380] [INFO] Handling signal: term
+[2025-02-15 12:20:22 -0800] [92380] [ERROR] Worker (pid:92381) was sent SIGTERM!
+[2025-02-15 12:20:22 -0800] [92380] [INFO] Shutting down: Master
+[2025-02-15 12:21:10 -0800] [92541] [INFO] Starting gunicorn 23.0.0
+[2025-02-15 12:21:10 -0800] [92541] [INFO] Listening at: http://127.0.0.1:8000 (92541)
+[2025-02-15 12:21:10 -0800] [92541] [INFO] Using worker: sync
+[2025-02-15 12:21:10 -0800] [92542] [INFO] Booting worker with pid: 92542
+[2025-02-15 12:21:14 -0800] [92542] [INFO] Worker exiting (pid: 92542)
+[2025-02-15 12:21:14 -0800] [92541] [INFO] Handling signal: term
+[2025-02-15 12:21:14 -0800] [92541] [ERROR] Worker (pid:92542) was sent SIGTERM!
+[2025-02-15 12:21:15 -0800] [92541] [INFO] Shutting down: Master
+[2025-02-15 12:21:57 -0800] [92684] [INFO] Starting gunicorn 23.0.0
+[2025-02-15 12:21:57 -0800] [92684] [INFO] Listening at: http://127.0.0.1:8000 (92684)
+[2025-02-15 12:21:57 -0800] [92684] [INFO] Using worker: sync
+[2025-02-15 12:21:57 -0800] [92685] [INFO] Booting worker with pid: 92685
+[2025-02-15 12:22:01 -0800] [92685] [INFO] Worker exiting (pid: 92685)
+[2025-02-15 12:22:01 -0800] [92684] [INFO] Handling signal: term
+[2025-02-15 12:22:01 -0800] [92684] [ERROR] Worker (pid:92685) was sent SIGTERM!
+[2025-02-15 12:22:01 -0800] [92684] [INFO] Shutting down: Master
