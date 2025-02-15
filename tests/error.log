@@ -1,0 +1,8 @@
+[2025-02-15 12:38:15 -0800] [96521] [INFO] Starting gunicorn 23.0.0
+[2025-02-15 12:38:15 -0800] [96521] [INFO] Listening at: http://127.0.0.1:8000 (96521)
+[2025-02-15 12:38:15 -0800] [96521] [INFO] Using worker: sync
+[2025-02-15 12:38:15 -0800] [96522] [INFO] Booting worker with pid: 96522
+[2025-02-15 12:38:19 -0800] [96522] [INFO] Worker exiting (pid: 96522)
+[2025-02-15 12:38:19 -0800] [96521] [INFO] Handling signal: term
+[2025-02-15 12:38:19 -0800] [96521] [ERROR] Worker (pid:96522) was sent SIGTERM!
+[2025-02-15 12:38:19 -0800] [96521] [INFO] Shutting down: Master
