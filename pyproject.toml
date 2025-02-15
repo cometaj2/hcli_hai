@@ -7,7 +7,7 @@ name = "hcli_hai"
 dynamic = ["version", "dependencies"]
 description="HCLI hai is a python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with Anthropic's Claude or OpenAI's GPT AI models via terminal input and output streams."
 readme = "README.rst"
-authors = [{name = "Jeff Michaud", email = "cometaj2@comcast.net"}]
+authors = [{name = "Jeff Michaud", email = "cometaj2@proton.me"}]
 license = {text = "MIT"}
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -18,7 +18,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12"
 ]
-keywords = ["cli", "client", "server", "connector", "hypermedia", "rest", "generic", "development"]
+keywords = ["ai", "llm", "cli", "client", "server", "connector", "hypermedia", "rest", "generic", "development"]
 
 [project.urls]
 Homepage = "https://github.com/cometaj2/hcli_hai"

@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [3.0.1]
 - Fix failing tests
+- Cleanup pyproject
 
 ## [3.0.0]
 - Update default command line output to be terminal user friendly (not json)

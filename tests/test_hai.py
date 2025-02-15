@@ -19,7 +19,7 @@ def test_hai_context(gunicorn_server, cleanup):
     error = err.decode('utf-8')
     result = out.decode('utf-8')
 
-    assert('{\n    "messages": [\n        {\n            "content": "",\n            "role": "system"\n        }\n    ],\n    "name": "",\n    "title": ""\n}\n' == result)
+    assert('{\n    "messages": [\n        {\n            "content": "",\n            "role": "system"\n        }\n    ],\n    "name": "",\n    "title": ""\n}' == result)
 
 def test_hai_name(gunicorn_server, cleanup):
     hello = """
@@ -38,4 +38,4 @@ def test_hai_name(gunicorn_server, cleanup):
     error = err.decode('utf-8')
     result = out.decode('utf-8')
 
-    assert('hello\n' == result)
+    assert('hello' == result)
