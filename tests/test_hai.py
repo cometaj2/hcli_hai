@@ -18,8 +18,6 @@ def test_hai_context():
 
     error = err.decode('utf-8')
     result = out.decode('utf-8')
-    print(error)
-    print(result)
 
     hello = """
     #!/bin/bash
@@ -34,8 +32,6 @@ def test_hai_context():
     out, err = p2.communicate()
     error = err.decode('utf-8')
     result = out.decode('utf-8')
-    print(error)
-    print(result)
 
     assert('{\n    "messages": [\n        {\n            "content": "",\n            "role": "system"\n        }\n    ],\n    "name": "",\n    "title": ""\n}\n' == result)
 
@@ -54,7 +50,5 @@ def test_hai_name():
     out, err = p3.communicate()
     error = err.decode('utf-8')
     result = out.decode('utf-8')
-    print(error)
-    print(result)
 
     assert('hello\n' == result)
