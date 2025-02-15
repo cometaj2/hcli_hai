@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Update default command line output to be terminal user friendly (not json)
 - Add --json option for various commands to help with programmatic consumption and integration.
 - Update to shorter base32 context ids to improve copy pasting and readability in the terminal
+- Add sonnet, haiku, and opus latest model tags and update max token values.
 
 ## [2.1.3]
 - Fix and remove extra \n in responses

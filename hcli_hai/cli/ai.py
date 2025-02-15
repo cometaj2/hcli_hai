@@ -148,12 +148,13 @@ class AI:
 
         return sorted_contexts
 
-    def set(self, id):
+    def set(self, context_id):
         contexts = self.ls()
         context_ids = [context['context_id'] for context in contexts]
-        if id in context_ids:
-            self.contextmgr.set(id)
+        if context_id in context_ids:
+            self.contextmgr.set(context_id)
         else:
+            logging.warning(context_id)
             logging.warning("provided context id is not found in available contexts.")
 
     def new(self):
@@ -164,8 +165,8 @@ class AI:
 
         return self.current()
 
-    def rm(self, id):
-        context_folder = os.path.join(self.config.dot_hai_context, id)
+    def rm(self, context_id):
+        context_folder = os.path.join(self.config.dot_hai_context, context_id)
         if os.path.exists(context_folder):
             shutil.rmtree(context_folder)
             logging.info("removed " + context_folder)
