@@ -123,35 +123,6 @@ class ContextManager:
             self.config = c.Config()
             self.context = self.get_context()
 
-#     def __count(self):
-#         with self.rlock:
-#             encoding = tiktoken.get_encoding(self.encoding_base)
-# 
-#             self.message_tokens = 0
-#             for item in self.context.messages:
-#                 if "content" in item:
-#                     self.message_tokens += len(encoding.encode(item["content"]))
-# 
-#             self.context_tokens = 0
-#             for item in self.context.messages:
-#                 self.context_tokens += len(encoding.encode(json.dumps(item)))
-# 
-#             self.total_tokens = self.message_tokens + self.context_tokens
-#             message = "Context tokens: " + str(self.total_tokens)
-#             logging.info(message)
-# 
-#             if self.total_tokens > self.max_context_length:
-#                 return True
-# 
-#             return False
-# 
-#     def trim(self):
-#         with self.rlock:
-#             while(self.__count()):
-#                 self.context.messages.pop(1)
-#                 message = "Context tokens: " + str(self.total_tokens) + ". Trimming the oldest entries to remain under " + str(self.max_context_length) + " tokens."
-#                 logging.info(message)
-
     def trim(self):
         self.counter.trim(self.context)
 
