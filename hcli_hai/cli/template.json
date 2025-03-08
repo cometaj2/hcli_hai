@@ -80,6 +80,10 @@
         {
             "command": "hai behavior",
             "http": "post"
+        },
+        {
+            "command": "hai vibe",
+            "http": "get"
         }
     ],
     "cli": [
@@ -154,6 +158,11 @@
                     "href": "haibehavior",
                     "name": "behavior",
                     "description": "The \"behavior\" command allows you to set the persistent chatbot's behavior for the current context (e.g. the Do Anything Now (DAN) prompt)."
+                },
+                {
+                    "href": "haivibe",
+                    "name": "vibe",
+                    "description": "The \"vibe\" command allows you turn your chat context into an agent that can make use of any externally available HCLI tools via huckle."
                 }
             ]
         },
@@ -456,6 +465,24 @@
             "parameter": {
                 "href": "haiset"
             }
+        },
+        {
+            "id": "haivibe",
+            "name": "vibe",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "vibe - vibe on hypertext command line interface integration and conversation semantics to turn the conversation into an AI agent that can make use of external tools."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai vibe"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"vibe\" command allows you turn your chat context into an agent that can make use of any externally available HCLI tools via huckle."
+                }
+            ]
         }
     ]
 }

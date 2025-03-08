@@ -1,9 +1,14 @@
 import json
 import io
 import ai
+import logger
 from utils import formatting
 
 from typing import Optional, Dict, Callable, List
+
+logging = logger.Logger()
+logging.setLevel(logger.INFO)
+
 
 class CLI:
    def __init__(self, commands: List[str], inputstream: Optional[io.BytesIO] = None):
@@ -20,7 +25,8 @@ class CLI:
            'name': self._handle_name,
            'model': self._handle_model,
            'set': lambda: self.ai.set(self.commands[2]) if len(self.commands) == 3 else None,
-           'rm': lambda: self.ai.rm(self.commands[2]) if len(self.commands) == 3 else None
+           'rm': lambda: self.ai.rm(self.commands[2]) if len(self.commands) == 3 else None,
+           'vibe': self._handle_vibe
        }
 
    def execute(self) -> Optional[io.BytesIO]:
@@ -91,3 +97,6 @@ class CLI:
 
        return None
 
+   def _handle_vibe(self) -> None:
+       self.ai.vibe()
+       return None

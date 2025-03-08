@@ -2,6 +2,7 @@ import json
 import io
 import os
 import sys
+import re
 import inspect
 import traceback
 import logger
@@ -9,6 +10,8 @@ import config
 import context as c
 import config
 import shutil
+import time
+from huckle import cli, stdin
 
 from datetime import datetime
 from anthropic import Anthropic
@@ -190,3 +193,43 @@ class AI:
 
     def set_name(self, name):
         self.contextmgr.set_name(name)
+
+    def vibe(self):
+        messages = self.contextmgr.messages()
+        if messages:
+
+            # Get the last item using negative indexing
+            last_message = messages[-1]
+            logging.info(last_message['content'])
+
+            # Look for hcli_integration code blocks
+            pattern = r"```python\s*def\s+hcli_integration\(\):\s*cli\([\"'](.+?)[\"']\)\s*```"
+            match = re.search(pattern, last_message['content'], re.DOTALL)
+
+            command = None
+            if match:
+                command = match.group(1)  # Extract the command inside cli()
+                logging.info(command)
+
+                stdout = ""
+                stderr = ""
+                try:
+                    chunks = cli(command)
+                    for dest, chunk in chunks:
+                        if dest == 'stdout':
+                            stdout = stdout + chunk.decode()
+                        elif dest == 'error':
+                            stderr = stderr + chunk.decode()
+                except Exception as e:
+                    stderr = repr(e)
+
+                if stderr == "":
+                    if stdout == "":
+                        stdout = "silence is success"
+                    logging.info(stdout)
+                    self.chat(io.BytesIO(stdout.encode('utf-8')))
+                else:
+                    logging.warning(stderr)
+                    self.chat(io.BytesIO(stderr.encode('utf-8')))
+            else:
+                logging.warning("Hai can't vibe without hcli_integration conversation cues")
