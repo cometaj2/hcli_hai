@@ -1,6 +1,7 @@
 import json
 import io
 import ai
+import service
 import logger
 from utils import formatting
 
@@ -15,6 +16,7 @@ class CLI:
        self.commands = commands
        self.inputstream = inputstream
        self.ai = ai.AI()
+       self.service = service.Service()
        self.handlers: Dict[str, Callable] = {
            'clear': lambda: self.ai.clear(),
            'context': self._handle_context,
@@ -98,5 +100,5 @@ class CLI:
        return None
 
    def _handle_vibe(self) -> None:
-       self.ai.vibe()
+       self.service.vibe(True)
        return None

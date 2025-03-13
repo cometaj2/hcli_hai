@@ -90,10 +90,13 @@ class Config:
             try:
                 with open(context_file_path, 'r') as f:
                     context = c.Context(json.load(f))
+                    logging.debug(f"[ hai ] Loaded context from {context_file_path}")
                     return context
             except:
+                logging.debug("[ hai ] Unable to open context file not found, creating new")
                 return self.new()
         else:
+            logging.debug("[ hai ] Context file not found, creating new")
             return self.new()
 
         return None
