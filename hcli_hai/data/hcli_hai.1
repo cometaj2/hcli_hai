@@ -26,4 +26,4 @@ hcli_hai path
 
 hcli_hai --version
 
-gunicorn --workers=1 --threads=100 -b 0.0.0.0::10000 "hcli_core:connector(\\"`hcli_hai path`\\")"
+gunicorn --workers=1 --threads=100 -b 0.0.0.0:10000 "hcli_core:connector(\\"`hcli_hai path`\\")"

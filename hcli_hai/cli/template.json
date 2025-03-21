@@ -82,8 +82,12 @@
             "http": "post"
         },
         {
-            "command": "hai vibe",
-            "http": "get"
+            "command": "hai vibe start",
+            "http": "post"
+        },
+        {
+            "command": "hai vibe stop",
+            "http": "post"
         }
     ],
     "cli": [
@@ -481,6 +485,54 @@
                 {
                     "name": "description",
                     "description": "The \"vibe\" command allows you turn your chat context into an agent that can make use of any externally available HCLI tools via huckle."
+                }
+            ],
+            "command": [
+                {
+                    "href": "haivibestart",
+                    "name": "start",
+                    "description": "Start vibing the conversation with hypertext command line interface (HCLI) integration."
+                },
+                {
+                    "href": "haivibestop",
+                    "name": "stop",
+                    "description": "Stop vibing."
+                }
+            ]
+        },
+        {
+            "id": "haivibestart",
+            "name": "start",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "start - vibe on hypertext command line interface (HCLI) integration and conversation semantics to turn the conversation into an AI agent that can make use of external tools."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai vibe start"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"start\" command allows you turn your chat context into an agent that can make use of any externally available HCLI tools via huckle. The agent then becomes as capable as the available external HCLI tools allow. If an HCLI tool is able to help search the web, then so will your agent."
+                }
+            ]
+        },
+        {
+            "id": "haivibestop",
+            "name": "stop",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "stop - stops vibing on the current converation context."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai vibe stop"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"stop\" command allows you to revert your chat back to a static conversation context. The context, inclusing the system prompt, otherwise remains as it was at the time vibing stopped."
                 }
             ]
         }

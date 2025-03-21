@@ -35,10 +35,10 @@ class AI:
 
     def __init_singleton(self):
         self.rlock = threading.RLock()
-        logging.info("[ hai ] Initializing AI singleton")
+        logging.debug("[ hai ] Initializing AI singleton")
         self.config = config.Config()
         self.contextmgr = c.ContextManager()
-        logging.info(f"[ hai ] AI initialization complete: config={bool(self.config)}, contextmgr={bool(self.contextmgr)}")
+        logging.debug(f"[ hai ] AI initialization complete: config={bool(self.config)}, contextmgr={bool(self.contextmgr)}")
 
     def chat(self, inputstream):
         with self.rlock:

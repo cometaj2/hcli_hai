@@ -65,6 +65,8 @@ Supports
 - Automatic title creation based on context
 - Custom context naming to help organize contexts
 - Behavior setting to allow for persistent chatbot behavior (e.g. the Do Anything Now (DAN) prompt).
+- Conversation vibing via detailed plans and HCLI integration to allow for external tool use.
+  - This allows for capabilities enhancements (e.g. web search, git repo interaction, terminal use, etc.).
 
 To Do
 -----
@@ -78,7 +80,7 @@ To Do
 Bugs
 ----
 
-N/A
+Vibing thread stays tied to a single and context and won't budge if a different context is selected
 
 .. |build status| image:: https://circleci.com/gh/cometaj2/hcli_hai.svg?style=shield
    :target: https://circleci.com/gh/cometaj2/hcli_hai

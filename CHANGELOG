@@ -6,11 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [3.2.0]
 - Update to latest version of tiktoken and anthropic libraries
-- Add vibe to allow for HCLI (hypertext command line interface) integration for external interaction
+- Add vibe start and stop to allow for hypertext command line interface (HCLI) integration (external tool use)
+- Fix hcli_hai --version output to allow for more complex expressions
 
 ## [3.1.0]
 - Add latest models (Claude Sonnet 3.7)
-- Fix typo on
+- Fix typos
 
 ## [3.0.1]
 - Fix failing tests

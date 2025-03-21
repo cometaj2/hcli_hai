@@ -100,5 +100,9 @@ class CLI:
        return None
 
    def _handle_vibe(self) -> None:
-       self.service.vibe(True)
+       if len(self.commands) == 3:
+           if self.commands[2] == "start":
+               self.service.vibe(True)
+           if self.commands[2] == "stop":
+               self.service.vibe(False)
        return None
