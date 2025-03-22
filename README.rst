@@ -76,11 +76,13 @@ To Do
     - Context blending to mary different contexts.
     - Automatic context compression to yield a more substantial memory footprint per context window.
 - A shell mode for the AI HCLI (hai) to enable shell CLI execution per sought goal.
+- Changing context while vibing is tenuous and can be disgraceful. It should be thought about.
+- Changing the vibing behavior should be made possible; it is currently locked in to HCLI integration and planning.
 
 Bugs
 ----
 
-Vibing thread stays tied to a single and context and won't budge if a different context is selected
+TBD
 
 .. |build status| image:: https://circleci.com/gh/cometaj2/hcli_hai.svg?style=shield
    :target: https://circleci.com/gh/cometaj2/hcli_hai

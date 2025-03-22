@@ -1,14 +1,13 @@
 import io
-import re
 import logger
 import threading
 import time
 import behavior as b
 import ai
 from huckle import cli, stdin
+import xml.etree.ElementTree as et
 
 logging = logger.Logger()
-
 
 # Singleton Runner
 class Runner:
@@ -39,29 +38,31 @@ class Runner:
         self.ai.contextmgr.get_context()
         messages = self.ai.contextmgr.messages()
         if messages:
-
             # Get the last item using negative indexing
             last_message = messages[-1]
             if last_message['role'] == "assistant":
+                # Parse with XML instead of regex
+                try:
+                    # Wrap in a root tag since XML needs a single root
+                    plan_xml = f"<root>{last_message['content']}</root>"
+                    root = et.fromstring(plan_xml)
+                    plan_elem = root.find('.//plan')  # Find the first <plan> tag
 
-                # First check if there's a plan tag
-                plan_pattern = r"<plan>(.*?)</plan>"
-                plan_matches = re.findall(plan_pattern, last_message['content'], re.DOTALL)
-
-                matches = []
-                if plan_matches:
-                    # Look for hcli tags within the first plan tag
-                    pattern = r"<hcli>(.*?)</hcli>"
-                    matches = re.findall(pattern, plan_matches[0], re.DOTALL)
-
-                # Check if we have at least one match
-                if matches:
-                    # Only execute the first match regardless of how many there are
-                    command = matches[0].strip()  # Extract the first command inside hcli tags
-                    logging.info(f"[ hai ] returning hcli integration: {command}")
-                    return command
-                else:
-                    logging.warning("[ hai ] I can't vibe without a plan and hcli tags.")
+                    if plan_elem is not None:
+                        # Look for hcli tags within the plan
+                        hcli_elems = plan_elem.findall('.//hcli')
+                        if hcli_elems:
+                            # Return the first hcli command
+                            command = hcli_elems[0].text.strip() if hcli_elems[0].text else ""
+                            logging.info(f"[ hai ] returning hcli integration: {command}")
+                            return command
+                        else:
+                            logging.warning("[ hai ] Unable to vibe without a plan with hcli tags.")
+                            return ""
+                    else:
+                        return ""
+                except et.ParseError as e:
+                    logging.warning(f"[ hai ] Failed to parse XML plan: {e}")
                     return ""
         return ""
 

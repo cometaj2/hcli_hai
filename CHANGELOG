@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.3.0]
+- Add vibe status check to see what the plan is or if we're done planning.
+- Update to xml parsing instead of regexp
+
 ## [3.2.0]
 - Update to latest version of tiktoken and anthropic libraries
 - Add vibe start and stop to allow for hypertext command line interface (HCLI) integration (external tool use)
