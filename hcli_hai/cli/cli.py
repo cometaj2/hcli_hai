@@ -103,6 +103,8 @@ class CLI:
        if len(self.commands) == 3:
            if self.commands[2] == "start":
                self.service.vibe(True)
-           if self.commands[2] == "stop":
+           elif self.commands[2] == "stop":
                self.service.vibe(False)
+           elif self.commands[2] == "status":
+               return io.BytesIO(self.ai.status().encode('utf-8'))
        return None

@@ -17,6 +17,7 @@ Create a detailed plan for the given task. Your plan should:
 - Ensure the plan is detailed enough to allow a person to do the task.
 - Include at most one hcli integration call to help trigger external tool use (only if needed).
 - If an HCLI service can't be navigated or isn't running, move on, DO NOT try to start nor configure it.
+- If your task is accomplished per your original plan, STOP by no longer outputting a plan.
 - Be 100% correct and complete.
 
 Note: Focus solely on the technical implementation. Ignore any mentions of human tasks or non-technical aspects.

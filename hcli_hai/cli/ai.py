@@ -40,6 +40,7 @@ class AI:
         self.contextmgr = c.ContextManager()
         logging.debug(f"[ hai ] AI initialization complete: config={bool(self.config)}, contextmgr={bool(self.contextmgr)}")
 
+    # add an additional message to the chat context and request a response for it with the LLM.
     def chat(self, inputstream):
         with self.rlock:
             if self.config.model is not None:
@@ -101,22 +102,27 @@ class AI:
                 logging.warning(warning)
                 return warning
 
+    # get the current context as json output
     def get_context(self):
         with self.rlock:
             return self.contextmgr.get_context()
 
+    # get the current context as text output
     def get_readable_context(self):
         with self.rlock:
             return self.contextmgr.get_readable_context()
 
+    # clear the current context (clean slate)
     def clear(self):
         with self.rlock:
             self.contextmgr.clear()
 
+    # set the persistent context behavior (system prompt)
     def behavior(self, inputstream):
         with self.rlock:
             self.contextmgr.behavior(inputstream)
 
+    # list all contexts
     def ls(self):
         with self.rlock:
             contexts = []
@@ -168,6 +174,7 @@ class AI:
 
             return sorted_contexts
 
+    # set the current context
     def set(self, context_id):
         with self.rlock:
             contexts = self.ls()
@@ -178,6 +185,7 @@ class AI:
                 logging.warning(context_id)
                 logging.warning("[ hai ] Provided context id is not found in available contexts.")
 
+    # create a new context
     def new(self):
         with self.rlock:
             if os.path.exists(self.config.dot_hai_config_file):
@@ -187,6 +195,7 @@ class AI:
 
             return self.current()
 
+    # delete the current context
     def rm(self, context_id):
         with self.rlock:
             context_folder = os.path.join(self.config.dot_hai_context, context_id)
@@ -194,28 +203,39 @@ class AI:
                 shutil.rmtree(context_folder)
                 logging.info("[ hai ] Removed " + context_folder)
 
+    # get the current context ID
     def current(self):
         with self.rlock:
             return self.config.context
 
+    # list available models
     def list_models(self):
         with self.rlock:
             return self.config.list_models()
 
+    # get the model to use
     def model(self):
         with self.rlock:
             return self.config.model
 
+    # set the model to use
     def set_model(self, model):
         with self.rlock:
             models = self.list_models()
             if model in models:
                 self.config.model = model
 
+    # get the context name
     def name(self):
         with self.rlock:
             return self.contextmgr.name()
 
+    # set the context name
     def set_name(self, name):
         with self.rlock:
             self.contextmgr.set_name(name)
+
+    # output current plan as status
+    def status(self):
+        with self.rlock:
+            return self.contextmgr.status()

@@ -14,6 +14,28 @@ from utils import summary as s
 logging = logger.Logger()
 
 
+# Singleton Plan class to hold the ephemeral plan
+class Plan:
+    _instance = None
+    _rlock = threading.RLock()
+
+    def __new__(cls):
+        with cls._rlock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+                cls._instance._plan = ""
+            return cls._instance
+
+    @property
+    def plan(self):
+        with self._rlock:
+            return self._plan
+
+    @plan.setter
+    def plan(self, value):
+        with self._rlock:
+            self._plan = value
+
 # We create a default context and allow for it to be initialized in a few different ways to facilitate initialization from file
 class Context:
 
@@ -122,6 +144,7 @@ class ContextManager:
             self.counter = TrimCounter()
             self.config = c.Config()
             self.context = self.get_context()
+            self.plan = Plan()
 
     def trim(self):
         self.counter.trim(self.context)
@@ -233,6 +256,14 @@ class ContextManager:
             self.save()
 
             return self.context.title
+
+    def set_status(self, plan):
+        with self.rlock:
+            self.plan.plan = plan
+
+    def status(self):
+        with self.rlock:
+            return self.plan.plan
 
 class TrimCounter:
     def __init__(self):

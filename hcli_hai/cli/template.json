@@ -88,6 +88,10 @@
         {
             "command": "hai vibe stop",
             "http": "post"
+        },
+        {
+            "command": "hai vibe status",
+            "http": "get"
         }
     ],
     "cli": [
@@ -497,6 +501,11 @@
                     "href": "haivibestop",
                     "name": "stop",
                     "description": "Stop vibing."
+                },
+                {
+                    "href": "haivibestatus",
+                    "name": "status",
+                    "description": "Get vibing status and plan."
                 }
             ]
         },
@@ -533,6 +542,24 @@
                 {
                     "name": "description",
                     "description": "The \"stop\" command allows you to revert your chat back to a static conversation context. The context, inclusing the system prompt, otherwise remains as it was at the time vibing stopped."
+                }
+            ]
+        },
+        {
+            "id": "haivibestatus",
+            "name": "status",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "status - returns the current plan and vibing status."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai vibe status"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"status\" command allows you to retrieve the current vibing status and plan from the current conversation context."
                 }
             ]
         }

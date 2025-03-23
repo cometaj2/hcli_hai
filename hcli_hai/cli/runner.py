@@ -2,10 +2,12 @@ import io
 import logger
 import threading
 import time
+import re
 import behavior as b
 import ai
 from huckle import cli, stdin
-import xml.etree.ElementTree as et
+# import xml.etree.ElementTree as et
+from lxml import etree as et
 
 logging = logger.Logger()
 
@@ -30,39 +32,55 @@ class Runner:
         return self.instance
 
     def set_vibe(self, should_vibe):
+        self.is_vibing = should_vibe
         if should_vibe is True:
             self.ai.behavior(io.BytesIO(b.hcli_integration_behavior.encode('utf-8')))
-        self.is_vibing = should_vibe
+            logging.info(f"[ hai ] Vibe runner started.")
+        else:
+            logging.info(f"[ hai ] Vibe runner stopped.")
 
     def get_plan(self):
         self.ai.contextmgr.get_context()
         messages = self.ai.contextmgr.messages()
         if messages:
-            # Get the last item using negative indexing
             last_message = messages[-1]
             if last_message['role'] == "assistant":
-                # Parse with XML instead of regex
-                try:
-                    # Wrap in a root tag since XML needs a single root
-                    plan_xml = f"<root>{last_message['content']}</root>"
-                    root = et.fromstring(plan_xml)
-                    plan_elem = root.find('.//plan')  # Find the first <plan> tag
+                content = last_message['content']
 
-                    if plan_elem is not None:
+                # Use regex to extract the first <plan> element
+                plan_pattern = r'<plan>.*?</plan>'
+                match = re.search(plan_pattern, content, re.DOTALL)
+
+                if match:
+                    plan_content = match.group(0)
+                    try:
+                        # Parse just the extracted plan with XML
+                        plan_elem = et.fromstring(plan_content)
+
+                        # Clear any unwanted text if needed (though regex should have isolated the plan)
+                        if plan_elem.text and not plan_elem.text.strip():
+                            plan_elem.text = None
+
+                        plan_string = et.tostring(plan_elem, encoding='utf-8', method='xml')
+                        self.ai.contextmgr.set_status(plan_string.decode())
+
                         # Look for hcli tags within the plan
-                        hcli_elems = plan_elem.findall('.//hcli')
-                        if hcli_elems:
-                            # Return the first hcli command
-                            command = hcli_elems[0].text.strip() if hcli_elems[0].text else ""
-                            logging.info(f"[ hai ] returning hcli integration: {command}")
+                        hcli_elem = plan_elem.find('.//hcli[1]')
+                        if hcli_elem is not None:
+                            command = hcli_elem.text.strip() if hcli_elem.text else ""
+                            logging.info(f"[ hai ] hcli integration: {command}")
                             return command
                         else:
-                            logging.warning("[ hai ] Unable to vibe without a plan with hcli tags.")
+                            logging.debug("[ hai ] Unable to vibe without a plan with hcli tags.")
+                            self.ai.contextmgr.set_status("")
                             return ""
-                    else:
+                    except et.ParseError as e:
+                        logging.warning(f"[ hai ] Failed to parse XML plan: {e}")
+                        self.ai.contextmgr.set_status("")
                         return ""
-                except et.ParseError as e:
-                    logging.warning(f"[ hai ] Failed to parse XML plan: {e}")
+                else:
+                    logging.debug("[ hai ] No plan found in the message content.")
+                    self.ai.contextmgr.set_status("")
                     return ""
         return ""
 
