@@ -23,7 +23,6 @@ def gunicorn_server():
     echo "Cleanup old run data..."
     rm -f ./gunicorn-error.log
     rm -f ./test_credentials
-    rm -f ./password
 
     echo "Setup a custom credentials file for the test run"
     echo -e "[config]
@@ -31,10 +30,9 @@ core.auth = False" > ./test_credentials
 
     gunicorn --workers=1 --threads=100 -b 0.0.0.0:18080 "hcli_core:connector(config_path=\\\"./test_credentials\\\",plugin_path=\\\"`hcli_hai path`\\\")" --daemon --log-file=./gunicorn.log --error-logfile=./gunicorn-error.log --capture-output
 
-
     sleep 2
 
-    curl http://127.0.0.1:18080
+    curl -i http://127.0.0.1:18080
     huckle cli install http://127.0.0.1:18080
 
     """
