@@ -29,11 +29,11 @@ def gunicorn_server():
     echo -e "[config]
 core.auth = False" > ./test_credentials
 
-    gunicorn --workers=1 --threads=1 -b 0.0.0.0:18000 "hcli_core:connector(config_path=\\\"./test_credentials\\\",plugin_path=\\\"`hcli_hai path`\\\")" --daemon --log-file=./gunicorn.log --error-logfile=./gunicorn-error.log --capture-output
+    gunicorn --workers=1 --threads=1 -b 0.0.0.0:18080 "hcli_core:connector(config_path=\\\"./test_credentials\\\",plugin_path=\\\"`hcli_hai path`\\\")" --daemon --log-file=./gunicorn.log --error-logfile=./gunicorn-error.log --capture-output
 
     sleep 2
 
-    huckle cli install http://127.0.0.1:18000
+    huckle cli install http://127.0.0.1:18080
 
     """
     process = subprocess.Popen(['bash', '-c', setup], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
