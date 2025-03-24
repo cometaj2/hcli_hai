@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [3.3.1]
 - Fix new circleci tests port conflict (going from port 18000 to 18080)
+- Fix to move from lxml to build-in xml.etree.ElementTree to avoid the extra library import
 
 ## [3.3.0]
 - Add vibe status check to see what the plan is or if we're done planning.

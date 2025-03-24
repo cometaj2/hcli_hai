@@ -6,8 +6,7 @@ import re
 import behavior as b
 import ai
 from huckle import cli, stdin
-# import xml.etree.ElementTree as et
-from lxml import etree as et
+import xml.etree.ElementTree as et
 
 logging = logger.Logger()
 
