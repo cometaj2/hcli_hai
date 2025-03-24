@@ -33,6 +33,8 @@ core.auth = False" > ./test_credentials
     sleep 2
 
     curl -i http://127.0.0.1:18080
+    cat ./gunicorn.log
+    cat ./gunicorn-error.log
     huckle cli install http://127.0.0.1:18080
 
     """
