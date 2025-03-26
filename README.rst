@@ -64,10 +64,10 @@ Supports
 - Creating, listing, deleting and changing conversation contexts.
 - Automatic title creation based on context
 - Custom context naming to help organize contexts
-- Behavior setting to allow for persistent chatbot behavior (e.g. the Do Anything Now (DAN) prompt).
+- Behavior setting to allow for persistent chat behavior (e.g. the Do Anything Now (DAN) prompt).
 - Conversation vibing via detailed plans and HCLI integration to allow for external tool use.
   - This allows for capabilities enhancements (e.g. web search, git repo interaction, terminal use, etc.).
-- Implement hcli-problem-details use to help relay RFC 9457 problem details back to the HCLI client.
+- hcli-problem-details use to help relay RFC 9457 problem details back to the HCLI client.
 
 To Do
 -----
