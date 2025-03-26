@@ -100,8 +100,6 @@ class Runner:
             try:
                 chunks = cli(command)
                 for dest, chunk in chunks:
-                    print(dest)
-                    print(chunk.decode())
                     if dest == 'stdout':
                         stdout = stdout + chunk.decode()
                     elif dest == 'stderr':

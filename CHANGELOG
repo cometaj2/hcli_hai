@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.4.1]
+- Fix to remove outstanding print statements in the runner
+
 ## [3.4.0]
 - Fix to prevent context switching or clearing while vibing to avoid unintended context crossover and contamination (destruction)
 - Refactor to move all ai calls to the service to avoid cli split personality calls to both ai and service
