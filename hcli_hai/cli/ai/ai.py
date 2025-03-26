@@ -5,16 +5,18 @@ import sys
 import re
 import inspect
 import traceback
-import logger
-import config
-import context as c
 import shutil
 import time
 import threading
 
+import config
+import logger
+from . import context as c
+from .model import models
+from hcli_problem_details import *
+
 from datetime import datetime
 from anthropic import Anthropic
-from model import models
 
 
 logging = logger.Logger()
@@ -35,10 +37,10 @@ class AI:
 
     def __init_singleton(self):
         self.rlock = threading.RLock()
-        logging.debug("[ hai ] Initializing AI singleton")
+        logging.debug("Initializing AI singleton")
         self.config = config.Config()
         self.contextmgr = c.ContextManager()
-        logging.debug(f"[ hai ] AI initialization complete: config={bool(self.config)}, contextmgr={bool(self.contextmgr)}")
+        logging.debug(f"AI initialization complete: config={bool(self.config)}, contextmgr={bool(self.contextmgr)}")
 
     # add an additional message to the chat context and request a response for it with the LLM.
     def chat(self, inputstream):
@@ -52,7 +54,7 @@ class AI:
                     self.contextmgr.trim()
 
                     tokens = self.contextmgr.counter.get_stats(self.contextmgr.context)
-                    logging.info("[ hai ] Request  - total context tokens: " + str(tokens['total_tokens']))
+                    logging.info("Request  - total context tokens: " + str(tokens['total_tokens']))
 
                     if self.contextmgr.counter.total_tokens != 0:
                         try:
@@ -75,9 +77,10 @@ class AI:
                             logging.error(traceback.format_exc())
                             return None
                     else:
-                        warning = "[ hai ] The token trim backoff completely collapsed. This means that the stream was too large to fit within the total allowable context limit of " + str(self.contextmgr.counter.max_context_length) + " tokens, and the last trimming operation ended up completely wiping out the remaining conversation context."
-                        logging.warning(warning)
+                        msg = "the token trim backoff completely collapsed. this means that the stream was too large to fit within the total allowable context limit of " + str(self.contextmgr.counter.max_context_length) + " tokens, and the last trimming operation ended up completely wiping out the remaining conversation context."
+                        logging.error(msg)
                         self.contextmgr.save()
+                        PayloadTooLargeError(detail="hai: " + msg)
 
                         return warning
 
@@ -89,7 +92,7 @@ class AI:
                     self.contextmgr.append({ "role" : output_response.role, "content" : output_content})
 
                     tokens = self.contextmgr.counter.get_stats(self.contextmgr.context)
-                    logging.info("[ hai ] Response - total context tokens: " + str(tokens['total_tokens']))
+                    logging.info("Response - total context tokens: " + str(tokens['total_tokens']))
 
                     output = output_content
 
@@ -98,9 +101,9 @@ class AI:
 
                     return output
             else:
-                warning = "[ hai ] No model selected. Select one from the list of models."
-                logging.warning(warning)
-                return warning
+                msg = "no model selected. select one from the list of models."
+                logging.error(msg)
+                raise BadRequestError(detail="hai: " + msg)
 
     # get the current context as json output
     def get_context(self):
@@ -182,8 +185,9 @@ class AI:
             if context_id in context_ids:
                 self.contextmgr.set(context_id)
             else:
-                logging.warning(context_id)
-                logging.warning("[ hai ] Provided context id is not found in available contexts.")
+                msg = f"provided context id {context_id} was not found in available contexts."
+                logging.error(msg)
+                raise NotFoundError(detail="hai: " + msg)
 
     # create a new context
     def new(self):
@@ -201,7 +205,7 @@ class AI:
             context_folder = os.path.join(self.config.dot_hai_context, context_id)
             if os.path.exists(context_folder):
                 shutil.rmtree(context_folder)
-                logging.info("[ hai ] Removed " + context_folder)
+                logging.info("Removed " + context_folder)
 
     # get the current context ID
     def current(self):

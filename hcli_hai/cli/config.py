@@ -3,7 +3,9 @@ from io import StringIO
 from os import listdir
 from os.path import isfile, join, isdir
 from os import path, listdir
-from model import models
+
+from ai.model import models
+from ai import context as c
 
 from utils import hutils
 
@@ -13,7 +15,6 @@ import shutil
 import json
 import logger
 import base64
-import context as c
 
 logging = logger.Logger()
 

@@ -12,36 +12,40 @@ class Formatting:
             newlines=cls.NEWLINES
         )
 
-def format_row(context_id: str, title: str, name: str, update_time: str,
-               ID_LENGTH: int, TITLE_MAX_LENGTH: int, NAME_LENGTH: int) -> str:
-   # Truncate title if needed and pad with spaces
-   title_display = (title[:TITLE_MAX_LENGTH-3] + "...") if len(title) > TITLE_MAX_LENGTH else title
-   title_display = title_display.ljust(TITLE_MAX_LENGTH)
+# Format a single row with fixed-width columns for context_id, update_time, and name.
+# The title is output in full without any width constraints or trailing dots.
+def format_row(context_id, update_time, name, title):
 
-   # Pad other fields
-   context_id = context_id.ljust(ID_LENGTH)
-   name = name.ljust(NAME_LENGTH)
+    # Fixed column widths
+    id_width = 10
+    time_width = 19
+    name_width = 10
 
-   return f"{context_id}  {title_display}  {name}  {update_time}\n"
+    # Format fixed columns
+    id_formatted = context_id[:id_width].ljust(id_width)
+    time_formatted = update_time[:time_width].ljust(time_width)
+    name_formatted = name[:name_width].ljust(name_width)
 
-def format_rows(contexts) -> str:
-   ID_LENGTH = 10
-   TITLE_MAX_LENGTH = 41
-   NAME_LENGTH = 10
-   DATE_LENGTH = 19      # YYYY-MM-DD HH:MM:SS
+    # Output the row with full title (no truncation or trailing dots)
+    return f"{id_formatted}  {time_formatted}  {name_formatted}  {title}"
 
-   header = format_row("CONTEXT_ID", "TITLE", "NAME", "UPDATE_TIME", 
-                            ID_LENGTH, TITLE_MAX_LENGTH, NAME_LENGTH)
+# Format multiple context rows with a header.
+# The title column is not constrained and has no trailing dots.
+def format_rows(contexts):
 
-   output = header
-   for context in contexts:
-       output += format_row(
-           context["context_id"],
-           context["title"] or "",
-           context["name"] or "",
-           context["update_time"],
-           ID_LENGTH,
-           TITLE_MAX_LENGTH,
-           NAME_LENGTH
-       )
-   return output.rstrip()
+    # Create header
+    header = format_row("CONTEXT_ID", "UPDATE_TIME", "NAME", "TITLE")
+
+    # Format each row
+    rows = [header]
+    for ctx in contexts:
+        row = format_row(
+            ctx.get("context_id", ""),
+            ctx.get("update_time", ""),
+            ctx.get("name", ""),
+            ctx.get("title", "")
+        )
+        rows.append(row)
+
+    # Join rows with newlines
+    return "\n".join(rows)

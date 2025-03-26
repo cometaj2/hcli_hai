@@ -422,6 +422,10 @@
                 {
                     "name": "description",
                     "description": "The \"ls\" command lists all usable contexts by context id. Each context is also tied to an auto generated title that acts as a summary and helps provide a bit of additional information about the related context. The list is sorted by context update time."
+                },
+                {
+                    "name": "examples",
+                    "description": "hai ls | cut -c-$COLUMNS\\n\\nhai ls --json"
                 }
             ],
             "option": [

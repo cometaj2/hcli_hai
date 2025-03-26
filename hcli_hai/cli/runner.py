@@ -3,8 +3,8 @@ import logger
 import threading
 import time
 import re
-import behavior as b
-import ai
+from ai import behavior as b
+from ai import ai
 from huckle import cli, stdin
 import xml.etree.ElementTree as et
 
@@ -16,27 +16,33 @@ class Runner:
     is_running = False
     lock = None
     terminate = None
-    is_vibing = False
+    _is_vibing = False
     ai = None
 
     def __new__(self):
         if self.instance is None:
             self.instance = super().__new__(self)
             self.lock = threading.Lock()
+            self.rlock = threading.RLock()
             self.ai = ai.AI()
             self.exception_event = threading.Event()
             self.terminate = False
-            self.is_vibing = False
+            self._is_vibing = False
 
         return self.instance
 
     def set_vibe(self, should_vibe):
-        self.is_vibing = should_vibe
-        if should_vibe is True:
-            self.ai.behavior(io.BytesIO(b.hcli_integration_behavior.encode('utf-8')))
-            logging.info(f"[ hai ] Vibe runner started.")
-        else:
-            logging.info(f"[ hai ] Vibe runner stopped.")
+        with self.rlock:
+            self._is_vibing = should_vibe
+            if should_vibe is True:
+                self.ai.behavior(io.BytesIO(b.hcli_integration_behavior.encode('utf-8')))
+                logging.info(f"[ hai ] Vibe runner started.")
+            else:
+                logging.info(f"[ hai ] Vibe runner stopped.")
+
+    def is_vibing(self):
+        with self.rlock:
+            return self._is_vibing
 
     def get_plan(self):
         self.ai.contextmgr.get_context()
@@ -94,9 +100,11 @@ class Runner:
             try:
                 chunks = cli(command)
                 for dest, chunk in chunks:
+                    print(dest)
+                    print(chunk.decode())
                     if dest == 'stdout':
                         stdout = stdout + chunk.decode()
-                    elif dest == 'error':
+                    elif dest == 'stderr':
                         stderr = stderr + chunk.decode()
             except Exception as e:
                 stderr = repr(e)

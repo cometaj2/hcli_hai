@@ -169,11 +169,11 @@ class ContextManager:
     def append(self, question):
         with self.rlock:
             if not isinstance(question, dict) or 'role' not in question or 'content' not in question:
-                raise ValueError("[ hai ] Invalid message format. Expected dict with 'role' and 'content' keys")
+                raise ValueError("Invalid message format. Expected dict with 'role' and 'content' keys")
 
             # Skip empty messages
             if question['content'].strip() == '':
-                logging.warning("[ hai ] Skipping attempt to add empty message")
+                logging.warning("Skipping attempt to add empty message")
                 return
 
             logging.debug(question)

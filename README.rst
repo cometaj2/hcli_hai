@@ -67,6 +67,7 @@ Supports
 - Behavior setting to allow for persistent chatbot behavior (e.g. the Do Anything Now (DAN) prompt).
 - Conversation vibing via detailed plans and HCLI integration to allow for external tool use.
   - This allows for capabilities enhancements (e.g. web search, git repo interaction, terminal use, etc.).
+- Implement hcli-problem-details use to help relay RFC 9457 problem details back to the HCLI client.
 
 To Do
 -----
@@ -76,13 +77,13 @@ To Do
     - Context blending to mary different contexts.
     - Automatic context compression to yield a more substantial memory footprint per context window.
 - A shell mode for the AI HCLI (hai) to enable shell CLI execution per sought goal.
-- Changing context while vibing is tenuous and can be disgraceful. It should be thought about.
 - Changing the vibing behavior should be made possible; it is currently locked in to HCLI integration and planning.
+- Support multi-process and multi-context to allow for multiple parallel vibes or conversations without conflict.
 
 Bugs
 ----
 
-TBD
+- An occasional thread exhaustion requires hcli_hai to be relaunched.
 
 .. |build status| image:: https://circleci.com/gh/cometaj2/hcli_hai.svg?style=shield
    :target: https://circleci.com/gh/cometaj2/hcli_hai
