@@ -117,6 +117,10 @@ class Service:
         with self.runner.lock:
             while True:
 
+                if not self.runner.is_running and not self.runner.is_vibing():
+                    self.ai.contextmgr.set_status("")
+                    self.waiting_for_update = False
+
                 # First check if we're waiting for a previous command to finish
                 if self.waiting_for_update:
                     current_count = len(self.runner.ai.contextmgr.messages())

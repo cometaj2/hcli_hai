@@ -132,7 +132,7 @@ class Runner:
 
     def check_termination(self):
         if self.terminate:
-            raise TerminationException("[ hc ] terminated")
+            raise TerminationException("[ hai ] terminated")
 
     def abort(self):
         self.is_running = False
