@@ -9,17 +9,15 @@ import shutil
 import time
 import threading
 
-import config
+import config as a
 import logger
 from . import context as c
-from .model import models
 from hcli_problem_details import *
 
 from datetime import datetime
-from anthropic import Anthropic
+from ollama import Client
 
-
-logging = logger.Logger()
+log = logger.Logger()
 
 
 class AI:
@@ -27,6 +25,7 @@ class AI:
     init_lock = threading.RLock()
     config = None
     contextmgr = None
+    client = None
 
     def __new__(cls):
         with cls.init_lock:
@@ -37,10 +36,12 @@ class AI:
 
     def __init_singleton(self):
         self.rlock = threading.RLock()
-        logging.debug("Initializing AI singleton")
-        self.config = config.Config()
-        self.contextmgr = c.ContextManager()
-        logging.debug(f"AI initialization complete: config={bool(self.config)}, contextmgr={bool(self.contextmgr)}")
+        with self.rlock:
+            log.debug("Initializing AI singleton")
+            self.config = a.Config()
+            self.contextmgr = c.ContextManager()
+            self.client = Client(host=self.config.ollama_service_url)
+            log.debug(f"AI initialization complete: config={bool(self.config)}, contextmgr={bool(self.contextmgr)}")
 
     # add an additional message to the chat context and request a response for it with the LLM.
     def chat(self, inputstream):
@@ -54,47 +55,40 @@ class AI:
                     self.contextmgr.trim()
 
                     tokens = self.contextmgr.counter.get_stats(self.contextmgr.context)
-                    logging.info("Request  - total context tokens: " + str(tokens['total_tokens']))
+                    log.info("Request  - total context tokens: " + str(tokens['total_tokens']))
 
                     if self.contextmgr.counter.total_tokens != 0:
                         try:
-                            client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-
                             # Separate system message from user messages
-                            model = models[self.config.model]
-                            system_message = next((msg["content"] for msg in self.contextmgr.messages() if msg["role"] == "system"), "")
-                            user_messages = [msg for msg in self.contextmgr.messages() if msg["role"] != "system"]
-
-                            response = client.messages.create(
-                                                                 **model,
-                                                                 system=system_message,
-                                                                 messages=user_messages
-                                                             )
-
-                            logging.debug(response)
-
+                            model = self.config.model
+                            user_messages = [msg for msg in self.contextmgr.messages()]
+                            response = self.client.chat(
+                                                            model,
+                                                            messages=user_messages
+                                                       )
+                            log.debug(response)
                         except Exception as e:
-                            logging.error(traceback.format_exc())
+                            log.error(traceback.format_exc())
                             return None
                     else:
                         msg = "the token trim backoff completely collapsed. this means that the stream was too large to fit within the total allowable context limit of " + str(self.contextmgr.counter.max_context_length) + " tokens, and the last trimming operation ended up completely wiping out the remaining conversation context."
-                        logging.error(msg)
+                        log.error(msg)
                         self.contextmgr.save()
                         PayloadTooLargeError(detail="hai: " + msg)
 
                         return warning
 
-                    output_response = response
+                    output_response = response["message"]
 
                     # Extract the text content from the response
-                    output_content = " ".join([block.text for block in output_response.content if block.type == 'text'])
+                    #output_content = " ".join([block.text for block in output_response.content if block.type == 'text'])
 
-                    self.contextmgr.append({ "role" : output_response.role, "content" : output_content})
+                    self.contextmgr.append({ "role" : output_response["role"], "content" : output_response["content"]})
 
                     tokens = self.contextmgr.counter.get_stats(self.contextmgr.context)
-                    logging.info("Response - total context tokens: " + str(tokens['total_tokens']))
+                    log.info("Response - total context tokens: " + str(tokens['total_tokens']))
 
-                    output = output_content
+                    output = output_response["content"]
 
                     self.contextmgr.generate_title()
                     self.contextmgr.save()
@@ -102,7 +96,7 @@ class AI:
                     return output
             else:
                 msg = "no model selected. select one from the list of models."
-                logging.error(msg)
+                log.error(msg)
                 raise BadRequestError(detail="hai: " + msg)
 
     # get the current context as json output
@@ -186,7 +180,7 @@ class AI:
                 self.contextmgr.set(context_id)
             else:
                 msg = f"provided context id {context_id} was not found in available contexts."
-                logging.error(msg)
+                log.error(msg)
                 raise NotFoundError(detail="hai: " + msg)
 
     # create a new context
@@ -205,7 +199,7 @@ class AI:
             context_folder = os.path.join(self.config.dot_hai_context, context_id)
             if os.path.exists(context_folder):
                 shutil.rmtree(context_folder)
-                logging.info("Removed " + context_folder)
+                log.info("Removed " + context_folder)
 
     # get the current context ID
     def current(self):
@@ -215,7 +209,14 @@ class AI:
     # list available models
     def list_models(self):
         with self.rlock:
-            return self.config.list_models()
+            installed_models = self.client.list()["models"]
+            models = {}
+
+            for model in installed_models:
+                log.info(model.model)
+                models[model.model] = {}
+
+            return models
 
     # get the model to use
     def model(self):

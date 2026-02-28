@@ -3,7 +3,7 @@
 HCLI hai
 ========
 
-HCLI hai is a python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with Anthropic's Claude models via terminal input and output streams.
+HCLI hai is a python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with the Ollama service and GGUF compatible models via terminal input and output streams.
 
 ----
 
@@ -31,7 +31,8 @@ You'll need an HCLI Connector to run hai. For example, you can use HCLI Core (ht
     pip install hcli-core
     pip install huckle
     pip install gunicorn
-    gunicorn --workers=1 --threads=1 -b 127.0.0.1:8000 "hcli_core:connector(\"`hcli_hai path`\")"
+    hcli_core cli install `hcli_hai path`
+    hcli_core cli run hai | bash
 
 Usage
 -----
@@ -61,7 +62,7 @@ Supports
 
 - Chatting via input/output streams (e.g. via pipes).
 - .hai folder structure in a users's home directory to help track hai configuration and contexts.
-- Creating, listing, deleting and changing conversation contexts.
+- Creating, listing, deleting, and changing conversation contexts.
 - Automatic title creation based on context
 - Custom context naming to help organize contexts
 - Behavior setting to allow for persistent chat behavior (e.g. the Do Anything Now (DAN) prompt).

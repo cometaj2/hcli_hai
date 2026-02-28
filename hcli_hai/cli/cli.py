@@ -6,8 +6,8 @@ from utils import formatting
 
 from typing import Optional, Dict, Callable, List
 
-logging = logger.Logger()
-logging.setLevel(logger.INFO)
+log = logger.Logger()
+log.setLevel(logger.INFO)
 
 
 class CLI:
@@ -32,7 +32,8 @@ class CLI:
     def execute(self) -> Optional[io.BytesIO]:
         if len(self.commands) == 1 and self.inputstream:
             response = self.service.chat(self.inputstream)
-            return io.BytesIO(response.encode('utf-8'))
+            if response is not None:
+                return io.BytesIO(response.encode('utf-8'))
 
         if len(self.commands) > 1 and self.commands[1] in self.handlers:
             return self.handlers[self.commands[1]]()

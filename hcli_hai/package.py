@@ -1,6 +1,6 @@
-__version__ = "3.4.2"
-dependencies = ["tiktoken==0.9.0",
-                "anthropic==0.49.0",
+__version__ = "4.0.0"
+dependencies = ["tiktoken==0.12.0",
+                "ollama==0.6.1",
                 "huckle>=5.7.0,<6.0.0",
                 "apscheduler==3.11.0",
-                "hcli-problem-details==0.1.1"]
+                "hcli-problem-details>=0.2.0,<1.0.0"]

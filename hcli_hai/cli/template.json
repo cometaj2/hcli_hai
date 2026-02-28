@@ -101,7 +101,7 @@
             "section": [
                 {
                     "name": "name",
-                    "description": "hai - an HCLI for interacting with Anthropic's Claude models via terminal input and output streams"
+                    "description": "hai - an HCLI for interacting with the Ollama service and GGUF models via terminal input and output streams."
                 },
                 {
                     "name": "synopsis",
@@ -109,7 +109,7 @@
                 },
                 {
                     "name": "description",
-                    "description": "The \"hai\" HCLI allows you to chat with Anthropic's Claude models via command line. You can send content as an input stream, and the AI model will generate a response based on it.\\n\\nThe HCLI relies on the use of an Anthropic generated API key (i.e. ANTHROPIC_API_KEY='secret') exported as an environment variable. Without a command, hai takes in an input stream and tries to interact with the language model.\\n\\nNote that hai is set to a model of 'None' by default. A model must first be set from the list of valid available models that can be listed via 'hai model ls', and set via 'hai model set <model>'. This is intended to help avoid using an undesirable model by default and incuring unexpected cost."
+                    "description": "The \"hai\" HCLI allows you to chat with LLMs via command line. You can send content as an input stream, and the AI model will generate a response based on it.\\n\\nThe HCLI relies on the use of and Ollama service backend. Without a command, hai takes in an input stream and tries to interact with the language model.\\n\\nNote that hai is set to a model of 'None' by default. A model must first be set from the list of valid available models that can be listed via 'hai model ls', and set via 'hai model set <model>'. This is intended to help avoid using an undesirable model by default."
                 },
                 {
                     "name": "examples",

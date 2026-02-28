@@ -7,6 +7,7 @@ def test_hai_context(gunicorn_server, cleanup):
     #!/bin/bash
     set -x
 
+    export HCLI_CORE_HOME=~/.hcli_core_test
     export HUCKLE_HOME=~/.huckle_test
     eval $(huckle env)
 
@@ -26,6 +27,7 @@ def test_hai_name(gunicorn_server, cleanup):
     #!/bin/bash
     set -x
 
+    export HCLI_CORE_HOME=~/.hcli_core_test
     export HUCKLE_HOME=~/.huckle_test
     eval $(huckle env)
 

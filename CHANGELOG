@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [4.0.0]
+- Add Ollama and GGUF models support
+- Add python 3.13 and 3.14 support
+- Update tests to hcli_core 4.0.0 service configuration helper format
+- Remove Anthropic support
+
 ## [3.4.2]
 - Fix to remove outstanding vibe status if the runner stops
 - Fix inconsistent error messages

@@ -4,7 +4,6 @@ from os import listdir
 from os.path import isfile, join, isdir
 from os import path, listdir
 
-from ai.model import models
 from ai import context as c
 
 from utils import hutils
@@ -56,6 +55,8 @@ class Config:
                 for name, value in self.parser.items("default"):
                     if name == "context":
                         self.context = value
+                    if name == "ollama.service.url":
+                        self.ollama_service_url = value
         else:
             sys.exit("hai: no available configuration.")
 
@@ -70,6 +71,7 @@ class Config:
 
             self.parser.read_file(StringIO(u"[default]"))
             self.parser.set("default", "context", str(self.generate_id()))
+            self.parser.set("default", "ollama.service.url", "http://127.0.0.1:11434")
             with open(self.dot_hai_config_file, "w") as config:
                 self.parser.write(config)
         else:
@@ -131,8 +133,3 @@ class Config:
 
     def context_file_path(self):
         return os.path.join(self.dot_hai_context, self.context, "context.json")
-
-    def list_models(self):
-        model_names = list(models.keys())
-        model_names.sort()
-        return model_names
