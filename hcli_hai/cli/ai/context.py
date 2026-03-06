@@ -6,12 +6,14 @@ import tiktoken
 import config as c
 import resource
 import threading
+import logger
 
 from utils import hutils
 from utils import formatting as f
 from utils import summary as s
+from hcli_problem_details import *
 
-logging = logger.Logger()
+log = logger.Logger()
 
 
 # Singleton Plan class to hold the ephemeral plan
@@ -51,14 +53,12 @@ class Context:
                 self.__load_model(model)
 
     def __load_model(self, model):
-
-        # If model is a JSON string, parse it
         if isinstance(model, str):
             try:
                 data = json.loads(model)
                 self.__load_dict(data)
             except json.JSONDecodeError:
-                logging.error("Invalid JSON string provided")
+                log.error("Invalid JSON string provided")
                 raise ValueError("Invalid JSON string provided")
 
         # If model is already a dictionary
@@ -149,22 +149,27 @@ class ContextManager:
     def trim(self):
         self.counter.trim(self.context)
 
-    def clear(self):
+    def reset(self):
         with self.rlock:
-            return self.config.clear()
+            return self.config.reset()
 
     def behavior(self, inputstream):
         with self.rlock:
             inputstream = inputstream.read().decode('utf-8').rstrip()
-            behavior = { "role" : "system", "content" : inputstream }
+            if inputstream != "":
+                behavior = { "role" : "system", "content" : inputstream }
 
-            current_messages = self.context.messages
-            current_messages[0] = behavior
-            self.context.messages = current_messages
+                current_messages = self.context.messages
+                current_messages[0] = behavior
+                self.context.messages = current_messages
 
-            self.save()
+                self.save()
 
-            return None
+                return None
+            else:
+                msg = "empty inputstream."
+                log.error(msg)
+                raise BadRequestError(detail="hai: " + msg)
 
     def append(self, question):
         with self.rlock:
@@ -173,10 +178,10 @@ class ContextManager:
 
             # Skip empty messages
             if question['content'].strip() == '':
-                logging.warning("Skipping attempt to add empty message")
+                log.warning("Skipping attempt to add empty message")
                 return
 
-            logging.debug(question)
+            log.debug(question)
             current_messages = self.context.messages
             current_messages.append(question)
             self.context.messages = current_messages  # This ensures proper copying
@@ -250,7 +255,7 @@ class ContextManager:
                     text += item["content"]
 
             title = s.AdvancedTitleGenerator().generate_title(text)
-            logging.debug("title: " + title)
+            log.debug("title: " + title)
             self.context.title = title
 
             self.save()
@@ -293,7 +298,7 @@ class TrimCounter:
         self.total_tokens = counts["total_tokens"]
 
         if counts["exceeds_max"]:
-            logging.warning(f"Exceeding maximum context length by {self.total_tokens - self.max_context_length} tokens")
+            log.warning(f"Exceeding maximum context length by {self.total_tokens - self.max_context_length} tokens")
 
         return counts["exceeds_max"]
 
@@ -305,9 +310,9 @@ class TrimCounter:
                 new_messages = [context.messages[0]] + context.messages[2:]
                 context.messages = new_messages
 
-                logging.info(f"Context tokens: {self.total_tokens}. Trimming the oldest entries to remain under {self.max_context_length} tokens.")
+                log.info(f"Context tokens: {self.total_tokens}. Trimming the oldest entries to remain under {self.max_context_length} tokens.")
             else:
-                logging.warning("Cannot trim further: only system message remains")
+                log.warning("Cannot trim further: only system message remains")
                 break
 
         return context.messages

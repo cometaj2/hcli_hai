@@ -64,6 +64,9 @@ class Service:
     def ls(self):
         return self.ai.ls()
 
+    def behavior(self, inputstream):
+        return self.ai.behavior(inputstream)
+
     def new(self):
         if not self.runner.is_vibing():
             return self.ai.new()
@@ -98,11 +101,11 @@ class Service:
     def status(self):
         return self.ai.status()
 
-    def clear(self):
+    def reset(self):
         if not self.runner.is_vibing():
-            return self.ai.clear()
+            return self.ai.reset()
         else:
-            msg = "cannot clear the current context while vibing. disable vibing before clearing context."
+            msg = "cannot reset the current context while vibing. stop vibing first."
             logging.error(msg)
             raise ConflictError(detail="hai: " + msg)
 

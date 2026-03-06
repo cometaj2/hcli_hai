@@ -8,7 +8,7 @@ from ai import ai
 from huckle import cli, stdin
 import xml.etree.ElementTree as et
 
-logging = logger.Logger()
+log = logger.Logger()
 
 # Singleton Runner
 class Runner:
@@ -36,9 +36,9 @@ class Runner:
             self._is_vibing = should_vibe
             if should_vibe is True:
                 self.ai.behavior(io.BytesIO(b.hcli_integration_behavior.encode('utf-8')))
-                logging.info(f"[ hai ] Vibe runner started.")
+                log.info(f"[ hai ] Vibe runner started.")
             else:
-                logging.info(f"[ hai ] Vibe runner stopped.")
+                log.info(f"[ hai ] Vibe runner stopped.")
 
     def is_vibing(self):
         with self.rlock:
@@ -58,6 +58,8 @@ class Runner:
 
                 if match:
                     plan_content = match.group(0)
+                    log.info(match)
+                    log.info(plan_content)
                     try:
                         # Parse just the extracted plan with XML
                         plan_elem = et.fromstring(plan_content)
@@ -73,18 +75,18 @@ class Runner:
                         hcli_elem = plan_elem.find('.//hcli[1]')
                         if hcli_elem is not None:
                             command = hcli_elem.text.strip() if hcli_elem.text else ""
-                            logging.info(f"[ hai ] hcli integration: {command}")
+                            log.info(f"[ hai ] hcli integration: {command}")
                             return command
                         else:
-                            logging.debug("[ hai ] Unable to vibe without a plan with hcli tags.")
+                            log.debug("[ hai ] Unable to vibe without a plan with hcli tags.")
                             self.ai.contextmgr.set_status("")
                             return ""
                     except et.ParseError as e:
-                        logging.warning(f"[ hai ] Failed to parse XML plan: {e}")
+                        log.warning(f"[ hai ] Failed to parse XML plan: {e}")
                         self.ai.contextmgr.set_status("")
                         return ""
                 else:
-                    logging.debug("[ hai ] No plan found in the message content.")
+                    log.debug("[ hai ] No plan found in the message content.")
                     self.ai.contextmgr.set_status("")
                     return ""
         return ""
@@ -94,7 +96,7 @@ class Runner:
         self.terminate = False
 
         try:
-            logging.info("[ hai ] Attempting to vibe...")
+            log.info("[ hai ] Attempting to vibe...")
             stdout = ""
             stderr = ""
             try:
@@ -111,14 +113,14 @@ class Runner:
                 if stderr == "":
                     if stdout == "":
                         stdout = "silence is success"
-                    logging.debug(stdout)
+                    log.debug(stdout)
                     self.ai.chat(io.BytesIO(stdout.encode('utf-8')))
                 else:
-                    logging.debug(stderr)
+                    log.debug(stderr)
                     self.ai.chat(io.BytesIO(stderr.encode('utf-8')))
             except Exception as e:
                 stderr = repr(e)
-                logging.debug(stderr)
+                log.debug(stderr)
                 self.ai.chat(io.BytesIO(stderr.encode('utf-8')))
         except TerminationException as e:
             self.abort()

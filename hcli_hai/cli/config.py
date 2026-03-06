@@ -123,7 +123,7 @@ class Config:
 
         return None
 
-    def clear(self):
+    def reset(self):
         context_file_path = self.context_file_path()
         if os.path.exists(context_file_path):
             os.remove(context_file_path)

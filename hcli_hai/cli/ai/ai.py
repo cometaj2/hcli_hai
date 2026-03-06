@@ -95,7 +95,7 @@ class AI:
 
                     return output
             else:
-                msg = "no model selected. select one from the list of models."
+                msg = "no model selected. select from the list of available models."
                 log.error(msg)
                 raise BadRequestError(detail="hai: " + msg)
 
@@ -109,10 +109,12 @@ class AI:
         with self.rlock:
             return self.contextmgr.get_readable_context()
 
-    # clear the current context (clean slate)
-    def clear(self):
+    # reset the current context (clean slate)
+    def reset(self):
         with self.rlock:
-            self.contextmgr.clear()
+            self.contextmgr.reset()
+            self.config.context
+            log.warning(f"The {self.config.context} context has been reset.")
 
     # set the persistent context behavior (system prompt)
     def behavior(self, inputstream):
@@ -193,7 +195,7 @@ class AI:
 
             return self.current()
 
-    # delete the current context
+    # delete the context_id context
     def rm(self, context_id):
         with self.rlock:
             context_folder = os.path.join(self.config.dot_hai_context, context_id)
@@ -213,7 +215,7 @@ class AI:
             models = {}
 
             for model in installed_models:
-                log.info(model.model)
+                log.debug(model.model)
                 models[model.model] = {}
 
             return models
@@ -229,6 +231,12 @@ class AI:
             models = self.list_models()
             if model in models:
                 self.config.model = model
+                msg = f"{self.config.model} model selected."
+                log.info(msg)
+            else:
+                msg = "invalid model selected. select from the list of available models."
+                log.error(msg)
+                raise BadRequestError(detail="hai: " + msg)
 
     # get the context name
     def name(self):

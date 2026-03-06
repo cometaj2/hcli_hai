@@ -73,6 +73,8 @@ Supports
 To Do
 -----
 
+- Add HAI_HOME environment variable support.
+- Add individualized multiuser conversation context support.
 - A memory layer for the the AI HCLI (hai).
     - Automatic context switching per NLP on received input stream.
     - Context blending to mary different contexts.

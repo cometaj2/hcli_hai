@@ -16,7 +16,7 @@ class CLI:
         self.inputstream = inputstream
         self.service = service.Service()
         self.handlers: Dict[str, Callable] = {
-            'clear': lambda: self.service.clear(),
+            'reset': lambda: self.service.reset(),
             'context': self._handle_context,
             'ls':  self._handle_ls,
             'new': self._handle_new,
