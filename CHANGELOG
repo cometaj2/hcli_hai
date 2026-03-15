@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add better problem detail error handling responses to the client
 - Add better logging for various operations
 - Update tests to hcli_core 4.0.0 service configuration helper format and tox
+- Update tests to pin gunicorn to v23 to avoid v25 worker threadlock instability
 - Remove Anthropic support
 
 ## [3.4.2]
