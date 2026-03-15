@@ -10,6 +10,7 @@ import xml.etree.ElementTree as et
 
 log = logger.Logger()
 
+
 # Singleton Runner
 class Runner:
     instance = None

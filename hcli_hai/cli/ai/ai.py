@@ -211,14 +211,19 @@ class AI:
     # list available models
     def list_models(self):
         with self.rlock:
-            installed_models = self.client.list()["models"]
-            models = {}
+            try:
+                installed_models = self.client.list()["models"]
+                models = {}
 
-            for model in installed_models:
-                log.debug(model.model)
-                models[model.model] = {}
+                for model in installed_models:
+                    models[model.model] = {}
 
-            return models
+                return models
+            except Exception as e:
+                log.error(traceback.format_exc())
+                msg = f"unable to list ollama models. is the ollama backend misconfigured ({self.config.ollama_service_url})?"
+                log.error(msg)
+                raise InternalServerError(detail="hai: " + msg)
 
     # get the model to use
     def model(self):

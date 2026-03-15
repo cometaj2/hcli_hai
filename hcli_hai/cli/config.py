@@ -15,7 +15,7 @@ import json
 import logger
 import base64
 
-logging = logger.Logger()
+log = logger.Logger()
 
 
 class Config:
@@ -25,6 +25,7 @@ class Config:
     dot_hai_config_file = dot_hai_config + "/config"
     dot_hai_context = dot_hai + "/share"
     context = ""
+    ollama_service_url = ""
     model = None
     parser = None
     instance = None
@@ -36,11 +37,23 @@ class Config:
         return cls.instance
 
     def init(self):
-        self.parser = ConfigParser()
-        self.parser.read(self.dot_hai_config_file)
+        hutils.create_folder(self.dot_hai)
+        hutils.create_folder(self.dot_hai_config)
+        hutils.create_folder(self.dot_hai_context)
 
-        self.create_configuration()
-        self.parse_configuration()
+        try:
+            self.parser = ConfigParser()
+            self.parser.read(self.dot_hai_config_file)
+
+            if not os.path.exists(self.dot_hai_config_file):
+                self.create_configuration()
+            else:
+                log.warning("the configuration for hai already exists. leaving the existing configuration untouched.")
+
+            self.parse_configuration()
+        except Exception as e:
+            log.critical("unable to create or parse the configuration for hai.")
+            log.critical(repr(e))
 
     # base32 approach (10 chars) to help avoid 1/I 0/O visual discrepancies.
     def generate_id(self):
@@ -58,27 +71,20 @@ class Config:
                     if name == "ollama.service.url":
                         self.ollama_service_url = value
         else:
-            sys.exit("hai: no available configuration.")
+            log.critical("no available configuration.")
+            sys.exit(1)
 
     # creates a configuration file for a named cli
     def create_configuration(self):
-        hutils.create_folder(self.dot_hai)
-        hutils.create_folder(self.dot_hai_config)
-        hutils.create_folder(self.dot_hai_context)
+        hutils.create_file(self.dot_hai_config_file)
 
-        if not os.path.exists(self.dot_hai_config_file):
-            hutils.create_file(self.dot_hai_config_file)
+        self.parser.read_file(StringIO(u"[default]"))
+        self.parser.set("default", "context", str(self.generate_id()))
+        self.parser.set("default", "ollama.service.url", "http://127.0.0.1:11434")
+        with open(self.dot_hai_config_file, "w") as config:
+            self.parser.write(config)
 
-            self.parser.read_file(StringIO(u"[default]"))
-            self.parser.set("default", "context", str(self.generate_id()))
-            self.parser.set("default", "ollama.service.url", "http://127.0.0.1:11434")
-            with open(self.dot_hai_config_file, "w") as config:
-                self.parser.write(config)
-        else:
-            logging.debug("the configuration for hai already exists. leaving the existing configuration untouched.")
-            return
-
-        logging.info("hai was successfully configured.")
+        log.info("hai was successfully configured.")
         return
 
     def save(self):
@@ -93,13 +99,13 @@ class Config:
             try:
                 with open(context_file_path, 'r') as f:
                     context = c.Context(json.load(f))
-                    logging.debug(f"[ hai ] Loaded context from {context_file_path}")
+                    log.debug(f"loaded context from {context_file_path}")
                     return context
             except:
-                logging.debug("[ hai ] Unable to open context file not found, creating new")
+                log.debug("unable to open context. file not found. creating new file.")
                 return self.new()
         else:
-            logging.debug("[ hai ] Context file not found, creating new")
+            log.debug("context file not found. creating new file")
             return self.new()
 
         return None
