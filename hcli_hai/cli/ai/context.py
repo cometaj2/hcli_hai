@@ -169,7 +169,7 @@ class ContextManager:
             else:
                 msg = "empty inputstream."
                 log.error(msg)
-                raise BadRequestError(detail="hai: " + msg)
+                raise BadRequestError(detail=msg)
 
     def append(self, question):
         with self.rlock:

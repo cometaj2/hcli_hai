@@ -74,7 +74,7 @@ class AI:
                         msg = "the token trim backoff completely collapsed. this means that the stream was too large to fit within the total allowable context limit of " + str(self.contextmgr.counter.max_context_length) + " tokens, and the last trimming operation ended up completely wiping out the remaining conversation context."
                         log.error(msg)
                         self.contextmgr.save()
-                        PayloadTooLargeError(detail="hai: " + msg)
+                        PayloadTooLargeError(detail=msg)
 
                         return warning
 
@@ -97,7 +97,7 @@ class AI:
             else:
                 msg = "no model selected. select from the list of available models."
                 log.error(msg)
-                raise BadRequestError(detail="hai: " + msg)
+                raise BadRequestError(detail=msg)
 
     # get the current context as json output
     def get_context(self):
@@ -183,7 +183,7 @@ class AI:
             else:
                 msg = f"provided context id {context_id} was not found in available contexts."
                 log.error(msg)
-                raise NotFoundError(detail="hai: " + msg)
+                raise NotFoundError(detail=msg)
 
     # create a new context
     def new(self):
@@ -223,7 +223,7 @@ class AI:
                 log.error(traceback.format_exc())
                 msg = f"unable to list ollama models. is the ollama backend misconfigured ({self.config.ollama_service_url})?"
                 log.error(msg)
-                raise InternalServerError(detail="hai: " + msg)
+                raise InternalServerError(detail=msg)
 
     # get the model to use
     def model(self):
@@ -241,7 +241,7 @@ class AI:
             else:
                 msg = "invalid model selected. select from the list of available models."
                 log.error(msg)
-                raise BadRequestError(detail="hai: " + msg)
+                raise BadRequestError(detail=msg)
 
     # get the context name
     def name(self):

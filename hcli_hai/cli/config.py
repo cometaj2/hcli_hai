@@ -48,7 +48,7 @@ class Config:
             if not os.path.exists(self.dot_hai_config_file):
                 self.create_configuration()
             else:
-                log.warning("the configuration for hai already exists. leaving the existing configuration untouched.")
+                log.warning("the configuration for hai already exists, leaving it untouched.")
 
             self.parse_configuration()
         except Exception as e:

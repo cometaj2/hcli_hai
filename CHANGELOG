@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Update tests to hcli_core 4.0.0 service configuration helper format and tox
 - Update tests to pin gunicorn to v23 to avoid v25 worker threadlock instability
 - Remove Anthropic support
+- Remove prepended hai: string in problem details for the hcli client
 
 ## [3.4.2]
 - Fix to remove outstanding vibe status if the runner stops

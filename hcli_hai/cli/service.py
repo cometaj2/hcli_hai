@@ -15,6 +15,7 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from collections import OrderedDict
 
 from hcli_problem_details import *
+from hcli_core.auth.cli.authenticator import deny_disabled_authentication
 
 logging = logger.Logger()
 
@@ -46,70 +47,87 @@ class Service:
         return scheduler.add_job(function, 'date', run_date=datetime.now(), max_instances=1)
 
     # AI controls
+    @deny_disabled_authentication
     def chat(self, inputstream):
         return self.ai.chat(inputstream)
 
+    @deny_disabled_authentication
     def get_context(self):
         return self.ai.get_context()
 
+    @deny_disabled_authentication
     def get_readable_context(self):
         return self.ai.get_readable_context()
 
+    @deny_disabled_authentication
     def name(self):
         return self.ai.name()
 
+    @deny_disabled_authentication
     def set_name(self, name):
         return self.ai.set_name(name)
 
+    @deny_disabled_authentication
     def ls(self):
         return self.ai.ls()
 
+    @deny_disabled_authentication
     def behavior(self, inputstream):
         return self.ai.behavior(inputstream)
 
+    @deny_disabled_authentication
     def new(self):
         if not self.runner.is_vibing():
             return self.ai.new()
         else:
             msg = "cannot change context while vibing. disable vibing before changing context."
             logging.error(msg)
-            raise ConflictError(detail="hai: " + msg)
+            raise ConflictError(detail=msg)
 
+    @deny_disabled_authentication
     def model(self):
         return self.ai.model()
 
+    @deny_disabled_authentication
     def list_models(self):
         return self.ai.list_models()
 
+    @deny_disabled_authentication
     def set(self, id):
         if not self.runner.is_vibing():
             return self.ai.set(id)
         else:
             msg = "cannot change context while vibing. disable vibing before changing context."
             logging.error(msg)
-            raise ConflictError(detail="hai: " + msg)
+            raise ConflictError(detail=msg)
 
+    @deny_disabled_authentication
     def current(self):
         return self.ai.current()
 
+    @deny_disabled_authentication
     def rm(self, id):
         return self.ai.rm(id)
 
+    @deny_disabled_authentication
     def set_model(self, model):
         return self.ai.set_model(model)
 
+    @deny_disabled_authentication
     def status(self):
         return self.ai.status()
 
+    @deny_disabled_authentication
     def reset(self):
         if not self.runner.is_vibing():
             return self.ai.reset()
         else:
             msg = "cannot reset the current context while vibing. stop vibing first."
             logging.error(msg)
-            raise ConflictError(detail="hai: " + msg)
+            raise ConflictError(detail=msg)
 
     # Runner controls
+    @deny_disabled_authentication
     def vibe(self, should_vibe):
         self.runner.set_vibe(should_vibe)
 
