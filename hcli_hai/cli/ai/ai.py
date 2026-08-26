@@ -15,7 +15,7 @@ from . import context as c
 from hcli_problem_details import *
 
 from datetime import datetime
-from ollama import Client
+import ollama
 
 log = logger.Logger()
 
@@ -40,7 +40,7 @@ class AI:
             log.debug("Initializing AI singleton")
             self.config = a.Config()
             self.contextmgr = c.ContextManager()
-            self.client = Client(host=self.config.ollama_service_url)
+            self.client = ollama.Client(host=self.config.ollama_service_url)
             log.debug(f"AI initialization complete: config={bool(self.config)}, contextmgr={bool(self.contextmgr)}")
 
     # add an additional message to the chat context and request a response for it with the LLM.
