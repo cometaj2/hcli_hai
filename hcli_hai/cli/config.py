@@ -25,7 +25,10 @@ class Config:
     dot_hai_config_file = dot_hai_config + "/config"
     dot_hai_context = dot_hai + "/share"
     context = ""
+    provider = None # xai or ollama
+    providers = {"xai": {}, "ollama": {}}
     ollama_service_url = ""
+    xai_service_url = ""
     model = None
     parser = None
     instance = None
@@ -70,6 +73,10 @@ class Config:
                         self.context = value
                     if name == "ollama.service.url":
                         self.ollama_service_url = value
+                    if name == "xai.service.url":
+                        self.xai_service_url = value
+                    if name == "provider":
+                        self.provider = value
         else:
             log.critical("no available configuration.")
             sys.exit(1)
@@ -81,6 +88,8 @@ class Config:
         self.parser.read_file(StringIO(u"[default]"))
         self.parser.set("default", "context", str(self.generate_id()))
         self.parser.set("default", "ollama.service.url", "http://127.0.0.1:11434")
+        self.parser.set("default", "xai.service.url", "https://api.x.ai/v1")
+        self.parser.set("default", "provider", "ollama")
         with open(self.dot_hai_config_file, "w") as config:
             self.parser.write(config)
 

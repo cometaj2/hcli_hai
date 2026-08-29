@@ -92,6 +92,26 @@
         {
             "command": "hai vibe status",
             "http": "get"
+        },
+        {
+            "command": "hai provider",
+            "http": "get"
+        },
+        {
+            "command": "hai provider --json",
+            "http": "get"
+        },
+        {
+            "command": "hai provider ls",
+            "http": "get"
+        },
+        {
+            "command": "hai provider ls --json",
+            "http": "get"
+        },
+        {
+            "command": "hai provider set {p}",
+            "http": "post"
         }
     ],
     "cli": [
@@ -171,6 +191,11 @@
                     "href": "haivibe",
                     "name": "vibe",
                     "description": "The \"vibe\" command allows you turn your chat context into an agent that can make use of any externally available HCLI tools via huckle."
+                },
+                {
+                    "href": "haiprovider",
+                    "name": "provider",
+                    "description": "The \"provider\" command allows you to work with providers to list them, list the current provider, and to set a new LLM service provider to use."
                 }
             ]
         },
@@ -566,6 +591,89 @@
                     "description": "The \"status\" command allows you to retrieve the current vibing status and plan from the current conversation context."
                 }
             ]
+        },
+        {
+            "id": "haiprovider",
+            "name": "provider",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "provider - allows you to work with with LLM service providers."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai provider <ls | set>"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"provider\" command allows you to work with LLM service providers to list them, list the current available providers, and to set a new provider to use. Without a command to list or set, the currently set provider is returned."
+                }
+            ],
+            "command": [
+                {
+                    "href": "haiproviderls",
+                    "name": "ls",
+                    "description": "The \"ls\" command lists all usable LLM service providers."
+                },
+                {
+                    "href": "haiproviderset",
+                    "name": "set",
+                    "description": "The \"set\" command sets the current LLM service provider per the allowed list of usable providers."
+                }
+            ],
+            "option": [
+                {
+                    "href": "haiprovider--json",
+                    "name": "--json",
+                    "description": "Return a JSON formatted output."
+                }
+            ]
+        },
+        {
+            "id": "haiproviderls",
+            "name": "ls",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "ls - lists all usable LLM service providers."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai provider ls [--json]"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"ls\" command lists all available LLM service providers to select from."
+                }
+            ],
+            "option": [
+                {
+                    "href": "haiproviderls--json",
+                    "name": "--json",
+                    "description": "Return a JSON formatted output."
+                }
+            ]
+        },
+        {
+            "id": "haiproviderset",
+            "name": "set",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "set - sets the current LLM service provider."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai provider set <provider>"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"set\" command sets the current LLM service provider per the allowed list of usable providers."
+                }
+            ],
+            "parameter": {
+                "href": "haiprovidersetparameter"
+            }
         }
     ]
 }

@@ -26,7 +26,8 @@ class CLI:
             'model': self._handle_model,
             'set': lambda: self.service.set(self.commands[2]) if len(self.commands) == 3 else None,
             'rm': lambda: self.service.rm(self.commands[2]) if len(self.commands) == 3 else None,
-            'vibe': self._handle_vibe
+            'vibe': self._handle_vibe,
+            'provider': self._handle_provider
         }
 
     def execute(self) -> Optional[io.BytesIO]:
@@ -95,6 +96,26 @@ class CLI:
                 return io.BytesIO(json.dumps(models, indent=4).encode('utf-8'))
             if self.commands[2] == "set":
                 self.service.set_model(self.commands[3])
+
+        return None
+
+    def _handle_provider(self) -> Optional[io.BytesIO]:
+        if len(self.commands) == 2:
+            provider = self.service.provider()
+            return io.BytesIO((provider or "None").encode('utf-8'))
+        if len(self.commands) == 3:
+            if self.commands[2] == "--json":
+                provider = self.service.provider()
+                return io.BytesIO(json.dumps([provider or "None"], indent=4).encode('utf-8'))
+            if self.commands[2] == "ls":
+                providers = self.service.list_providers()
+                return io.BytesIO("\n".join(providers).encode('utf-8'))
+        if len(self.commands) == 4:
+            if self.commands[2] == "ls" and self.commands[3] == '--json':
+                providers = self.service.list_providers()
+                return io.BytesIO(json.dumps(providers, indent=4).encode('utf-8'))
+            if self.commands[2] == "set":
+                self.service.set_provider(self.commands[3])
 
         return None
 

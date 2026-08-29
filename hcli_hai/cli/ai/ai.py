@@ -15,7 +15,7 @@ from . import context as c
 from hcli_problem_details import *
 
 from datetime import datetime
-import ollama
+import openai
 
 log = logger.Logger()
 
@@ -40,8 +40,35 @@ class AI:
             log.debug("Initializing AI singleton")
             self.config = a.Config()
             self.contextmgr = c.ContextManager()
-            self.client = ollama.Client(host=self.config.ollama_service_url)
+            if self.config.provider is not None:
+                self.__init_provider()
+
             log.debug(f"AI initialization complete: config={bool(self.config)}, contextmgr={bool(self.contextmgr)}")
+
+    def __init_provider(self):
+        self.rlock = threading.RLock()
+        with self.rlock:
+            log.debug("Initializing LLM service provider")
+            if self.config.provider == "ollama":
+                self.client = openai.OpenAI(
+                    base_url=self.config.ollama_service_url.rstrip("/") + "/v1",
+                    api_key="ollama",   # Ollama ignores the key
+                )
+                self.config.model = None
+                log.debug(f"using ollama at {self.config.ollama_service_url}")
+
+            elif self.config.provider == "xai":
+                self.client = openai.OpenAI(
+                    api_key=os.getenv("XAI_API_KEY"),
+                    base_url="https://api.x.ai/v1",
+                )
+                self.config.model = None
+                log.debug("using grok (xai) at https://api.x.ai/v1")
+
+            else:
+                msg = "no provider selected. select from the list of available providers."
+                log.error(msg)
+                raise BadRequestError(detail=msg)
 
     # add an additional message to the chat context and request a response for it with the LLM.
     def chat(self, inputstream):
@@ -62,8 +89,8 @@ class AI:
                             # Separate system message from user messages
                             model = self.config.model
                             user_messages = [msg for msg in self.contextmgr.messages()]
-                            response = self.client.chat(
-                                                            model,
+                            response = self.client.chat.completions.create(
+                                                            model=model,
                                                             messages=user_messages
                                                        )
                             log.debug(response)
@@ -78,17 +105,17 @@ class AI:
 
                         return warning
 
-                    output_response = response["message"]
+#                     output_response = response["message"]
+                    output_response = response.choices[0].message.content
+                    output_response_role = response.choices[0].message.role
 
                     # Extract the text content from the response
-                    #output_content = " ".join([block.text for block in output_response.content if block.type == 'text'])
-
-                    self.contextmgr.append({ "role" : output_response["role"], "content" : output_response["content"]})
+                    self.contextmgr.append({ "role" : output_response_role, "content" : output_response})
 
                     tokens = self.contextmgr.counter.get_stats(self.contextmgr.context)
                     log.info("Response - total context tokens: " + str(tokens['total_tokens']))
 
-                    output = output_response["content"]
+                    output = output_response
 
                     self.contextmgr.generate_title()
                     self.contextmgr.save()
@@ -212,11 +239,12 @@ class AI:
     def list_models(self):
         with self.rlock:
             try:
-                installed_models = self.client.list()["models"]
+                # OpenAI client data structure in support of both ollama and xai
+                installed_models = self.client.models.list()
                 models = {}
 
-                for model in installed_models:
-                    models[model.model] = {}
+                for model in installed_models.data:
+                    models[model.id] = {}
 
                 return models
             except Exception as e:
@@ -240,6 +268,39 @@ class AI:
                 log.info(msg)
             else:
                 msg = "invalid model selected. select from the list of available models."
+                log.error(msg)
+                raise BadRequestError(detail=msg)
+
+    # list available providers
+    def list_providers(self):
+        with self.rlock:
+            try:
+                return self.config.providers
+            except Exception as e:
+                log.error(traceback.format_exc())
+                msg = f"unable to list LLM service providers. Is the configuration broken?"
+                log.error(msg)
+                raise InternalServerError(detail=msg)
+
+    # get the current LLM service provider to use
+    def provider(self):
+        with self.rlock:
+            return self.config.provider
+
+    # set the provider to use
+    def set_provider(self, provider):
+        with self.rlock:
+            providers = self.list_providers()
+            if provider in providers:
+                self.config.provider = provider
+
+                if self.config.provider is not None:
+                    self.__init_provider()
+
+                msg = f"{self.config.provider} provider selected."
+                log.info(msg)
+            else:
+                msg = "invalid provider selected. select from the list of available providers."
                 log.error(msg)
                 raise BadRequestError(detail=msg)
 

@@ -246,6 +246,15 @@ class ContextManager:
             self.context.name = name
             self.save()
 
+    def provider(self):
+        with self.rlock:
+            return self.context.provider
+
+    def set_provider(self, provider):
+        with self.rlock:
+            self.context.provider = provider
+            self.save()
+
     # produces a summary then a title for the current context.
     def generate_title(self):
         with self.rlock:

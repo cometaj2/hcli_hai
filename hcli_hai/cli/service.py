@@ -93,6 +93,22 @@ class Service:
         return self.ai.list_models()
 
 #    @deny_disabled_authentication
+    def set_model(self, model):
+        return self.ai.set_model(model)
+
+#    @deny_disabled_authentication
+    def provider(self):
+        return self.ai.provider()
+
+#    @deny_disabled_authentication
+    def list_providers(self):
+        return self.ai.list_providers()
+
+#    @deny_disabled_authentication
+    def set_provider(self, provider):
+        return self.ai.set_provider(provider)
+
+#    @deny_disabled_authentication
     def set(self, id):
         if not self.runner.is_vibing():
             return self.ai.set(id)
@@ -108,10 +124,6 @@ class Service:
 #    @deny_disabled_authentication
     def rm(self, id):
         return self.ai.rm(id)
-
-#    @deny_disabled_authentication
-    def set_model(self, model):
-        return self.ai.set_model(model)
 
 #    @deny_disabled_authentication
     def status(self):
