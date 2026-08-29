@@ -51,7 +51,7 @@ class AI:
             log.debug("Initializing LLM service provider")
             if self.config.provider == "ollama":
                 self.client = openai.OpenAI(
-                    base_url=self.config.ollama_service_url.rstrip("/") + "/v1",
+                    base_url=self.config.ollama_service_url,
                     api_key="ollama",   # Ollama ignores the key
                 )
                 self.config.model = None
