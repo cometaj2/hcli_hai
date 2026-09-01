@@ -6,7 +6,8 @@ import time
 import inspect
 import logger
 from ai import ai
-import runner as s
+#import runner as s
+import assistantrunner as a
 import jobqueue as j
 
 from datetime import datetime
@@ -35,7 +36,8 @@ class Service:
 
         scheduler = BackgroundScheduler(executors=executors)
         self.ai = ai.AI()
-        self.runner = s.Runner()
+#         self.runner = s.Runner()
+        self.assistantrunner = a.AssistantRunner()
         self.job_queue = j.JobQueue()
         process = self.schedule(self.process_job_queue)
         scheduler.start()
@@ -77,12 +79,12 @@ class Service:
 
 #    @deny_disabled_authentication
     def new(self):
-        if not self.runner.is_vibing():
-            return self.ai.new()
-        else:
-            msg = "cannot change context while vibing. disable vibing before changing context."
-            logging.error(msg)
-            raise ConflictError(detail=msg)
+#         if not self.runner.is_vibing():
+        return self.ai.new()
+#         else:
+#             msg = "cannot change context while vibing. disable vibing before changing context."
+#             logging.error(msg)
+#             raise ConflictError(detail=msg)
 
 #    @deny_disabled_authentication
     def model(self):
@@ -110,12 +112,12 @@ class Service:
 
 #    @deny_disabled_authentication
     def set(self, id):
-        if not self.runner.is_vibing():
-            return self.ai.set(id)
-        else:
-            msg = "cannot change context while vibing. disable vibing before changing context."
-            logging.error(msg)
-            raise ConflictError(detail=msg)
+#         if not self.runner.is_vibing():
+        return self.ai.set(id)
+#         else:
+#             msg = "cannot change context while vibing. disable vibing before changing context."
+#             logging.error(msg)
+#             raise ConflictError(detail=msg)
 
 #    @deny_disabled_authentication
     def current(self):
@@ -131,32 +133,39 @@ class Service:
 
 #    @deny_disabled_authentication
     def reset(self):
-        if not self.runner.is_vibing():
-            return self.ai.reset()
-        else:
-            msg = "cannot reset the current context while vibing. stop vibing first."
-            logging.error(msg)
-            raise ConflictError(detail=msg)
+#         if not self.runner.is_vibing():
+        return self.ai.reset()
+#         else:
+#             msg = "cannot reset the current context while vibing. stop vibing first."
+#             logging.error(msg)
+#             raise ConflictError(detail=msg)
 
     # Runner controls
 #    @deny_disabled_authentication
-    def vibe(self, should_vibe):
-        self.runner.set_vibe(should_vibe)
+#     def vibe(self, should_vibe):
+#         self.runner.set_vibe(should_vibe)
 
-    def is_vibing(self):
-        return self.runner.is_vibing()
+#     def is_vibing(self):
+#         return self.runner.is_vibing()
+
+    # AssistantRunner controls
+#    @deny_disabled_authentication
+    def assist(self, should_assist):
+        self.assistantrunner.set_assist(should_assist)
+
+    def is_assisting(self):
+        return self.assistantrunner.is_assisting()
 
     def process_job_queue(self):
-        with self.runner.lock:
+        with self.assistantrunner.lock:
             while True:
 
-                if not self.runner.is_running and not self.runner.is_vibing():
-                    self.ai.contextmgr.set_status("")
+                if not self.assistantrunner.is_running and not self.assistantrunner.is_assisting():
                     self.waiting_for_update = False
 
                 # First check if we're waiting for a previous command to finish
                 if self.waiting_for_update:
-                    current_count = len(self.runner.ai.contextmgr.messages())
+                    current_count = len(self.ai.contextmgr.messages())
                     if current_count > self.message_count_before_processing:
                         # The message count has increased, so processing is complete
                         self.waiting_for_update = False
@@ -166,16 +175,45 @@ class Service:
                     continue
 
                 # Regular processing logic
-                if not self.runner.is_running and self.runner.is_vibing():
-                    messages = self.runner.ai.contextmgr.messages()
+                if not self.assistantrunner.is_running and self.assistantrunner.is_assisting():
+                    messages = self.ai.contextmgr.messages()
 
                     if messages and messages[-1]['role'] == 'assistant':
-                        command = self.runner.get_plan()
-                        if command != "":
-
-                            # Mark that we're waiting for this command to complete
-                            self.message_count_before_processing = len(messages)
-                            self.waiting_for_update = True
-                            self.runner.run(command)
+                        # Mark that we're waiting for this command to complete
+                        self.message_count_before_processing = len(messages)
+                        self.waiting_for_update = True
+                        self.assistantrunner.run(messages[-1])
 
                 time.sleep(0.5)
+#         with self.runner.lock:
+#             while True:
+# 
+#                 if not self.runner.is_running and not self.runner.is_vibing():
+#                     self.ai.contextmgr.set_status("")
+#                     self.waiting_for_update = False
+# 
+#                 # First check if we're waiting for a previous command to finish
+#                 if self.waiting_for_update:
+#                     current_count = len(self.runner.ai.contextmgr.messages())
+#                     if current_count > self.message_count_before_processing:
+#                         # The message count has increased, so processing is complete
+#                         self.waiting_for_update = False
+#                         self.message_count_before_processing = 0
+#                     # Continue the main loop - don't process new commands while waiting
+#                     time.sleep(0.5)
+#                     continue
+# 
+#                 # Regular processing logic
+#                 if not self.runner.is_running and self.runner.is_vibing():
+#                     messages = self.runner.ai.contextmgr.messages()
+# 
+#                     if messages and messages[-1]['role'] == 'assistant':
+#                         command = self.runner.get_plan()
+#                         if command != "":
+# 
+#                             # Mark that we're waiting for this command to complete
+#                             self.message_count_before_processing = len(messages)
+#                             self.waiting_for_update = True
+#                             self.runner.run(command)
+# 
+#                 time.sleep(0.5)

@@ -54,7 +54,6 @@ class AI:
                     base_url=self.config.ollama_service_url,
                     api_key="ollama",   # Ollama ignores the key
                 )
-                self.config.model = None
                 log.debug(f"using ollama at {self.config.ollama_service_url}")
 
             elif self.config.provider == "xai":
@@ -62,7 +61,6 @@ class AI:
                     api_key=os.getenv("XAI_API_KEY"),
                     base_url="https://api.x.ai/v1",
                 )
-                self.config.model = None
                 log.debug("using grok (xai) at https://api.x.ai/v1")
 
             else:
@@ -105,7 +103,6 @@ class AI:
 
                         return warning
 
-#                     output_response = response["message"]
                     output_response = response.choices[0].message.content
                     output_response_role = response.choices[0].message.role
 
@@ -292,6 +289,8 @@ class AI:
         with self.rlock:
             providers = self.list_providers()
             if provider in providers:
+                if self.config.provider != provider:
+                    self.config.model = None
                 self.config.provider = provider
 
                 if self.config.provider is not None:

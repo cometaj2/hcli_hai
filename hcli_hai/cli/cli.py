@@ -27,6 +27,7 @@ class CLI:
             'set': lambda: self.service.set(self.commands[2]) if len(self.commands) == 3 else None,
             'rm': lambda: self.service.rm(self.commands[2]) if len(self.commands) == 3 else None,
             'vibe': self._handle_vibe,
+            'assist': self._handle_assist,
             'provider': self._handle_provider
         }
 
@@ -127,4 +128,12 @@ class CLI:
                 self.service.vibe(False)
             elif self.commands[2] == "status":
                 return io.BytesIO(self.service.status().encode('utf-8'))
+        return None
+
+    def _handle_assist(self) -> None:
+        if len(self.commands) == 3:
+            if self.commands[2] == "start":
+                self.service.assist(True)
+            elif self.commands[2] == "stop":
+                self.service.assist(False)
         return None

@@ -94,6 +94,14 @@
             "http": "get"
         },
         {
+            "command": "hai assist start",
+            "http": "post"
+        },
+        {
+            "command": "hai assist stop",
+            "http": "post"
+        },
+        {
             "command": "hai provider",
             "http": "get"
         },
@@ -191,6 +199,11 @@
                     "href": "haivibe",
                     "name": "vibe",
                     "description": "The \"vibe\" command allows you turn your chat context into an agent that can make use of any externally available HCLI tools via huckle."
+                },
+                {
+                    "href": "haiassist",
+                    "name": "assist",
+                    "description": "The \"assist\" command allows you to turn on an overview assistant that targets the last received response in a conversation."
                 },
                 {
                     "href": "haiprovider",
@@ -589,6 +602,72 @@
                 {
                     "name": "description",
                     "description": "The \"status\" command allows you to retrieve the current vibing status and plan from the current conversation context."
+                }
+            ]
+        },
+        {
+            "id": "haiassist",
+            "name": "assist",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "assist - receive summarizing assistance for the last received response in a conversation context."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai assist"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"assist\" command allows you receive assistance in summarizing the last received response in your current conversation context."
+                }
+            ],
+            "command": [
+                {
+                    "href": "haiassiststart",
+                    "name": "start",
+                    "description": "Start receiving assistance with the current conversation."
+                },
+                {
+                    "href": "haiassiststop",
+                    "name": "stop",
+                    "description": "Stop receiving assistance."
+                }
+            ]
+        },
+        {
+            "id": "haiassiststart",
+            "name": "start",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "start - start receiving summarizing assistance."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai assist start"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"start\" command allows you enable getting summarized context assistance for the current latest received context response, but with less technically tedious information (such as code) that isn't well conveyed in a conversation."
+                }
+            ]
+        },
+        {
+            "id": "haiassiststop",
+            "name": "stop",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "stop - stop receiving summarizing assistance."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai assist stop"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"stop\" command stops the assistant from summarizing conversations."
                 }
             ]
         },
