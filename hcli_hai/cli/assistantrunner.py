@@ -39,7 +39,7 @@ class AssistantRunner:
             self.is_running = False
             self.config = a.Config()
 
-            self.model_path = os.path.expanduser("~") + "/Documents/workspace/hcli/jarvis/piper/voices/jarvis-high.onnx"
+            self.model_path = self.config.assistant_tts_path
             self.voice = PiperVoice.load(self.model_path)
             self.sample_rate = self.voice.config.sample_rate
 
@@ -89,7 +89,7 @@ class AssistantRunner:
 
             content = message['content']
 
-            assistance = [{"role": "system", "content": "You are jarvis from iron man. Provide a useful conversational summary of what is given to you in the user prompt at all times. Assume that what you will output will be read out loud so it should be understandable in true jarvis form without complicated technical details. You should however assume that your audience is extremely intelligent. Vary the formalities a bit so that it doesn't always sound so robotic; especially when you first start talking; avoid always starting with 'sir'."}]
+            assistance = [{"role": "system", "content": self.config.assistant_behavior}]
             question = { "role" : "user", "content" : content }
             assistance.append(question)
 
@@ -114,7 +114,7 @@ class AssistantRunner:
                 output_response = response.choices[0].message.content
                 output_response_role = response.choices[0].message.role
 
-                print(output_response)
+                log.info("[ hai ] " + output_response)
 
                 stream = sd.RawOutputStream(
                     samplerate=self.sample_rate,

@@ -29,6 +29,8 @@ class Config:
     providers = {"xai": {}, "ollama": {}}
     ollama_service_url = ""
     xai_service_url = ""
+    assistant_behavior = ""
+    assistant_tts_path = ""
     model = None
     parser = None
     instance = None
@@ -75,8 +77,12 @@ class Config:
                         self.ollama_service_url = value
                     if name == "xai.service.url":
                         self.xai_service_url = value
-                    if name == "provider":
+                    if name == "provider": # xai or ollama
                         self.provider = value
+                    if name == "assistant.behavior": # system prompt for the assistant
+                        self.assistant_behavior = value
+                    if name == "assistant.tts.path": # tts onnx file path
+                        self.assistant_tts_path = value
         else:
             log.critical("no available configuration.")
             sys.exit(1)
@@ -87,9 +93,11 @@ class Config:
 
         self.parser.read_file(StringIO(u"[default]"))
         self.parser.set("default", "context", str(self.generate_id()))
-        self.parser.set("default", "ollama.service.url", "http://127.0.0.1:11434")
+        self.parser.set("default", "ollama.service.url", "http://127.0.0.1:11434/v1")
         self.parser.set("default", "xai.service.url", "https://api.x.ai/v1")
         self.parser.set("default", "provider", "ollama")
+        self.parser.set("default", "assistant.behavior", "You are J.A.R.V.I.S. from the marvel universe. Provide a useful conversational summary of what is given to you in the user prompt at all times. Assume that what you will output will be read out loud so it should be easy to read and understandable in true jarvis form. You should however assume that your audience is extremely intelligent. Vary the formalities a bit so that it doesn't always sound so robotic; especially when you first start talking; avoid always starting with 'sir'.")
+        self.parser.set("default", "assistant.tts.path", "")
         with open(self.dot_hai_config_file, "w") as config:
             self.parser.write(config)
 
