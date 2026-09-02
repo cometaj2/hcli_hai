@@ -236,6 +236,7 @@ class ContextManager:
         with self.rlock:
             self.config.context = id
             self.config.save()
+            self.context = self.config.get_context()
 
     def name(self):
         with self.rlock:

@@ -35,7 +35,6 @@ class AssistantRunner:
             self.rlock = threading.RLock()
             self.lock = threading.RLock()
             self.exception_event = threading.Event()
-            self.terminate = False
             self.is_running = False
             self.config = a.Config()
 
@@ -138,20 +137,14 @@ class AssistantRunner:
             log.error(traceback.format_exc())
             self.abort()
         finally:
-            self.terminate = False
             self.is_running = False
 
         log.info("[ hai ] Done assisting...")
 
         return
 
-    def check_termination(self):
-        if self.terminate:
-            raise TerminationException("[ hai ] terminated")
-
     def abort(self):
         self.is_running = False
-        self.terminate = False
 
 class TerminationException(Exception):
     pass
