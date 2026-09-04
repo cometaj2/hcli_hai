@@ -18,7 +18,7 @@ from collections import OrderedDict
 from hcli_problem_details import *
 from hcli_core.auth.cli.authenticator import deny_disabled_authentication
 
-logging = logger.Logger()
+log = logger.Logger()
 
 
 class Service:
@@ -78,12 +78,19 @@ class Service:
         return self.ai.behavior(inputstream)
 
 #    @deny_disabled_authentication
+    def assist_speak(self, inputstream):
+        inputstream = inputstream.read().decode('utf-8')
+        if inputstream != "":
+            inputstream = inputstream.rstrip()
+            return self.assistantrunner.speak(inputstream)
+
+#    @deny_disabled_authentication
     def new(self):
 #         if not self.runner.is_vibing():
         return self.ai.new()
 #         else:
 #             msg = "cannot change context while vibing. disable vibing before changing context."
-#             logging.error(msg)
+#             log.error(msg)
 #             raise ConflictError(detail=msg)
 
 #    @deny_disabled_authentication
@@ -116,7 +123,7 @@ class Service:
         return self.ai.set(id)
 #         else:
 #             msg = "cannot change context while vibing. disable vibing before changing context."
-#             logging.error(msg)
+#             log.error(msg)
 #             raise ConflictError(detail=msg)
 
 #    @deny_disabled_authentication
@@ -137,7 +144,7 @@ class Service:
         return self.ai.reset()
 #         else:
 #             msg = "cannot reset the current context while vibing. stop vibing first."
-#             logging.error(msg)
+#             log.error(msg)
 #             raise ConflictError(detail=msg)
 
     # Runner controls
@@ -157,7 +164,11 @@ class Service:
         return self.assistantrunner.is_assisting()
 
     def process_job_queue(self):
-        with self.assistantrunner.lock:
+        lock = self.assistantrunner.lock
+        if not lock.acquire(blocking=False):
+            log.debug("process_job_queue already running; exiting")
+            return
+        try:
             while True:
 
                 if not self.assistantrunner.is_running and not self.assistantrunner.is_assisting():
@@ -185,6 +196,9 @@ class Service:
                         self.assistantrunner.run(messages[-1])
 
                 time.sleep(0.5)
+        finally:
+            lock.release()
+
 #         with self.runner.lock:
 #             while True:
 # 

@@ -94,6 +94,10 @@
             "http": "get"
         },
         {
+            "command": "hai assist",
+            "http": "post"
+        },
+        {
             "command": "hai assist start",
             "http": "post"
         },
@@ -203,7 +207,7 @@
                 {
                     "href": "haiassist",
                     "name": "assist",
-                    "description": "The \"assist\" command allows you to turn on an overview assistant that targets the last received response in a conversation."
+                    "description": "The \"assist\" command allows you to interact with an overview assistant that targets the last received response in a conversation."
                 },
                 {
                     "href": "haiprovider",
@@ -611,7 +615,7 @@
             "section": [
                 {
                     "name": "name",
-                    "description": "assist - receive summarizing assistance for the last received response in a conversation context."
+                    "description": "assist - receive summarizing assistance for the last received response in a conversation context, or, simply attempts to reads an input stream out loud."
                 },
                 {
                     "name": "synopsis",

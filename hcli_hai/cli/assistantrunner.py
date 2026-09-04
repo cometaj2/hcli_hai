@@ -39,8 +39,7 @@ class AssistantRunner:
             self.config = a.Config()
 
             self.model_path = self.config.assistant_tts_path
-            self.voice = PiperVoice.load(self.model_path)
-            self.sample_rate = self.voice.config.sample_rate
+            self.voice = None
 
             self._is_assisting = False
             self.initialized = True
@@ -79,6 +78,29 @@ class AssistantRunner:
         with self.rlock:
             return self._is_assisting
 
+    def speak(self, message):
+        with self.rlock:
+            log.info("[ hai ] " + message)
+
+            if self.voice is None and self.model_path is not None and self.model_path != "":
+                self.voice = PiperVoice.load(self.model_path)
+                self.sample_rate = self.voice.config.sample_rate
+
+            stream = sd.RawOutputStream(
+                samplerate=self.sample_rate,
+                channels=1,
+                dtype='int16'
+            )
+            stream.start()
+
+            try:
+                for chunk in self.voice.synthesize(message):
+                    audio_chunk = np.frombuffer(chunk.audio_int16_bytes, dtype=np.int16)
+                    stream.write(audio_chunk)
+            finally:
+                stream.stop()
+                stream.close()
+
     def run(self, message):
         self.is_running = True
         self.terminate = False
@@ -96,7 +118,7 @@ class AssistantRunner:
             try:
                 model = self.config.model
 
-                if self.config.provider is not None:
+                if self.config.provider is not None and self.config.model is not None:
                     self.__init_provider()
 
                     response = self.client.chat.completions.create(
@@ -111,24 +133,7 @@ class AssistantRunner:
 
             if (response is not None):
                 output_response = response.choices[0].message.content
-                output_response_role = response.choices[0].message.role
-
-                log.info("[ hai ] " + output_response)
-
-                stream = sd.RawOutputStream(
-                    samplerate=self.sample_rate,
-                    channels=1,
-                    dtype='int16'
-                )
-                stream.start()
-
-                try:
-                    for chunk in self.voice.synthesize(output_response):
-                        audio_chunk = np.frombuffer(chunk.audio_int16_bytes, dtype=np.int16)
-                        stream.write(audio_chunk)
-                finally:
-                    stream.stop()
-                    stream.close()
+                self.speak(output_response)
 
         except TerminationException as e:
             log.error(traceback.format_exc())
