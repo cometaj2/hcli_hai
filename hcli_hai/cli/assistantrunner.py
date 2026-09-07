@@ -34,7 +34,6 @@ class AssistantRunner:
                 return
             self.rlock = threading.RLock()
             self.lock = threading.RLock()
-            self.exception_event = threading.Event()
             self.is_running = False
             self.config = a.Config()
 
@@ -101,17 +100,18 @@ class AssistantRunner:
                 stream.stop()
                 stream.close()
 
-    def run(self, message):
+    def run(self, messages):
         self.is_running = True
         self.terminate = False
 
         try:
             log.info("[ hai ] Attempting to assist...")
 
-            content = message['content']
+            q_content = messages[-2]['content']
+            a_content = messages[-1]['content']
 
             assistance = [{"role": "system", "content": self.config.assistant_behavior}]
-            question = { "role" : "user", "content" : content }
+            question = { "role" : "user", "content" : a_content }
             assistance.append(question)
 
             response = None

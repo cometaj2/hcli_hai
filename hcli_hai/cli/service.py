@@ -141,7 +141,7 @@ class Service:
                         # Mark that we're waiting for this command to complete
                         self.message_count_before_processing = len(messages)
                         self.waiting_for_update = True
-                        self.assistantrunner.run(messages[-1])
+                        self.assistantrunner.run(messages)
 
                 time.sleep(0.5)
         finally:
