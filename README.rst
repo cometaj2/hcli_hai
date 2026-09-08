@@ -69,6 +69,7 @@ Supports
 - Conversation vibing via detailed plans and HCLI integration to allow for external tool use.
   - This allows for capabilities enhancements (e.g. web search, git repo interaction, terminal use, etc.).
 - hcli-problem-details use to help relay RFC 9457 problem details back to the HCLI client.
+- Assistant audio summary and commentary for the last received context response.
 
 To Do
 -----
@@ -86,7 +87,7 @@ To Do
 Bugs
 ----
 
-- An occasional thread exhaustion requires hcli_hai to be relaunched.
+- TBD
 
 .. |build status| image:: https://circleci.com/gh/cometaj2/hcli_hai.svg?style=shield
    :target: https://circleci.com/gh/cometaj2/hcli_hai
