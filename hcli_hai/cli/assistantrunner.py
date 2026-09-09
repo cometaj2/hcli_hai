@@ -42,6 +42,7 @@ class AssistantRunner:
 
             self._is_assisting = False
             self.initialized = True
+            self.terminate = False
 
     def __init_provider(self):
         with self.rlock:
@@ -66,11 +67,14 @@ class AssistantRunner:
                 raise BadRequestError(detail=msg)
 
     def set_assist(self, should_assist):
+        if should_assist == False:
+            self.terminate = True
         with self.rlock:
             self._is_assisting = should_assist
             if should_assist is True:
                 log.info(f"[ hai ] Assistant runner started.")
             else:
+                self.terminate = True
                 log.info(f"[ hai ] Assistant runner stopped.")
 
     def is_assisting(self):
@@ -96,6 +100,7 @@ class AssistantRunner:
                 for chunk in self.voice.synthesize(message):
                     audio_chunk = np.frombuffer(chunk.audio_int16_bytes, dtype=np.int16)
                     stream.write(audio_chunk)
+                    self.check_termination()
             finally:
                 stream.stop()
                 stream.close()
@@ -111,7 +116,7 @@ class AssistantRunner:
             a_content = messages[-1]['content']
 
             assistance = [{"role": "system", "content": self.config.assistant_behavior}]
-            question = { "role" : "user", "content" : a_content }
+            question = { "role" : "user", "content" : "user: " + q_content + "\n\nassistant: " + a_content }
             assistance.append(question)
 
             response = None
@@ -142,16 +147,20 @@ class AssistantRunner:
             log.error(traceback.format_exc())
             self.abort()
         finally:
+            self.terminate = False
             self.is_running = False
 
         log.info("[ hai ] Done assisting...")
 
         return
 
+    def check_termination(self):
+        if self.terminate:
+            raise TerminationException("[ hai ] terminated")
+
     def abort(self):
         self.is_running = False
+        self.terminate = False
 
 class TerminationException(Exception):
     pass
-
-

@@ -77,6 +77,10 @@ class Service:
 
     def set(self, id):
         return self.ai.set(id)
+        if self.assistantrunner.is_assisting() == True:
+           self.assistantrunner.should_assist(False)
+           time.sleep(0.5)
+           self.assistantrunner.should_assist(True)
 
     def current(self):
         return self.ai.current()
@@ -104,7 +108,6 @@ class Service:
 #         return self.runner.is_vibing()
 
     # AssistantRunner controls
-#    @deny_disabled_authentication
     def assist(self, should_assist):
         self.assistantrunner.set_assist(should_assist)
 
