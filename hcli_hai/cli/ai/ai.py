@@ -21,22 +21,22 @@ log = logger.Logger()
 
 
 class AI:
-    instance = None
-    init_lock = threading.RLock()
-    config = None
-    contextmgr = None
-    client = None
+    _instance = None
+    _init_lock = threading.RLock()
 
     def __new__(cls):
-        with cls.init_lock:
-            if cls.instance is None:
-                cls.instance = super().__new__(cls)
-                cls.instance.__init_singleton()
-            return cls.instance
+        with cls._init_lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+                cls._instance.__init_singleton()
+            return cls._instance
 
     def __init_singleton(self):
         self.rlock = threading.RLock()
         with self.rlock:
+            self.config = None
+            self.contextmgr = None
+            self.client = None
             log.debug("Initializing AI singleton")
             self.config = a.Config()
             self.contextmgr = c.ContextManager()

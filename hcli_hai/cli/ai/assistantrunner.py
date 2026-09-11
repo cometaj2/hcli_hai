@@ -46,6 +46,7 @@ class AssistantRunner:
             self.initialized = True
             self.terminate = False
 
+            self.previous_response = None
             self.voice = v.Voice(self.config.assistant_tts_path,
                                  check_termination = self.check_termination)
 
@@ -125,7 +126,10 @@ class AssistantRunner:
             a_content = messages[-1]['content']
 
             assistance = [{"role": "system", "content": self.config.assistant_behavior}]
-            question = { "role" : "user", "content" : "user: " + q_content + "\n\nassistant: " + a_content }
+            if self.previous_response is None:
+                question = { "role" : "user", "content" : "user: " + q_content + "\n\nassistant: " + a_content }
+            else:
+                question = { "role" : "user", "content" : "your previous response: " + self.previous_response + "\n\nnew user question: " + q_content + "\n\nnew assistant response: " + a_content }
             assistance.append(question)
 
             response = None
@@ -149,9 +153,9 @@ class AssistantRunner:
                 return None
 
             if (response is not None):
-                self.voice.speak(response.choices[0].message.content)
-#                 output_response = response.choices[0].message.content
-#                 self.speak(output_response)
+                new_response = response.choices[0].message.content
+                self.previous_response = new_response
+                self.voice.speak(new_response)
 
         except TerminationException as e:
             log.error(traceback.format_exc())
