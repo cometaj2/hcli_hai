@@ -9,7 +9,10 @@ import config as a
 import openai
 import numpy as np
 import sounddevice as sd
+from hcli_problem_details import *
 from piper.voice import PiperVoice
+
+from ai import voice as v
 
 log = logger.Logger()
 
@@ -38,28 +41,30 @@ class AssistantRunner:
             self.config = a.Config()
 
             self.model_path = self.config.assistant_tts_path
-            self.voice = None
 
             self._is_assisting = False
             self.initialized = True
             self.terminate = False
 
+            self.voice = v.Voice(self.config.assistant_tts_path,
+                                 check_termination = self.check_termination)
+
     def __init_provider(self):
         with self.rlock:
-            log.debug("Initializing LLM service provider")
+            log.info("initializing llm service provider")
             if self.config.provider == "ollama":
                 self.client = openai.OpenAI(
                     base_url=self.config.ollama_service_url,
                     api_key="ollama",   # Ollama ignores the key
                 )
-                log.debug(f"using ollama at {self.config.ollama_service_url}")
+                log.info(f"using ollama at {self.config.ollama_service_url}")
 
             elif self.config.provider == "xai":
                 self.client = openai.OpenAI(
                     api_key=os.getenv("XAI_API_KEY"),
                     base_url="https://api.x.ai/v1",
                 )
-                log.debug("using grok (xai) at https://api.x.ai/v1")
+                log.info("using grok (xai) at https://api.x.ai/v1")
 
             else:
                 msg = "no provider selected. select from the list of available providers."
@@ -69,48 +74,52 @@ class AssistantRunner:
     def set_assist(self, should_assist):
         if should_assist == False:
             self.terminate = True
+            self.voice.stop()
         with self.rlock:
             self._is_assisting = should_assist
             if should_assist is True:
-                log.info(f"[ hai ] Assistant runner started.")
+                log.info(f"[ hai ] assistant runner started.")
             else:
                 self.terminate = True
-                log.info(f"[ hai ] Assistant runner stopped.")
+                log.info(f"[ hai ] assistant runner stopped.")
 
     def is_assisting(self):
         with self.rlock:
             return self._is_assisting
 
     def speak(self, message):
-        with self.rlock:
-            log.info("[ hai ] " + message)
-
-            if self.voice is None and self.model_path is not None and self.model_path != "":
-                self.voice = PiperVoice.load(self.model_path)
-                self.sample_rate = self.voice.config.sample_rate
-
-            stream = sd.RawOutputStream(
-                samplerate=self.sample_rate,
-                channels=1,
-                dtype='int16'
-            )
-            stream.start()
-
-            try:
-                for chunk in self.voice.synthesize(message):
-                    audio_chunk = np.frombuffer(chunk.audio_int16_bytes, dtype=np.int16)
-                    stream.write(audio_chunk)
-                    self.check_termination()
-            finally:
-                stream.stop()
-                stream.close()
+        if self.terminate:
+            return
+        self.voice.speak(message)
+#         with self.rlock:
+#             log.info("[ hai ] " + message)
+# 
+#             if self.voice is None and self.model_path is not None and self.model_path != "":
+#                 self.voice = PiperVoice.load(self.model_path)
+#                 self.sample_rate = self.voice.config.sample_rate
+# 
+#             stream = sd.RawOutputStream(
+#                 samplerate=self.sample_rate,
+#                 channels=1,
+#                 dtype='int16'
+#             )
+#             stream.start()
+# 
+#             try:
+#                 for chunk in self.voice.synthesize(message):
+#                     audio_chunk = np.frombuffer(chunk.audio_int16_bytes, dtype=np.int16)
+#                     stream.write(audio_chunk)
+#                     self.check_termination()
+#             finally:
+#                 stream.stop()
+#                 stream.close()
 
     def run(self, messages):
         self.is_running = True
         self.terminate = False
 
         try:
-            log.info("[ hai ] Attempting to assist...")
+            log.info("[ hai ] attempting to assist...")
 
             q_content = messages[-2]['content']
             a_content = messages[-1]['content']
@@ -131,14 +140,18 @@ class AssistantRunner:
                                                     messages=assistance
                                                )
                     log.debug(response)
+                else:
+                    msg = "[ hai ] no provider or model selected. select from the list of available providers and models."
+                    log.warning(msg)
 
             except Exception as e:
                 log.error(traceback.format_exc())
                 return None
 
             if (response is not None):
-                output_response = response.choices[0].message.content
-                self.speak(output_response)
+                self.voice.speak(response.choices[0].message.content)
+#                 output_response = response.choices[0].message.content
+#                 self.speak(output_response)
 
         except TerminationException as e:
             log.error(traceback.format_exc())
@@ -150,7 +163,7 @@ class AssistantRunner:
             self.terminate = False
             self.is_running = False
 
-        log.info("[ hai ] Done assisting...")
+        log.info("[ hai ] done assisting...")
 
         return
 
@@ -161,6 +174,7 @@ class AssistantRunner:
     def abort(self):
         self.is_running = False
         self.terminate = False
+        self.voice.stop()
 
 class TerminationException(Exception):
     pass

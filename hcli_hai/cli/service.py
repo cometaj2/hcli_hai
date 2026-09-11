@@ -6,8 +6,8 @@ import time
 import inspect
 import logger
 from ai import ai
+from ai import assistantrunner as a
 #import runner as s
-import assistantrunner as a
 import threading
 
 from datetime import datetime
@@ -117,7 +117,7 @@ class Service:
     def assistant(self):
         lock = self.assistantrunner.lock
         if not lock.acquire(blocking=False):
-            log.info("[ hai ] assistant thread already running in a different Service; exiting")
+            log.debug("[ hai ] assistant already running; exiting")
             return
         try:
             while True:

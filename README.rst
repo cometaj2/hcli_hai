@@ -87,7 +87,7 @@ To Do
 Bugs
 ----
 
-- TBD
+- Occasional empty response from summarizing assistant
 
 .. |build status| image:: https://circleci.com/gh/cometaj2/hcli_hai.svg?style=shield
    :target: https://circleci.com/gh/cometaj2/hcli_hai
