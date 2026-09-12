@@ -28,12 +28,16 @@ class AI:
         with cls._init_lock:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
-                cls._instance.__init_singleton()
+                cls._instance.initialized = False
             return cls._instance
 
-    def __init_singleton(self):
-        self.rlock = threading.RLock()
-        with self.rlock:
+    def __init__(self):
+        if self.initialized:
+            return
+        with self._init_lock:
+            if self.initialized:
+                return
+            self.rlock = threading.RLock()
             self.config = None
             self.contextmgr = None
             self.client = None
@@ -42,11 +46,11 @@ class AI:
             self.contextmgr = c.ContextManager()
             if self.config.provider is not None:
                 self.__init_provider()
+            self.initialized = True
 
             log.debug(f"AI initialization complete: config={bool(self.config)}, contextmgr={bool(self.contextmgr)}")
 
     def __init_provider(self):
-        self.rlock = threading.RLock()
         with self.rlock:
             log.debug("Initializing LLM service provider")
             if self.config.provider == "ollama":
