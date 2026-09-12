@@ -123,21 +123,26 @@ class Context:
 
 
 class ContextManager:
-    init_rlock = threading.RLock()
-    instance = None
+    _init_rlock = threading.RLock()
+    _instance = None
 
     def __new__(cls):
-        with cls.init_rlock:
-            if cls.instance is None:
-                cls.instance = super().__new__(cls)
-                cls.instance.__init()
-            return cls.instance
+        with cls._init_rlock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+                cls._instance.initialized = False
+            return cls._instance
 
     # rlock is only initialized once but the rest of the state can be reinitialized
-    def __init(self):
-        self.rlock = threading.RLock()
-        with self.rlock:
+    def __init__(self):
+        if self.initialized:
+            return
+        with self._init_rlock:
+            if self.initialized:
+                return
+            self.rlock = threading.RLock()
             self.init()
+            self.initialized = True
 
     def init(self):
         with self.rlock:
@@ -281,6 +286,7 @@ class ContextManager:
             return self.plan.plan
 
 class TrimCounter:
+
     def __init__(self):
         self.encoding_base = "cl100k_base"
         self.max_context_length = 200000
