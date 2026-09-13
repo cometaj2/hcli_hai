@@ -1,13 +1,11 @@
 import sys
+import time
 import threading
 import traceback
 import numpy as np
 import sounddevice as sd
 import logger
-
 import os
-import sys
-
 from piper.voice import PiperVoice
 
 log = logger.Logger()
@@ -17,8 +15,8 @@ class TerminationException(Exception):
     pass
 
 
+# Threaded Piper playback. stop() aborts only the current utterance.
 class Voice:
-    """Threaded Piper playback. stop() aborts only the current utterance."""
 
     def __init__(self, model_path, check_termination=None):
         self.model_path = model_path
@@ -83,8 +81,7 @@ class Voice:
             self._ensure_voice()
             if self.voice is None or cancel.is_set():
                 return
-
-            with AudioDucker(duck_to=0.25) as ducker:
+            with AudioDucker(duck_to=0.25, fade_s=0.8, fade_steps=20) as ducker:
                 stream = sd.RawOutputStream(
                     samplerate=self.sample_rate,
                     channels=1,
@@ -97,7 +94,6 @@ class Voice:
                     self._stream = stream
                 stream.start()
                 ducker.protect_new()
-
                 for chunk in self.voice.synthesize(message):
                     if cancel.is_set():
                         raise TerminationException("[ hai ] voice stopped")
@@ -127,7 +123,8 @@ class Voice:
         if stream is None:
             return
         try:
-            stream.abort()
+            stream.stop()
+            stream.close()
         except Exception:
             pass
 
@@ -137,8 +134,10 @@ class Voice:
 # same context-manager call site works everywhere.
 class AudioDucker:
 
-    def __init__(self, duck_to=0.25, exclude_pids=None):
+    def __init__(self, duck_to=0.25, exclude_pids=None, fade_s=0.4, fade_steps=10):
         self.duck_to = max(0.0, min(1.0, float(duck_to)))
+        self.fade_s = max(0.0, float(fade_s))
+        self.fade_steps = max(1, int(fade_steps))
         self.exclude_pids = {
             int(p) for p in (exclude_pids if exclude_pids is not None else [os.getpid()])
         }
@@ -200,6 +199,32 @@ class AudioDucker:
             except Exception:
                 pass
 
+    def _ramp(self, pulse, saved, toward_duck):
+        if not saved:
+            return
+        steps = self.fade_steps
+        interval = self.fade_s / steps if steps else 0
+        for i in range(1, steps + 1):
+            t = i / float(steps)
+            try:
+                by_idx = {si.index: si for si in pulse.sink_input_list()}
+            except Exception:
+                break
+            for idx, original in saved.items():
+                si = by_idx.get(idx)
+                if si is None:
+                    continue
+                if toward_duck:
+                    vol = original + (self.duck_to - original) * t
+                else:
+                    vol = self.duck_to + (original - self.duck_to) * t
+                try:
+                    pulse.volume_set_all_chans(si, vol)
+                except Exception:
+                    pass
+            if interval:
+                time.sleep(interval)
+
     def _linux_duck(self):
         pulse = self._linux_pulse()
         if pulse is None:
@@ -217,15 +242,11 @@ class AudioDucker:
                     continue
                 if original <= self.duck_to:
                     continue
-                try:
-                    pulse.volume_set_all_chans(si, self.duck_to)
-                except Exception as e:
-                    log.debug("[ hai ] could not duck sink-input %s: %s", si.index, e)
-                    continue
                 saved[si.index] = original
             with self._lock:
                 self._saved = saved
                 self._known = known
+            self._ramp(pulse, saved, toward_duck=True)
             if saved:
                 log.info("[ hai ] ducked %d audio stream(s) to %.0f%%",
                          len(saved), self.duck_to * 100)
@@ -248,19 +269,8 @@ class AudioDucker:
         if pulse is None:
             return
         try:
-            by_idx = {si.index: si for si in pulse.sink_input_list()}
-            restored = 0
-            for idx, original in saved.items():
-                si = by_idx.get(idx)
-                if si is None:
-                    continue
-                try:
-                    pulse.volume_set_all_chans(si, original)
-                    restored += 1
-                except Exception as e:
-                    log.debug("[ hai ] could not restore sink-input %s: %s", idx, e)
-            if restored:
-                log.info("[ hai ] restored %d audio stream(s)", restored)
+            self._ramp(pulse, saved, toward_duck=False)
+            log.info("[ hai ] restored %d audio stream(s)", len(saved))
         except Exception as e:
             log.warning("[ hai ] linux unduck failed: %s", e)
         finally:
@@ -268,4 +278,3 @@ class AudioDucker:
                 pulse.close()
             except Exception:
                 pass
-
