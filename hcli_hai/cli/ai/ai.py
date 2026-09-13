@@ -37,11 +37,11 @@ class AI:
         with self._init_lock:
             if self.initialized:
                 return
+            log.debug("Initializing AI singleton.")
             self.rlock = threading.RLock()
             self.config = None
             self.contextmgr = None
             self.client = None
-            log.debug("Initializing AI singleton")
             self.config = a.Config()
             self.contextmgr = c.ContextManager()
             if self.config.provider is not None:
@@ -52,7 +52,7 @@ class AI:
 
     def __init_provider(self):
         with self.rlock:
-            log.debug("Initializing LLM service provider")
+            log.debug("Initializing LLM service provider.")
             if self.config.provider == "ollama":
                 self.client = openai.OpenAI(
                     base_url=self.config.ollama_service_url,
@@ -129,13 +129,11 @@ class AI:
 
     # get the current context as json output
     def get_context(self):
-        with self.rlock:
-            return self.contextmgr.get_context()
+        return self.contextmgr.get_context()
 
     # get the current context as text output
     def get_readable_context(self):
-        with self.rlock:
-            return self.contextmgr.get_readable_context()
+        return self.contextmgr.get_readable_context()
 
     # reset the current context (clean slate)
     def reset(self):
@@ -216,11 +214,12 @@ class AI:
     # create a new context
     def new(self):
         with self.rlock:
-            if os.path.exists(self.config.dot_hai_config_file):
-                os.remove(self.config.dot_hai_config_file)
-            self.config.init()
+            if not os.path.exists(self.config.dot_hai_config_file):
+                self.config.init()
+            else:
+                self.config.context = str(self.config.generate_id())
+                self.config.save()
             self.contextmgr.init()
-
             return self.current()
 
     # delete the context_id context

@@ -37,6 +37,12 @@ class CLI:
             if response is not None:
                 return io.BytesIO(response.encode('utf-8'))
 
+        if len(self.commands) == 2 and self.inputstream:
+            if self.commands[1] == '--async':
+                response = self.service.async_chat(self.inputstream)
+                if response is not None:
+                    return io.BytesIO(response.encode('utf-8'))
+
         if len(self.commands) > 1 and self.commands[1] in self.handlers:
             return self.handlers[self.commands[1]]()
 

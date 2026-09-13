@@ -144,11 +144,13 @@ class ContextManager:
             self.init()
             self.initialized = True
 
+    # We get the context from disk when needed.
+    # get context from the context manager return in memory context only.
     def init(self):
         with self.rlock:
             self.counter = TrimCounter()
             self.config = c.Config()
-            self.context = self.get_context()
+            self.context = self.config.get_context()
             self.plan = Plan()
 
     def trim(self):
@@ -156,7 +158,9 @@ class ContextManager:
 
     def reset(self):
         with self.rlock:
-            return self.config.reset()
+            reset = self.config.reset()
+            self.init()
+            return reset
 
     def behavior(self, inputstream):
         with self.rlock:
@@ -192,18 +196,10 @@ class ContextManager:
             self.context.messages = current_messages  # This ensures proper copying
 
     def get_context(self):
-        with self.rlock:
-            self.context = self.config.get_context()
-            return self.context
+        return self.context
 
     # Ouput for human consumption and longstanding conversation tracking
     def get_readable_context(self):
-        with self.rlock:
-            self.context = self.config.get_context()
-
-            if self.context is None:
-                return ""
-
             sections = []
 
             # Add name section

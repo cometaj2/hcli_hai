@@ -36,6 +36,12 @@ class Service:
     def chat(self, inputstream):
         return self.ai.chat(inputstream)
 
+    def async_chat(self, inputstream):
+        data = inputstream.read()
+        t = threading.Thread(target=self.ai.chat, args=(io.BytesIO(data),), daemon=True)
+        t.start()
+        return
+
     def get_context(self):
         return self.ai.get_context()
 

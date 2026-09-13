@@ -6,6 +6,10 @@
             "http": "post"
         },
         {
+            "command": "hai --async",
+            "http": "post"
+        },
+        {
             "command": "hai reset",
             "http": "post"
         },
@@ -214,7 +218,15 @@
                     "name": "provider",
                     "description": "The \"provider\" command allows you to work with providers to list them, list the current provider, and to set a new LLM service provider to use."
                 }
+            ],
+            "option": [
+                {
+                    "href": "hai--async",
+                    "name": "--async",
+                    "description": "The \"--async\" option returns immediately without response output to help avoid blocking for a long time waiting for a response. A response can be periodically polled for instead using, for example, 'hai context'."
+                }
             ]
+
         },
         {
             "id": "haireset",
