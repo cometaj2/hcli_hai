@@ -120,6 +120,15 @@ class Service:
     def is_assisting(self):
         return self.assistantrunner.is_assisting()
 
+    def __latest_pair_key(self, messages):
+        if not messages or len(messages) < 2:
+            return None
+        if messages[-1].get("role") != "assistant":
+            return None
+        if messages[-2].get("role") != "user":
+            return None
+        return (len(messages), messages[-1].get("content") or "")
+
     def assistant(self):
         lock = self.assistantrunner.lock
         if not lock.acquire(blocking=False):
@@ -127,31 +136,13 @@ class Service:
             return
         try:
             while True:
-
-                if not self.assistantrunner.is_running and not self.assistantrunner.is_assisting():
-                    self.waiting_for_update = False
-
-                # First check if we're waiting for a previous command to finish
-                if self.waiting_for_update:
-                    current_count = len(self.ai.contextmgr.messages())
-                    if current_count > self.message_count_before_processing:
-                        # The message count has increased, so processing is complete
-                        self.waiting_for_update = False
-                        self.message_count_before_processing = 0
-                    # Continue the main loop - don't process new commands while waiting
-                    time.sleep(0.5)
-                    continue
-
-                # Regular processing logic
-                if not self.assistantrunner.is_running and self.assistantrunner.is_assisting():
+                ar = self.assistantrunner
+                if not ar.is_running and ar.is_assisting():
                     messages = self.ai.contextmgr.messages()
-
-                    if messages and messages[-1]['role'] == 'assistant':
-                        # Mark that we're waiting for this command to complete
-                        self.message_count_before_processing = len(messages)
-                        self.waiting_for_update = True
-                        self.assistantrunner.run(messages)
-
+                    key = self.__latest_pair_key(messages)
+                    if key is not None and key != ar.assisted_key():
+                        ar.mark_assisted(key)   # before run, so a crash cannot loop
+                        ar.run(messages)
                 time.sleep(0.5)
         finally:
             lock.release()

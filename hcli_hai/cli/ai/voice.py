@@ -107,7 +107,7 @@ class Voice:
         except Exception:
             log.error(traceback.format_exc())
         finally:
-            self._close_stream(stream)
+            self.stop()
             with self._lock:
                 if self._thread is threading.current_thread():
                     self._thread = None

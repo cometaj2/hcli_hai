@@ -45,6 +45,7 @@ class AssistantRunner:
             self._is_assisting = False
             self.initialized = True
             self.terminate = False
+            self.assist_key = None
 
             self.previous_response = None
             self.voice = v.Voice(self.config.assistant_tts_path,
@@ -82,7 +83,16 @@ class AssistantRunner:
                 log.info(f"[ hai ] assistant runner started.")
             else:
                 self.terminate = True
+                self.assist_key = None
                 log.info(f"[ hai ] assistant runner stopped.")
+
+    def assisted_key(self):
+        with self.rlock:
+            return self.assist_key
+
+    def mark_assisted(self, key):
+        with self.rlock:
+            self.assist_key = key
 
     def is_assisting(self):
         with self.rlock:
