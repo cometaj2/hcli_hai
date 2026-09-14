@@ -76,12 +76,10 @@ class Voice:
             self._thread = t
         t.start()
 
+    # Abort the in-flight utterance from any thread.
+    # Signals the worker and waits for it to close its own stream.
+    # Does not touch the PortAudio stream object.
     def stop(self, wait=True, timeout=2.0):
-        """Abort the in-flight utterance from any thread.
-
-        Signals the worker and waits for it to close its own stream.
-        Does not touch the PortAudio stream object.
-        """
         with self._lock:
             self.terminate = True
             cancel = self._cancel
@@ -97,9 +95,9 @@ class Voice:
         done.wait(timeout=timeout)
         t.join(timeout=0.2)
         if t.is_alive():
-            log.warning(
-                "[ hai ] voice thread still running after stop timeout; "
-                "leaving stream for the worker to close (avoids ALSA SIGSEGV)"
+            log.debug(
+                "Voice thread still running after timeout; "
+                "leaving stream for the worker to close to avoid ALSA SIGSEGV"
             )
         AudioDucker.restore_foreign_to_full()
 
@@ -166,16 +164,16 @@ class Voice:
 
                 for chunk in self.voice.synthesize(message):
                     if self._should_stop(cancel):
-                        log.warning("[ hai ] speaking terminated")
+                        log.debug("[ hai ] speaking terminated")
                         break
                     audio_chunk = np.frombuffer(chunk.audio_int16_bytes, dtype=np.int16)
                     if not self._write_chunk(stream, audio_chunk, cancel):
-                        log.warning("[ hai ] speaking terminated")
+                        log.debug("[ hai ] speaking terminated")
                         break
         except TerminationException:
-            log.warning("[ hai ] speaking terminated")
+            log.debug("[ hai ] speaking terminated")
         except sd.PortAudioError:
-            log.warning("[ hai ] port audio error. speaking terminated")
+            log.debug("[ hai ] port audio error. speaking terminated")
         except Exception:
             log.error(traceback.format_exc())
         finally:
@@ -304,8 +302,8 @@ class AudioDucker:
             log.debug("[ hai ] volume set failed for sink-input %s: %s", si.index, e)
             return False
 
+    # Force full volume on sink-inputs that appeared after ducking.
     def protect_new(self):
-        """Force full volume on sink-inputs that appeared after ducking."""
         if not sys.platform.startswith("linux"):
             return
         pulse = self._linux_pulse()
@@ -319,11 +317,11 @@ class AudioDucker:
                     continue
                 try:
                     pulse.volume_set_all_chans(si, self.FULL_VOLUME)
-                    log.info("[ hai ] left TTS stream %s at full volume", si.index)
+                    log.debug("[ hai ] left TTS stream %s at full volume", si.index)
                 except Exception as e:
                     log.debug("[ hai ] could not protect sink-input %s: %s", si.index, e)
         except Exception as e:
-            log.warning("[ hai ] protect_new failed: %s", e)
+            log.debug("[ hai ] protect_new failed: %s", e)
         finally:
             try:
                 pulse.close()
@@ -371,16 +369,14 @@ class AudioDucker:
                         lifted += 1
                     break
         if lifted:
-            log.info("[ hai ] restored %d audio stream(s) to 100%% (%s)", lifted, label)
+            log.debug("[ hai ] restored %d audio stream(s) to 100%% (%s)", lifted, label)
         return lifted
 
+    # Best-effort: put every non-hai, non-muted sink-input back at 100%.
+    # Safe to call from stop(), worker finally, or a CLI helper.
+    # Does not touch this process's TTS stream while it is still live.
     @classmethod
     def restore_foreign_to_full(cls, exclude_pids=None):
-        """Best-effort: put every non-hai, non-muted sink-input back at 100%.
-
-        Safe to call from stop(), worker finally, or a CLI helper.
-        Does not touch this process's TTS stream while it is still live.
-        """
         if not sys.platform.startswith("linux"):
             return
         with cls._restore_lock:
@@ -404,9 +400,9 @@ class AudioDucker:
                     if ducker._set_volume(pulse, si, cls.FULL_VOLUME):
                         lifted += 1
                 if lifted:
-                    log.info("[ hai ] recovered %d background stream(s) to 100%%", lifted)
+                    log.debug("[ hai ] recovered %d background stream(s) to 100%%", lifted)
             except Exception as e:
-                log.warning("[ hai ] background volume recovery failed: %s", e)
+                log.debug("[ hai ] background volume recovery failed: %s", e)
             finally:
                 try:
                     pulse.close()
@@ -451,10 +447,10 @@ class AudioDucker:
                 self._known = known
             self._ramp(pulse, [t for t in targets if t["start"] > self.duck_to], toward_full=False)
             if saved:
-                log.info("[ hai ] ducked %d audio stream(s) to %.0f%%",
+                log.debug("[ hai ] ducked %d audio stream(s) to %.0f%%",
                          len(saved), self.duck_to * 100)
         except Exception as e:
-            log.warning("[ hai ] linux duck failed: %s", e)
+            log.debug("[ hai ] linux duck failed: %s", e)
         finally:
             try:
                 pulse.close()
@@ -479,7 +475,7 @@ class AudioDucker:
             # Hard set to 100% so a missed fade step cannot leave them at 25%.
             self._lift_targets(pulse, targets, "ducked")
         except Exception as e:
-            log.warning("[ hai ] linux unduck failed: %s", e)
+            log.debug("[ hai ] linux unduck failed: %s", e)
         finally:
             try:
                 pulse.close()

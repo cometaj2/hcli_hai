@@ -68,7 +68,7 @@ class AssistantRunner:
                 log.info("using grok (xai) at https://api.x.ai/v1")
 
             else:
-                msg = "no provider selected. select from the list of available providers."
+                msg = "[ hai ] no provider selected. select from the list of available providers."
                 log.error(msg)
                 raise BadRequestError(detail=msg)
 
@@ -130,7 +130,7 @@ class AssistantRunner:
         self.terminate = False
 
         try:
-            log.info("[ hai ] attempting to assist...")
+            log.info("[ hai ] attempting to assist.")
 
             q_content = messages[-2]['content']
             a_content = messages[-1]['content']
@@ -162,13 +162,14 @@ class AssistantRunner:
                 log.error(traceback.format_exc())
                 return None
 
+            self.check_termination()
             if (response is not None):
                 new_response = response.choices[0].message.content
                 self.previous_response = new_response
                 self.voice.speak(new_response)
 
         except TerminationException as e:
-            log.error(traceback.format_exc())
+            log.debug("[ hai ] assistant terminated.")
             self.abort()
         except Exception as e:
             log.error(traceback.format_exc())
@@ -177,7 +178,7 @@ class AssistantRunner:
             self.terminate = False
             self.is_running = False
 
-        log.info("[ hai ] done assisting...")
+        log.info("[ hai ] done assisting.")
 
         return
 
