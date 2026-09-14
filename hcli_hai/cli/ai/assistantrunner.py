@@ -79,6 +79,7 @@ class AssistantRunner:
         with self.rlock:
             self._is_assisting = should_assist
             if should_assist is True:
+                self.terminate = False
                 log.info(f"[ hai ] assistant runner started.")
             else:
                 self.terminate = True
