@@ -48,8 +48,7 @@ class AssistantRunner:
             self.assist_key = None
 
             self.previous_response = None
-            self.voice = v.Voice(self.config.assistant_tts_path,
-                                 check_termination = self.check_termination)
+            self.voice = v.Voice()
 
     def __init_provider(self):
         with self.rlock:

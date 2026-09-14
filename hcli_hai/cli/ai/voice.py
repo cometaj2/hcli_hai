@@ -6,27 +6,41 @@ import numpy as np
 import sounddevice as sd
 import logger
 import os
+import config as c
 from piper.voice import PiperVoice
 
 log = logger.Logger()
 
 
-class TerminationException(Exception):
-    pass
-
-
 # Threaded Piper playback. stop() aborts only the current utterance.
 class Voice:
+    _instance = None
+    _init_lock = threading.RLock()
 
-    def __init__(self, model_path, check_termination=None):
-        self.model_path = model_path
-        self.check_termination = check_termination or (lambda: None)
-        self.voice = None
-        self.sample_rate = None
-        self._lock = threading.RLock()
-        self._thread = None
-        self._stream = None
-        self._cancel = None  # Event for the in-flight utterance only
+    def __new__(cls):
+        with cls._init_lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+                cls._instance.initialized = False
+            return cls._instance
+
+    def __init__(self):
+        if self.initialized:
+            return
+        with self._init_lock:
+            if self.initialized:
+                return
+
+            self.config = c.Config()
+            self.model_path = self.config.assistant_tts_path
+            self.voice = None
+            self.sample_rate = None
+            self._lock = threading.RLock()
+            self._thread = None
+            self._stream = None
+            self._cancel = None  # Event for the in-flight utterance only
+            self.initialized = True
+            self.terminate = False
 
     def speak(self, message):
         if not message:
@@ -96,8 +110,8 @@ class Voice:
                 ducker.protect_new()
                 for chunk in self.voice.synthesize(message):
                     if cancel.is_set():
-                        raise TerminationException("[ hai ] voice stopped")
-                    self.check_termination()
+#                         raise TerminationException("[ hai ] voice stopped")
+                        break
                     audio_chunk = np.frombuffer(chunk.audio_int16_bytes, dtype=np.int16)
                     stream.write(audio_chunk)
         except TerminationException:
@@ -127,7 +141,6 @@ class Voice:
             stream.close()
         except Exception:
             pass
-
 
 # Lower other apps' playback while TTS speaks.
 # Linux (PipeWire/Pulse) only. Other platforms are a no-op so the
@@ -278,3 +291,8 @@ class AudioDucker:
                 pulse.close()
             except Exception:
                 pass
+
+
+
+class TerminationException(Exception):
+    pass
