@@ -144,4 +144,7 @@ class CLI:
                 self.service.assist(True)
             elif self.commands[2] == "stop":
                 self.service.assist(False)
+            elif self.commands[2] == "status":
+                status = self.service.is_assisting()
+                return io.BytesIO(str(status).encode('utf-8'))
         return None

@@ -102,6 +102,10 @@
             "http": "post"
         },
         {
+            "command": "hai assist status",
+            "http": "get"
+        },
+        {
             "command": "hai assist start",
             "http": "post"
         },
@@ -640,6 +644,11 @@
             ],
             "command": [
                 {
+                    "href": "haiassiststatus",
+                    "name": "status",
+                    "description": "Returns status on if assistance is enabled."
+                },
+                {
                     "href": "haiassiststart",
                     "name": "start",
                     "description": "Start receiving assistance with the current conversation."
@@ -648,6 +657,24 @@
                     "href": "haiassiststop",
                     "name": "stop",
                     "description": "Stop receiving assistance."
+                }
+            ]
+        },
+        {
+            "id": "haiassiststatus",
+            "name": "status",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "status - returns status on if assistant is enabled."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai assist status"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"status\" command allows you get status on whether the summarizing asisstant is enabled or not."
                 }
             ]
         },
