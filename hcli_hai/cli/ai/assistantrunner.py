@@ -12,7 +12,7 @@ import sounddevice as sd
 from hcli_problem_details import *
 from piper.voice import PiperVoice
 
-from ai import voice as v
+from ai.voice import voice as v
 
 log = logger.Logger()
 
