@@ -7,7 +7,7 @@ import sounddevice as sd
 import logger
 import os
 import config as c
-from scipy.signal import butter, sosfilt, sosfilt_zi
+from scipy.signal import butter, sosfilt, sosfilt_zi, iirpeak
 from piper.voice import PiperVoice, SynthesisConfig
 
 from ai.voice import audioducker as a
@@ -110,6 +110,7 @@ class Voice:
         if self.voice is None and self.model_path:
             self.voice = PiperVoice.load(self.model_path)
             self.sample_rate = self.voice.config.sample_rate
+            self.enhance = VoiceEnhance(self.sample_rate)
             self.smoother = VoiceSmoother(self.sample_rate)
 
     def _should_stop(self, cancel):
@@ -174,6 +175,7 @@ class Voice:
                         log.debug("[ hai ] speaking terminated")
                         break
                     audio_chunk = np.frombuffer(chunk.audio_int16_bytes, dtype=np.int16)
+                    audio_chunk = self.enhance.process(audio_chunk)
                     audio_chunk = self.smoother.process(audio_chunk)
                     if not self._write_chunk(stream, audio_chunk, cancel):
                         log.debug("[ hai ] speaking terminated")
@@ -225,6 +227,89 @@ class VoiceSmoother:
         # gentle high-shelf cut ~ -4 dB above 7 kHz (one-pole-ish)
         # skip if you already LPF aggressively
         peak = np.max(np.abs(x)) + 1e-8
+        if peak > 0.98:
+            x *= 0.98 / peak
+        return np.clip(x * 32767.0, -32768, 32767).astype(np.int16)
+
+class VoiceEnhance:
+    def __init__(self, sr, wet=0.11):
+        self.sr = sr
+        ny = sr * 0.5
+
+        self.sos_hp = butter(2, 90 / ny, btype="highpass", output="sos")
+        self.sos_lp = butter(3, 8500 / ny, btype="lowpass", output="sos")
+        self.sos_warm, _ = iirpeak(220 / ny, Q=0.8)
+        # iirpeak returns ba; convert if you prefer SOS. Simple biquad path below.
+        b, a = iirpeak(220, 0.8, fs=sr)
+        self.warm_ba = (b, a)
+        self.zi_hp = sosfilt_zi(self.sos_hp)
+        self.zi_lp = sosfilt_zi(self.sos_lp)
+        self.zi_warm = np.zeros(max(len(b), len(a)) - 1)
+
+        # de-ess band
+        self.sos_ess = butter(2, 5500 / ny, btype="highpass", output="sos")
+        self.zi_ess = sosfilt_zi(self.sos_ess)
+        self.env = 0.0
+        atk = np.exp(-1.0 / (0.004 * sr))
+        rel = np.exp(-1.0 / (0.050 * sr))
+        self.atk, self.rel = atk, rel
+
+        d1 = int(0.016 * sr)
+        d2 = int(0.029 * sr)
+        self.delay = np.zeros(d2 + 1, dtype=np.float32)
+        self.di = 0
+        self.d1, self.d2 = d1, d2
+        self.wet = wet
+
+    def _biquad(self, x, b, a, zi):
+        from scipy.signal import lfilter
+        y, zf = lfilter(b, a, x, zi=zi)
+        return y, zf
+
+    def process(self, x_i16: np.ndarray) -> np.ndarray:
+        x = x_i16.astype(np.float32) / 32768.0
+
+        x, self.zi_hp = sosfilt(self.sos_hp, x, zi=self.zi_hp)
+        x, self.zi_lp = sosfilt(self.sos_lp, x, zi=self.zi_lp)
+        warm, self.zi_warm = self._biquad(x, *self.warm_ba, self.zi_warm)
+        x = x + 0.18 * (warm - x)  # ~+1.5 dB-ish at 220 Hz
+
+        # causal de-ess
+        band, self.zi_ess = sosfilt(self.sos_ess, x, zi=self.zi_ess)
+        out = np.empty_like(x)
+        env = self.env
+        for i, s in enumerate(x):
+            a = abs(band[i])
+            coeff = self.atk if a > env else self.rel
+            env = coeff * env + (1.0 - coeff) * a
+            # threshold ~ -18 dBFS in the ess band
+            gr = 1.0
+            if env > 0.126:
+                # 3:1 above threshold, max ~5 dB cut
+                over = env / 0.126
+                gr = 1.0 / (1.0 + 0.45 * (over - 1.0))
+                gr = max(gr, 0.56)
+            out[i] = s * gr
+        self.env = env
+        x = out
+
+        x = np.tanh(x * 1.12) / 1.12
+
+        # two-tap early reflection via ring buffer
+        y = np.empty_like(x)
+        d = self.delay
+        n = d.size
+        i0 = self.di
+        for i, s in enumerate(x):
+            d[i0] = s
+            t1 = d[(i0 - self.d1) % n]
+            t2 = d[(i0 - self.d2) % n]
+            y[i] = s + self.wet * (0.70 * t1 + 0.30 * t2)
+            i0 = (i0 + 1) % n
+        self.di = i0
+        x = y
+
+        peak = float(np.max(np.abs(x))) + 1e-8
         if peak > 0.98:
             x *= 0.98 / peak
         return np.clip(x * 32767.0, -32768, 32767).astype(np.int16)
