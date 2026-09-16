@@ -7,7 +7,8 @@ import sounddevice as sd
 import logger
 import os
 import config as c
-from piper.voice import PiperVoice
+from scipy.signal import butter, sosfilt, sosfilt_zi
+from piper.voice import PiperVoice, SynthesisConfig
 
 from ai.voice import audioducker as a
 
@@ -109,6 +110,7 @@ class Voice:
         if self.voice is None and self.model_path:
             self.voice = PiperVoice.load(self.model_path)
             self.sample_rate = self.voice.config.sample_rate
+            self.smoother = VoiceSmoother(self.sample_rate)
 
     def _should_stop(self, cancel):
         if cancel is not None and cancel.is_set():
@@ -160,11 +162,19 @@ class Voice:
                 stream.start()
                 ducker.protect_new()
 
-                for chunk in self.voice.synthesize(message):
+                syn = SynthesisConfig(
+                    length_scale=1.08,
+                    noise_scale=0.40,
+                    noise_w_scale=0.45,
+                    normalize_audio=True,
+                )
+
+                for chunk in self.voice.synthesize(message, syn_config=syn):
                     if self._should_stop(cancel):
                         log.debug("[ hai ] speaking terminated")
                         break
                     audio_chunk = np.frombuffer(chunk.audio_int16_bytes, dtype=np.int16)
+                    audio_chunk = self.smoother.process(audio_chunk)
                     if not self._write_chunk(stream, audio_chunk, cancel):
                         log.debug("[ hai ] speaking terminated")
                         break
@@ -200,6 +210,24 @@ class Voice:
                 self._cancel = None
             if self._stream is stream:
                 self._stream = None
+
+class VoiceSmoother:
+    def __init__(self, sr):
+        self.sos_hp = butter(2, 90 / (sr / 2), btype="highpass", output="sos")
+        self.sos_lp = butter(3, 8500 / (sr / 2), btype="lowpass", output="sos")
+        self.zi_hp = sosfilt_zi(self.sos_hp)
+        self.zi_lp = sosfilt_zi(self.sos_lp)
+
+    def process(self, x_i16: np.ndarray) -> np.ndarray:
+        x = x_i16.astype(np.float32) / 32768.0
+        x, self.zi_hp = sosfilt(self.sos_hp, x, zi=self.zi_hp)
+        x, self.zi_lp = sosfilt(self.sos_lp, x, zi=self.zi_lp)
+        # gentle high-shelf cut ~ -4 dB above 7 kHz (one-pole-ish)
+        # skip if you already LPF aggressively
+        peak = np.max(np.abs(x)) + 1e-8
+        if peak > 0.98:
+            x *= 0.98 / peak
+        return np.clip(x * 32767.0, -32768, 32767).astype(np.int16)
 
 class TerminationException(Exception):
     pass
