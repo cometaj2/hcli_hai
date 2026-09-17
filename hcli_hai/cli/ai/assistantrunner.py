@@ -52,20 +52,20 @@ class AssistantRunner:
 
     def __init_provider(self):
         with self.rlock:
-            log.info("initializing llm service provider")
+            log.debug("initializing llm service provider")
             if self.config.provider == "ollama":
                 self.client = openai.OpenAI(
                     base_url=self.config.ollama_service_url,
                     api_key="ollama",   # Ollama ignores the key
                 )
-                log.info(f"using ollama at {self.config.ollama_service_url}")
+                log.debug(f"using ollama at {self.config.ollama_service_url}")
 
             elif self.config.provider == "xai":
                 self.client = openai.OpenAI(
                     api_key=os.getenv("XAI_API_KEY"),
                     base_url="https://api.x.ai/v1",
                 )
-                log.info("using grok (xai) at https://api.x.ai/v1")
+                log.debug("using grok (xai) at https://api.x.ai/v1")
 
             else:
                 msg = "[ hai ] no provider selected. select from the list of available providers."
@@ -80,11 +80,11 @@ class AssistantRunner:
             self._is_assisting = should_assist
             if should_assist is True:
                 self.terminate = False
-                log.info(f"[ hai ] assistant runner started.")
+                log.debug(f"[ hai ] assistant runner started.")
             else:
                 self.terminate = True
                 self.assist_key = None
-                log.info(f"[ hai ] assistant runner stopped.")
+                log.debug(f"[ hai ] assistant runner stopped.")
 
     def assisted_key(self):
         with self.rlock:

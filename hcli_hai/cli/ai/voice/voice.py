@@ -7,9 +7,8 @@ import sounddevice as sd
 import logger
 import os
 import config as c
-from scipy.signal import butter, sosfilt, sosfilt_zi, iirpeak
+from scipy.signal import butter, sosfilt, sosfilt_zi, tf2sos
 from piper.voice import PiperVoice, SynthesisConfig
-
 from ai.voice import audioducker as a
 
 log = logger.Logger()
@@ -110,8 +109,7 @@ class Voice:
         if self.voice is None and self.model_path:
             self.voice = PiperVoice.load(self.model_path)
             self.sample_rate = self.voice.config.sample_rate
-            self.enhance = VoiceEnhance(self.sample_rate)
-            self.smoother = VoiceSmoother(self.sample_rate)
+            self.enhance = VoiceEnhancer(self.sample_rate)
 
     def _should_stop(self, cancel):
         if cancel is not None and cancel.is_set():
@@ -140,6 +138,7 @@ class Voice:
             if self._should_stop(cancel):
                 return
             self._ensure_voice()
+            self.enhance = VoiceEnhancer(self.sample_rate)
             if self.voice is None or self._should_stop(cancel):
                 return
 
@@ -165,8 +164,8 @@ class Voice:
 
                 syn = SynthesisConfig(
                     length_scale=1.08,
-                    noise_scale=0.40,
-                    noise_w_scale=0.45,
+                    noise_scale=0.28,
+                    noise_w_scale=0.35,
                     normalize_audio=True,
                 )
 
@@ -176,7 +175,6 @@ class Voice:
                         break
                     audio_chunk = np.frombuffer(chunk.audio_int16_bytes, dtype=np.int16)
                     audio_chunk = self.enhance.process(audio_chunk)
-                    audio_chunk = self.smoother.process(audio_chunk)
                     if not self._write_chunk(stream, audio_chunk, cancel):
                         log.debug("[ hai ] speaking terminated")
                         break
@@ -231,88 +229,117 @@ class VoiceSmoother:
             x *= 0.98 / peak
         return np.clip(x * 32767.0, -32768, 32767).astype(np.int16)
 
-class VoiceEnhance:
-    def __init__(self, sr, wet=0.11):
-        self.sr = sr
-        ny = sr * 0.5
+def _rbj_peaking_sos(sr, f0, q, gain_db):
+    a = 10.0 ** (gain_db / 40.0)
+    w0 = 2.0 * np.pi * f0 / sr
+    cosw, sinw = np.cos(w0), np.sin(w0)
+    alpha = sinw / (2.0 * q)
+    b0 = 1.0 + alpha * a
+    b1 = -2.0 * cosw
+    b2 = 1.0 - alpha * a
+    a0 = 1.0 + alpha / a
+    a1 = -2.0 * cosw
+    a2 = 1.0 - alpha / a
+    return tf2sos([b0 / a0, b1 / a0, b2 / a0], [1.0, a1 / a0, a2 / a0])
 
-        self.sos_hp = butter(2, 90 / ny, btype="highpass", output="sos")
-        self.sos_lp = butter(3, 8500 / ny, btype="lowpass", output="sos")
-        self.sos_warm, _ = iirpeak(220 / ny, Q=0.8)
-        # iirpeak returns ba; convert if you prefer SOS. Simple biquad path below.
-        b, a = iirpeak(220, 0.8, fs=sr)
-        self.warm_ba = (b, a)
-        self.zi_hp = sosfilt_zi(self.sos_hp)
-        self.zi_lp = sosfilt_zi(self.sos_lp)
-        self.zi_warm = np.zeros(max(len(b), len(a)) - 1)
 
-        # de-ess band
-        self.sos_ess = butter(2, 5500 / ny, btype="highpass", output="sos")
-        self.zi_ess = sosfilt_zi(self.sos_ess)
-        self.env = 0.0
-        atk = np.exp(-1.0 / (0.004 * sr))
-        rel = np.exp(-1.0 / (0.050 * sr))
-        self.atk, self.rel = atk, rel
+def _rbj_lowshelf_sos(sr, f0, q, gain_db):
+    a = 10.0 ** (gain_db / 40.0)
+    w0 = 2.0 * np.pi * f0 / sr
+    cosw, sinw = np.cos(w0), np.sin(w0)
+    alpha = sinw / (2.0 * q)
+    two_sa = 2.0 * np.sqrt(a) * alpha
+    b0 = a * ((a + 1.0) - (a - 1.0) * cosw + two_sa)
+    b1 = 2.0 * a * ((a - 1.0) - (a + 1.0) * cosw)
+    b2 = a * ((a + 1.0) - (a - 1.0) * cosw - two_sa)
+    a0 = (a + 1.0) + (a - 1.0) * cosw + two_sa
+    a1 = -2.0 * ((a - 1.0) + (a + 1.0) * cosw)
+    a2 = (a + 1.0) + (a - 1.0) * cosw - two_sa
+    return tf2sos([b0 / a0, b1 / a0, b2 / a0], [1.0, a1 / a0, a2 / a0])
 
-        d1 = int(0.016 * sr)
-        d2 = int(0.029 * sr)
-        self.delay = np.zeros(d2 + 1, dtype=np.float32)
-        self.di = 0
-        self.d1, self.d2 = d1, d2
-        self.wet = wet
 
-    def _biquad(self, x, b, a, zi):
-        from scipy.signal import lfilter
-        y, zf = lfilter(b, a, x, zi=zi)
-        return y, zf
+def _rbj_highshelf_sos(sr, f0, q, gain_db):
+    a = 10.0 ** (gain_db / 40.0)
+    w0 = 2.0 * np.pi * f0 / sr
+    cosw, sinw = np.cos(w0), np.sin(w0)
+    alpha = sinw / (2.0 * q)
+    two_sa = 2.0 * np.sqrt(a) * alpha
+    b0 = a * ((a + 1.0) + (a - 1.0) * cosw + two_sa)
+    b1 = -2.0 * a * ((a - 1.0) + (a + 1.0) * cosw)
+    b2 = a * ((a + 1.0) + (a - 1.0) * cosw - two_sa)
+    a0 = (a + 1.0) - (a - 1.0) * cosw + two_sa
+    a1 = 2.0 * ((a - 1.0) - (a + 1.0) * cosw)
+    a2 = (a + 1.0) - (a - 1.0) * cosw - two_sa
+    return tf2sos([b0 / a0, b1 / a0, b2 / a0], [1.0, a1 / a0, a2 / a0])
+
+
+class VoiceEnhancer:
+    def __init__(self, sr):
+        sr = float(sr)
+        z = lambda sos: np.zeros_like(sosfilt_zi(sos))
+
+        self.sos_hp = butter(2, 70.0 / (sr / 2.0), btype="highpass", output="sos")
+        self.zi_hp = z(self.sos_hp)
+
+        self.sos_body = _rbj_lowshelf_sos(sr, f0=170.0, q=0.70, gain_db=+2.0)
+        self.zi_body = z(self.sos_body)
+        self.sos_box = _rbj_peaking_sos(sr, f0=480.0, q=1.10, gain_db=-1.2)
+        self.zi_box = z(self.sos_box)
+        self.sos_pres = _rbj_peaking_sos(sr, f0=2600.0, q=0.90, gain_db=+1.8)
+        self.zi_pres = z(self.sos_pres)
+        self.sos_air = _rbj_highshelf_sos(sr, f0=6500.0, q=0.70, gain_db=-2.5)
+        self.zi_air = z(self.sos_air)
+
+        self.rms = 1e-6
+        self.dbx_thresh_db = -12.0
+        self.dbx_ratio = 1.12
+        self.dbx_max_boost_db = 2.5
+        self.dbx_atk = 1.0 - np.exp(-1.0 / (0.008 * sr))
+        self.dbx_rel = 1.0 - np.exp(-1.0 / (0.120 * sr))
+
+        self._fade_left = int(0.008 * sr)
 
     def process(self, x_i16: np.ndarray) -> np.ndarray:
         x = x_i16.astype(np.float32) / 32768.0
-
         x, self.zi_hp = sosfilt(self.sos_hp, x, zi=self.zi_hp)
-        x, self.zi_lp = sosfilt(self.sos_lp, x, zi=self.zi_lp)
-        warm, self.zi_warm = self._biquad(x, *self.warm_ba, self.zi_warm)
-        x = x + 0.18 * (warm - x)  # ~+1.5 dB-ish at 220 Hz
+        x, self.zi_body = sosfilt(self.sos_body, x, zi=self.zi_body)
+        x, self.zi_box = sosfilt(self.sos_box, x, zi=self.zi_box)
+        x, self.zi_pres = sosfilt(self.sos_pres, x, zi=self.zi_pres)
+        x, self.zi_air = sosfilt(self.sos_air, x, zi=self.zi_air)
+        x = self._dbx118_above(x)
 
-        # causal de-ess
-        band, self.zi_ess = sosfilt(self.sos_ess, x, zi=self.zi_ess)
-        out = np.empty_like(x)
-        env = self.env
-        for i, s in enumerate(x):
-            a = abs(band[i])
-            coeff = self.atk if a > env else self.rel
-            env = coeff * env + (1.0 - coeff) * a
-            # threshold ~ -18 dBFS in the ess band
-            gr = 1.0
-            if env > 0.126:
-                # 3:1 above threshold, max ~5 dB cut
-                over = env / 0.126
-                gr = 1.0 / (1.0 + 0.45 * (over - 1.0))
-                gr = max(gr, 0.56)
-            out[i] = s * gr
-        self.env = env
-        x = out
-
-        x = np.tanh(x * 1.12) / 1.12
-
-        # two-tap early reflection via ring buffer
-        y = np.empty_like(x)
-        d = self.delay
-        n = d.size
-        i0 = self.di
-        for i, s in enumerate(x):
-            d[i0] = s
-            t1 = d[(i0 - self.d1) % n]
-            t2 = d[(i0 - self.d2) % n]
-            y[i] = s + self.wet * (0.70 * t1 + 0.30 * t2)
-            i0 = (i0 + 1) % n
-        self.di = i0
-        x = y
+        n = min(self._fade_left, len(x))
+        if n > 0:
+            start = self._fade_left - n
+            ramp = np.arange(start, start + n, dtype=np.float32) / float(self._fade_left)
+            x[:n] *= ramp
+            self._fade_left -= n
 
         peak = float(np.max(np.abs(x))) + 1e-8
         if peak > 0.98:
             x *= 0.98 / peak
         return np.clip(x * 32767.0, -32768, 32767).astype(np.int16)
+
+    def _dbx118_above(self, x: np.ndarray) -> np.ndarray:
+        out = np.empty_like(x)
+        rms = self.rms
+        atk, rel = self.dbx_atk, self.dbx_rel
+        t = self.dbx_thresh_db
+        r1 = self.dbx_ratio - 1.0
+        max_b = self.dbx_max_boost_db
+        k = 8.685889638
+        inv = 0.115129255
+        for i, s in enumerate(x):
+            p = s * s
+            rms += (atk if p > rms else rel) * (p - rms)
+            lev_db = k * np.log(np.sqrt(rms + 1e-12))
+            delta = lev_db - t
+            gdb = r1 * delta if delta > 0.0 else 0.0
+            if gdb > max_b:
+                gdb = max_b
+            out[i] = s * np.exp(gdb * inv)
+        self.rms = rms
+        return out
 
 class TerminationException(Exception):
     pass
