@@ -82,11 +82,9 @@ class Service:
         return self.ai.set_provider(provider)
 
     def set(self, id):
-        return self.ai.set(id)
         if self.assistantrunner.is_assisting() == True:
-           self.assistantrunner.should_assist(False)
-           time.sleep(0.5)
-           self.assistantrunner.should_assist(True)
+            self.previous_response = None
+        return self.ai.set(id)
 
     def current(self):
         return self.ai.current()

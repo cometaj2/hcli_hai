@@ -80,11 +80,11 @@ class AssistantRunner:
             self._is_assisting = should_assist
             if should_assist is True:
                 self.terminate = False
-                log.debug(f"[ hai ] assistant runner started.")
+                log.info(f"[ hai ] assistant runner started.")
             else:
                 self.terminate = True
                 self.assist_key = None
-                log.debug(f"[ hai ] assistant runner stopped.")
+                log.info(f"[ hai ] assistant runner stopped.")
 
     def assisted_key(self):
         with self.rlock:
