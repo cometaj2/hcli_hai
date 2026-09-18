@@ -206,6 +206,7 @@ class AI:
             context_ids = [context['context_id'] for context in contexts]
             if context_id in context_ids:
                 self.contextmgr.set(context_id)
+                log.info(f"[ hai ] context id {context_id} is set.")
             else:
                 msg = f"provided context id {context_id} was not found in available contexts."
                 log.error(msg)

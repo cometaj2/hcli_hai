@@ -165,6 +165,7 @@ class AssistantRunner:
             self.check_termination()
             if (response is not None):
                 new_response = response.choices[0].message.content
+                new_response = self.strip_asterisks(new_response)
                 self.previous_response = new_response
                 self.voice.speak(new_response)
 
@@ -181,6 +182,11 @@ class AssistantRunner:
         log.info("[ hai ] done assisting.")
 
         return
+
+    # Matches '**' if followed by (\S) or preceded by (\S) a non-whitespace character
+    def strip_asterisks(self, text):
+        pattern = r'\*\*(?=\S)|(?<=\S)\*\*'
+        return re.sub(pattern, '', text)
 
     def check_termination(self):
         if self.terminate:
