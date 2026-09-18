@@ -137,9 +137,9 @@ class AssistantRunner:
 
             assistance = [{"role": "system", "content": self.config.assistant_behavior}]
             if self.previous_response is None:
-                question = { "role" : "user", "content" : "user: " + q_content + "\n\nassistant: " + a_content }
+                question = { "role" : "user", "content" : "user question: " + q_content + "\n\nMy assistant response to the user question and thoughts to communicate: " + a_content }
             else:
-                question = { "role" : "user", "content" : "your previous response: " + self.previous_response + "\n\nnew user question: " + q_content + "\n\nnew assistant response: " + a_content }
+                question = { "role" : "user", "content" : "My previous response: " + self.previous_response + "\n\nuser question: " + q_content + "\n\nMy assistant response to the user question and thoughts to communicate: " + a_content }
             assistance.append(question)
 
             response = None
@@ -165,7 +165,7 @@ class AssistantRunner:
             self.check_termination()
             if (response is not None):
                 new_response = response.choices[0].message.content
-                new_response = self.strip_asterisks(new_response)
+                new_response = self.strip_non_conversational(new_response)
                 self.previous_response = new_response
                 self.voice.speak(new_response)
 
@@ -184,9 +184,14 @@ class AssistantRunner:
         return
 
     # Matches '**' if followed by (\S) or preceded by (\S) a non-whitespace character
-    def strip_asterisks(self, text):
-        pattern = r'\*\*(?=\S)|(?<=\S)\*\*'
-        return re.sub(pattern, '', text)
+    # Matches '## and ###'
+    # Matches ``` optional language name, newlines, content, and closing ```
+    def strip_non_conversational(self, text):
+        no_asterisks = re.sub(r'\*\*(?=\S)|(?<=\S)\*\*', '', text)
+        no_hashes = re.sub(r'###\s*', '', no_asterisks)
+        no_hashes = re.sub(r'##\s*', '', no_hashes)
+        no_code_blocks = re.sub(r"```[\w]*\n?.*?\n?```", '', no_hashes, flags=re.DOTALL)
+        return no_code_blocks
 
     def check_termination(self):
         if self.terminate:
