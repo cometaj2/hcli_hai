@@ -6,8 +6,8 @@ import time
 import inspect
 import logger
 from ai import ai
-from ai import assistantrunner as a
-#import runner as s
+from ai import assistantrunner as asr
+from ai import agentrunner as agr
 import threading
 
 from datetime import datetime
@@ -22,12 +22,9 @@ class Service:
 
     def __init__(self):
 
-        self.waiting_for_update = False
-        self.message_count_before_processing = 0
-
         self.ai = ai.AI()
-#         self.runner = s.Runner()
-        self.assistantrunner = a.AssistantRunner()
+#         self.agentrunner = agr.AgentRunner()
+        self.assistantrunner = asr.AssistantRunner()
         self.assistant_thread = threading.Thread(target=self.assistant)
         self.assistant_thread.start()
 

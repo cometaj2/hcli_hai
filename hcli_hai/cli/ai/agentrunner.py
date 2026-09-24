@@ -11,8 +11,8 @@ import xml.etree.ElementTree as et
 log = logger.Logger()
 
 
-# Singleton Runner
-class Runner:
+# Singleton AgentRunner
+class AgentRunner:
     instance = None
     is_running = False
     lock = None

@@ -1,6 +1,8 @@
 import re
+import logger
 
-THRESHOLD = 0.50
+log = logger.Logger()
+
 
 # --- hard do -------------------------------------------------------------
 _CLI = re.compile(r"(?i)^\s*(hcli|/|!|\$)\b")
@@ -254,25 +256,25 @@ def route_ollama(client, model, text):
 
 def froute(text):
     score = _score(text)
-    print("[ hai ] fast score relative to 'doing': " + str(score))
+    log.info("[ hai ] fast score relative to 'doing': " + str(score))
     if score >= 0.70:
         decision = "do"
-        print("[ hai ] fast classification: " + decision)
+        log.info("[ hai ] fast classification: " + decision)
     else:
         decision = "talk"
-        print("[ hai ] fast classification " + decision)
+        log.info("[ hai ] fast classification " + decision)
     return decision
 
 def sroute(client, model, text):
     score = _score(text)
-    print("[ hai ] fast score relative to 'doing': " + str(score))
+    log.info("[ hai ] fast score relative to 'doing': " + str(score))
     if score >= 0.70:
         decision = "do"
-        print("[ hai ] fast classification: " + decision)
+        log.info("[ hai ] fast classification: " + decision)
     elif score <= 0.40:
         decision = "talk"
-        print("[ hai ] fast classification: " + decision)
+        log.info("[ hai ] fast classification: " + decision)
     else:
         decision = route_ollama(client, model, text)
-        print("[ hai ] model classification: " + decision)
+        log.info("[ hai ] model classification: " + decision)
     return decision
