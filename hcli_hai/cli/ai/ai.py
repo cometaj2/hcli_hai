@@ -11,8 +11,9 @@ import threading
 
 import config as a
 import logger
-from . import context as c
+from ai import context as c
 from hcli_problem_details import *
+from ai.router import route
 
 from datetime import datetime
 import openai
@@ -90,6 +91,9 @@ class AI:
                         try:
                             # Separate system message from user messages
                             model = self.config.model
+
+                            decision = route(self.client, model, inputstream)
+
                             user_messages = [msg for msg in self.contextmgr.messages()]
                             response = self.client.chat.completions.create(
                                                             model=model,
