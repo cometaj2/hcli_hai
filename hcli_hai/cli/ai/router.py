@@ -248,22 +248,31 @@ def route_ollama(client, model, text):
         ],
     )
     word = (response.choices[0].message.content or "talk").strip().lower()
-    print("[ hai ] constrained model decision: " + word)
     if word.startswith("do"):
         return "do"
     return "talk"
 
-
-def route(client, model, text):
+def froute(text):
     score = _score(text)
     print("[ hai ] fast score relative to 'doing': " + str(score))
     if score >= 0.70:
         decision = "do"
-        print("[ hai ] fast decision: " + decision)
+        print("[ hai ] fast classification: " + decision)
+    else:
+        decision = "talk"
+        print("[ hai ] fast classification " + decision)
+    return decision
+
+def sroute(client, model, text):
+    score = _score(text)
+    print("[ hai ] fast score relative to 'doing': " + str(score))
+    if score >= 0.70:
+        decision = "do"
+        print("[ hai ] fast classification: " + decision)
     elif score <= 0.40:
         decision = "talk"
-        print("[ hai ] fast decision: " + decision)
+        print("[ hai ] fast classification: " + decision)
     else:
         decision = route_ollama(client, model, text)
-        print("[ hai ] slow decision: " + decision)
+        print("[ hai ] model classification: " + decision)
     return decision
