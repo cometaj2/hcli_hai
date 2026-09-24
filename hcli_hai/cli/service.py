@@ -23,10 +23,14 @@ class Service:
     def __init__(self):
 
         self.ai = ai.AI()
-#         self.agentrunner = agr.AgentRunner()
+
         self.assistantrunner = asr.AssistantRunner()
         self.assistant_thread = threading.Thread(target=self.assistant)
         self.assistant_thread.start()
+
+#         self.agentrunner = agr.AgentRunner()
+#         self.agent_thread = threading.Thread(target=self.agent)
+#         self.agent_thread.start()
 
         return
 
@@ -101,13 +105,6 @@ class Service:
             inputstream = inputstream.rstrip()
             return self.assistantrunner.speak(inputstream)
 
-#    @deny_disabled_authentication
-#     def vibe(self, should_vibe):
-#         self.runner.set_vibe(should_vibe)
-
-#     def is_vibing(self):
-#         return self.runner.is_vibing()
-
     # AssistantRunner controls
     def assist(self, should_assist):
         self.assistantrunner.set_assist(should_assist)
@@ -115,14 +112,12 @@ class Service:
     def is_assisting(self):
         return self.assistantrunner.is_assisting()
 
-    def __latest_pair_key(self, messages):
-        if not messages or len(messages) < 2:
-            return None
-        if messages[-1].get("role") != "assistant":
-            return None
-        if messages[-2].get("role") != "user":
-            return None
-        return (len(messages), messages[-1].get("content") or "")
+    # AgentRunner controls
+#     def vibe(self, should_vibe):
+#         self.runner.set_vibe(should_vibe)
+# 
+#     def is_vibing(self):
+#         return self.runner.is_vibing()
 
     def assistant(self):
         lock = self.assistantrunner.lock
@@ -133,17 +128,25 @@ class Service:
             while True:
                 ar = self.assistantrunner
                 if not ar.is_running and ar.is_assisting():
-                    messages = self.ai.contextmgr.messages()
-                    key = self.__latest_pair_key(messages)
-                    if key is not None and key != ar.assisted_key():
-                        ar.mark_assisted(key)   # before run, so a crash cannot loop
-                        ar.run(messages)
+                    ar.try_assist(self.ai.contextmgr.messages())
                 time.sleep(0.5)
         finally:
             lock.release()
 
-    def harness(self):
-        pass
+    def agent(self):
+        lock = self.agentrunner.lock
+        if not lock.acquire(blocking=False):
+            log.debug("[ hai ] agent already running; exiting")
+            return
+        try:
+            while True:
+                ar = self.agentrunner
+                if not ar.is_running and ar.is_vibing():
+                    log.info("[ hai ] agent is vibing...")
+                time.sleep(0.5)
+        finally:
+            lock.release()
+
 #         with self.runner.lock:
 #             while True:
 # 

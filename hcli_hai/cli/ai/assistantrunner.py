@@ -86,11 +86,11 @@ class AssistantRunner:
                 self.assist_key = None
                 log.info(f"[ hai ] assistant runner stopped.")
 
-    def assisted_key(self):
+    def __assisted_key(self):
         with self.rlock:
             return self.assist_key
 
-    def mark_assisted(self, key):
+    def __mark_assisted(self, key):
         with self.rlock:
             self.assist_key = key
 
@@ -125,7 +125,26 @@ class AssistantRunner:
 #                 stream.stop()
 #                 stream.close()
 
-    def run(self, messages):
+    def __latest_pair_key(self, messages):
+        if not messages or len(messages) < 2:
+            return None
+        if messages[-1].get("role") != "assistant":
+            return None
+        if messages[-2].get("role") != "user":
+            return None
+        return (len(messages), messages[-1].get("content") or "")
+
+    def try_assist(self, messages):
+        if self.is_running or not self.is_assisting():
+            return False
+        key = self.__latest_pair_key(messages)
+        if key is None or key == self.__assisted_key():
+            return False
+        self.__mark_assisted(key)  # before run, so a crash cannot loop
+        self.__run(messages)
+        return True
+
+    def __run(self, messages):
         self.is_running = True
         self.terminate = False
 
