@@ -6,6 +6,7 @@ import re
 import config as a
 from ai import agentbehavior as b
 from ai import ai
+from ai.router import froute
 from huckle import cli, stdin
 import xml.etree.ElementTree as et
 
@@ -56,11 +57,14 @@ class AgentRunner:
         with self.rlock:
             return self._is_vibing
 
+
+
     def harness(self, command):
         self.is_running = True
         self.terminate = False
 
         try:
+            decision = froute(inputstream)
             log.info("attempting to vibe...")
         except TerminationException as e:
             self.abort()

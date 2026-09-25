@@ -142,40 +142,8 @@ class Service:
             ar = self.agentrunner
             while True:
                 if not ar.is_running and ar.is_vibing():
-                    ar.harness(self.ai.contextmgr.messages())
+                    pass
+#                     ar.harness(self.ai.contextmgr.messages())
                 time.sleep(0.5)
         finally:
             lock.release()
-
-#         with self.runner.lock:
-#             while True:
-# 
-#                 if not self.runner.is_running and not self.runner.is_vibing():
-#                     self.ai.contextmgr.set_status("")
-#                     self.waiting_for_update = False
-# 
-#                 # First check if we're waiting for a previous command to finish
-#                 if self.waiting_for_update:
-#                     current_count = len(self.runner.ai.contextmgr.messages())
-#                     if current_count > self.message_count_before_processing:
-#                         # The message count has increased, so processing is complete
-#                         self.waiting_for_update = False
-#                         self.message_count_before_processing = 0
-#                     # Continue the main loop - don't process new commands while waiting
-#                     time.sleep(0.5)
-#                     continue
-# 
-#                 # Regular processing logic
-#                 if not self.runner.is_running and self.runner.is_vibing():
-#                     messages = self.runner.ai.contextmgr.messages()
-# 
-#                     if messages and messages[-1]['role'] == 'assistant':
-#                         command = self.runner.get_plan()
-#                         if command != "":
-# 
-#                             # Mark that we're waiting for this command to complete
-#                             self.message_count_before_processing = len(messages)
-#                             self.waiting_for_update = True
-#                             self.runner.run(command)
-# 
-#                 time.sleep(0.5)
