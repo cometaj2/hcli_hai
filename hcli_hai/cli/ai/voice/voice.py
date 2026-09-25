@@ -52,7 +52,7 @@ class Voice:
     def speak(self, message):
         if not message:
             return
-        log.info("[ hai ] " + message)
+        log.info(message)
 
         self.stop()
 
@@ -171,17 +171,17 @@ class Voice:
 
                 for chunk in self.voice.synthesize(message, syn_config=syn):
                     if self._should_stop(cancel):
-                        log.debug("[ hai ] speaking terminated")
+                        log.debug("speaking terminated")
                         break
                     audio_chunk = np.frombuffer(chunk.audio_int16_bytes, dtype=np.int16)
                     audio_chunk = self.enhance.process(audio_chunk)
                     if not self._write_chunk(stream, audio_chunk, cancel):
-                        log.debug("[ hai ] speaking terminated")
+                        log.debug("speaking terminated")
                         break
         except TerminationException:
-            log.debug("[ hai ] speaking terminated")
+            log.debug("speaking terminated")
         except sd.PortAudioError:
-            log.debug("[ hai ] port audio error. speaking terminated")
+            log.debug("port audio error. speaking terminated")
         except Exception:
             log.error(traceback.format_exc())
         finally:

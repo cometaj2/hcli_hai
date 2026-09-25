@@ -46,12 +46,12 @@ class AudioDucker:
         try:
             import pulsectl
         except ImportError:
-            log.warning("[ hai ] pulsectl not installed; audio ducking disabled")
+            log.warning("pulsectl not installed; audio ducking disabled")
             return None
         try:
             return pulsectl.Pulse("hai-ducker")
         except Exception as e:
-            log.warning("[ hai ] pulse/pipewire unavailable; audio ducking disabled: %s", e)
+            log.warning("pulse/pipewire unavailable; audio ducking disabled: %s", e)
             return None
 
     def _proplist(self, si):
@@ -102,7 +102,7 @@ class AudioDucker:
             pulse.volume_set_all_chans(si, vol)
             return True
         except Exception as e:
-            log.debug("[ hai ] volume set failed for sink-input %s: %s", si.index, e)
+            log.debug("volume set failed for sink-input %s: %s", si.index, e)
             return False
 
     # Force full volume on sink-inputs that appeared after ducking.
@@ -120,11 +120,11 @@ class AudioDucker:
                     continue
                 try:
                     pulse.volume_set_all_chans(si, self.FULL_VOLUME)
-                    log.debug("[ hai ] left TTS stream %s at full volume", si.index)
+                    log.debug("left TTS stream %s at full volume", si.index)
                 except Exception as e:
-                    log.debug("[ hai ] could not protect sink-input %s: %s", si.index, e)
+                    log.debug("could not protect sink-input %s: %s", si.index, e)
         except Exception as e:
-            log.debug("[ hai ] protect_new failed: %s", e)
+            log.debug("protect_new failed: %s", e)
         finally:
             try:
                 pulse.close()
@@ -172,7 +172,7 @@ class AudioDucker:
                         lifted += 1
                     break
         if lifted:
-            log.debug("[ hai ] restored %d audio stream(s) to 100%% (%s)", lifted, label)
+            log.debug("restored %d audio stream(s) to 100%% (%s)", lifted, label)
         return lifted
 
     # Best-effort: put every non-hai, non-muted sink-input back at 100%.
@@ -203,9 +203,9 @@ class AudioDucker:
                     if ducker._set_volume(pulse, si, cls.FULL_VOLUME):
                         lifted += 1
                 if lifted:
-                    log.debug("[ hai ] recovered %d background stream(s) to 100%%", lifted)
+                    log.debug("recovered %d background stream(s) to 100%%", lifted)
             except Exception as e:
-                log.debug("[ hai ] background volume recovery failed: %s", e)
+                log.debug("background volume recovery failed: %s", e)
             finally:
                 try:
                     pulse.close()
@@ -250,10 +250,10 @@ class AudioDucker:
                 self._known = known
             self._ramp(pulse, [t for t in targets if t["start"] > self.duck_to], toward_full=False)
             if saved:
-                log.debug("[ hai ] ducked %d audio stream(s) to %.0f%%",
+                log.debug("ducked %d audio stream(s) to %.0f%%",
                          len(saved), self.duck_to * 100)
         except Exception as e:
-            log.debug("[ hai ] linux duck failed: %s", e)
+            log.debug("linux duck failed: %s", e)
         finally:
             try:
                 pulse.close()
@@ -278,7 +278,7 @@ class AudioDucker:
             # Hard set to 100% so a missed fade step cannot leave them at 25%.
             self._lift_targets(pulse, targets, "ducked")
         except Exception as e:
-            log.debug("[ hai ] linux unduck failed: %s", e)
+            log.debug("linux unduck failed: %s", e)
         finally:
             try:
                 pulse.close()

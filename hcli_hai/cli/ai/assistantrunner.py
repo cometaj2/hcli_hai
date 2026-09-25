@@ -68,7 +68,7 @@ class AssistantRunner:
                 log.debug("using grok (xai) at https://api.x.ai/v1")
 
             else:
-                msg = "[ hai ] no provider selected. select from the list of available providers."
+                msg = "no provider selected. select from the list of available providers."
                 log.error(msg)
                 raise BadRequestError(detail=msg)
 
@@ -80,11 +80,11 @@ class AssistantRunner:
             self._is_assisting = should_assist
             if should_assist is True:
                 self.terminate = False
-                log.info(f"[ hai ] assistant runner started.")
+                log.info(f"assistant runner started.")
             else:
                 self.terminate = True
                 self.assist_key = None
-                log.info(f"[ hai ] assistant runner stopped.")
+                log.info(f"assistant runner stopped.")
 
     def __assisted_key(self):
         with self.rlock:
@@ -103,7 +103,7 @@ class AssistantRunner:
             return
         self.voice.speak(message)
 #         with self.rlock:
-#             log.info("[ hai ] " + message)
+#             log.info(message)
 # 
 #             if self.voice is None and self.model_path is not None and self.model_path != "":
 #                 self.voice = PiperVoice.load(self.model_path)
@@ -149,7 +149,7 @@ class AssistantRunner:
         self.terminate = False
 
         try:
-            log.info("[ hai ] attempting to assist.")
+            log.info("attempting to assist.")
 
             q_content = messages[-2]['content']
             a_content = messages[-1]['content']
@@ -174,7 +174,7 @@ class AssistantRunner:
                                                )
                     log.debug(response)
                 else:
-                    msg = "[ hai ] no provider or model selected. select from the list of available providers and models."
+                    msg = "no provider or model selected. select from the list of available providers and models."
                     log.warning(msg)
 
             except Exception as e:
@@ -189,7 +189,7 @@ class AssistantRunner:
                 self.voice.speak(new_response)
 
         except TerminationException as e:
-            log.debug("[ hai ] assistant terminated.")
+            log.debug("assistant terminated.")
             self.abort()
         except Exception as e:
             log.error(traceback.format_exc())
@@ -198,7 +198,7 @@ class AssistantRunner:
             self.terminate = False
             self.is_running = False
 
-        log.info("[ hai ] done assisting.")
+        log.info("done assisting.")
 
         return
 
@@ -214,7 +214,7 @@ class AssistantRunner:
 
     def check_termination(self):
         if self.terminate:
-            raise TerminationException("[ hai ] terminated")
+            raise TerminationException("terminated")
 
     def abort(self):
         self.is_running = False

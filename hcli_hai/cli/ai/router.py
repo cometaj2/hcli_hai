@@ -256,25 +256,25 @@ def route_ollama(client, model, text):
 
 def froute(text):
     score = _score(text)
-    log.info("[ hai ] fast score relative to 'doing': " + str(score))
+    log.info("fast score relative to 'doing': " + str(score))
     if score >= 0.70:
         decision = "do"
-        log.info("[ hai ] fast classification: " + decision)
+        log.info("fast classification: " + decision)
     else:
         decision = "talk"
-        log.info("[ hai ] fast classification " + decision)
+        log.info("fast classification " + decision)
     return decision
 
 def sroute(client, model, text):
     score = _score(text)
-    log.info("[ hai ] fast score relative to 'doing': " + str(score))
+    log.info("fast score relative to 'doing': " + str(score))
     if score >= 0.70:
         decision = "do"
-        log.info("[ hai ] fast classification: " + decision)
+        log.info("fast classification: " + decision)
     elif score <= 0.40:
         decision = "talk"
-        log.info("[ hai ] fast classification: " + decision)
+        log.info("fast classification: " + decision)
     else:
         decision = route_ollama(client, model, text)
-        log.info("[ hai ] model classification: " + decision)
+        log.info("model classification: " + decision)
     return decision

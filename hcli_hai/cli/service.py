@@ -122,7 +122,7 @@ class Service:
     def assistant(self):
         lock = self.assistantrunner.lock
         if not lock.acquire(blocking=False):
-            log.debug("[ hai ] assistant already running; exiting")
+            log.debug("assistant already running; exiting")
             return
         try:
             while True:
@@ -136,13 +136,13 @@ class Service:
     def agent(self):
         lock = self.agentrunner.lock
         if not lock.acquire(blocking=False):
-            log.debug("[ hai ] agent already running; exiting")
+            log.debug("agent already running; exiting")
             return
         try:
             while True:
                 ar = self.agentrunner
                 if not ar.is_running and ar.is_vibing():
-                    log.info("[ hai ] agent is vibing...")
+                    log.info("agent is vibing...")
                 time.sleep(0.5)
         finally:
             lock.release()

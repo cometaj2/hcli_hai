@@ -48,9 +48,9 @@ class AgentRunner:
             self._is_vibing = should_vibe
             if should_vibe is True:
                 self.ai.behavior(io.BytesIO(b.hcli_integration_behavior.encode('utf-8')))
-                log.info(f"[ hai ] Vibe runner started.")
+                log.info(f"Vibe runner started.")
             else:
-                log.info(f"[ hai ] Vibe runner stopped.")
+                log.info(f"Vibe runner stopped.")
 
     def is_vibing(self):
         with self.rlock:
@@ -87,18 +87,18 @@ class AgentRunner:
                         hcli_elem = plan_elem.find('.//hcli[1]')
                         if hcli_elem is not None:
                             command = hcli_elem.text.strip() if hcli_elem.text else ""
-                            log.info(f"[ hai ] hcli integration: {command}")
+                            log.info(f"hcli integration: {command}")
                             return command
                         else:
-                            log.debug("[ hai ] Unable to vibe without a plan with hcli tags.")
+                            log.debug("Unable to vibe without a plan with hcli tags.")
                             self.ai.contextmgr.set_status("")
                             return ""
                     except et.ParseError as e:
-                        log.warning(f"[ hai ] Failed to parse XML plan: {e}")
+                        log.warning(f"Failed to parse XML plan: {e}")
                         self.ai.contextmgr.set_status("")
                         return ""
                 else:
-                    log.debug("[ hai ] No plan found in the message content.")
+                    log.debug("No plan found in the message content.")
                     self.ai.contextmgr.set_status("")
                     return ""
         return ""
@@ -108,7 +108,7 @@ class AgentRunner:
         self.terminate = False
 
         try:
-            log.info("[ hai ] Attempting to vibe...")
+            log.info("Attempting to vibe...")
             stdout = ""
             stderr = ""
             try:
@@ -146,7 +146,7 @@ class AgentRunner:
 
     def check_termination(self):
         if self.terminate:
-            raise TerminationException("[ hai ] terminated")
+            raise TerminationException("terminated")
 
     def abort(self):
         self.is_running = False
