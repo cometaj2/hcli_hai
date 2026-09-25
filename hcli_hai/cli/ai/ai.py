@@ -72,8 +72,8 @@ class AI:
                 log.error(msg)
                 raise BadRequestError(detail=msg)
 
-    # add an additional message to the chat context and request a response for it with the LLM.
-    def chat(self, inputstream):
+    # Consume the user prompt request into the context
+    def consume_request(self, inputstream):
         with self.rlock:
             if self.config.model is not None:
                 inputstream = inputstream.read().decode('utf-8')
@@ -84,49 +84,56 @@ class AI:
                     self.contextmgr.trim()
 
                     tokens = self.contextmgr.counter.get_stats(self.contextmgr.context)
-                    log.info("Request  - total context tokens: " + str(tokens['total_tokens']))
+                    log.info("request  - total context tokens: " + str(tokens['total_tokens']))
 
-                    if self.contextmgr.counter.total_tokens != 0:
-                        try:
-                            # Separate system message from user messages
-                            model = self.config.model
+                    return inputstream
 
-                            user_messages = [msg for msg in self.contextmgr.messages()]
-                            response = self.client.chat.completions.create(
-                                                            model=model,
-                                                            messages=user_messages
-                                                       )
-                            log.debug(response)
-                        except Exception as e:
-                            log.error(traceback.format_exc())
-                            return None
-                    else:
-                        msg = "the token trim backoff completely collapsed. this means that the stream was too large to fit within the total allowable context limit of " + str(self.contextmgr.counter.max_context_length) + " tokens, and the last trimming operation ended up completely wiping out the remaining conversation context."
-                        log.error(msg)
-                        self.contextmgr.save()
-                        PayloadTooLargeError(detail=msg)
+    # Process the completion to return a response without adding to the context.
+    def process_request(self):
+        with self.rlock:
+            if self.config.model is not None:
+                if self.contextmgr.counter.total_tokens != 0:
+                    try:
+                        # Separate system message from user messages
+                        model = self.config.model
 
-                        return warning
-
-                    output_response = response.choices[0].message.content
-                    output_response_role = response.choices[0].message.role
-
-                    # Extract the text content from the response
-                    self.contextmgr.append({ "role" : output_response_role, "content" : output_response})
-
-                    tokens = self.contextmgr.counter.get_stats(self.contextmgr.context)
-                    log.info("Response - total context tokens: " + str(tokens['total_tokens']))
-
-                    output = output_response
-
-                    self.contextmgr.generate_title()
+                        user_messages = [msg for msg in self.contextmgr.messages()]
+                        response = self.client.chat.completions.create(
+                                                        model=model,
+                                                        messages=user_messages
+                                                   )
+                        log.debug(response)
+                    except Exception as e:
+                        log.error(traceback.format_exc())
+                        return None
+                else:
+                    msg = "the token trim backoff completely collapsed. this means that the stream was too large to fit within the total allowable context limit of " + str(self.contextmgr.counter.max_context_length) + " tokens, and the last trimming operation ended up completely wiping out the remaining conversation context."
+                    log.error(msg)
                     self.contextmgr.save()
+                    PayloadTooLargeError(detail=msg)
 
-                    return output
+                    return warning
+
+                output_response = response.choices[0].message.content
+                #output_response_role = response.choices[0].message.role
+
+                # Extract the text content from the response
+                return output_response
             else:
                 msg = "no model selected. select from the list of available models."
                 log.error(msg)
                 raise BadRequestError(detail=msg)
+
+    # add an additional response to the chat context.
+    def commit_response(self, text):
+        with self.rlock:
+            self.contextmgr.append({ "role" : "assistant", "content" : text})
+
+            tokens = self.contextmgr.counter.get_stats(self.contextmgr.context)
+            log.info("response - total context tokens: " + str(tokens['total_tokens']))
+
+            self.contextmgr.generate_title()
+            self.contextmgr.save()
 
     # get the current context as json output
     def get_context(self):

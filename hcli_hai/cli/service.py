@@ -35,11 +35,14 @@ class Service:
         return
 
     def chat(self, inputstream):
-        return self.ai.chat(inputstream)
+        text = self.ai.consume_request(inputstream)
+        response = self.ai.process_request()
+        self.ai.commit_response(response)
+        return response
 
     def async_chat(self, inputstream):
         data = inputstream.read()
-        t = threading.Thread(target=self.ai.chat, args=(io.BytesIO(data),), daemon=True)
+        t = threading.Thread(target=self.chat, args=(io.BytesIO(data),), daemon=True)
         t.start()
         return
 

@@ -7,8 +7,6 @@ import config as a
 from ai import agentbehavior as b
 from ai import ai
 from ai.router import froute
-from huckle import cli, stdin
-import xml.etree.ElementTree as et
 
 log = logger.Logger()
 
