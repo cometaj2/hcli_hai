@@ -102,28 +102,6 @@ class AssistantRunner:
         if self.terminate:
             return
         self.voice.speak(message)
-#         with self.rlock:
-#             log.info(message)
-# 
-#             if self.voice is None and self.model_path is not None and self.model_path != "":
-#                 self.voice = PiperVoice.load(self.model_path)
-#                 self.sample_rate = self.voice.config.sample_rate
-# 
-#             stream = sd.RawOutputStream(
-#                 samplerate=self.sample_rate,
-#                 channels=1,
-#                 dtype='int16'
-#             )
-#             stream.start()
-# 
-#             try:
-#                 for chunk in self.voice.synthesize(message):
-#                     audio_chunk = np.frombuffer(chunk.audio_int16_bytes, dtype=np.int16)
-#                     stream.write(audio_chunk)
-#                     self.check_termination()
-#             finally:
-#                 stream.stop()
-#                 stream.close()
 
     def __latest_pair_key(self, messages):
         if not messages or len(messages) < 2:

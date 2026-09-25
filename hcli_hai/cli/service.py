@@ -125,8 +125,8 @@ class Service:
             log.debug("assistant already running; exiting")
             return
         try:
+            ar = self.assistantrunner
             while True:
-                ar = self.assistantrunner
                 if not ar.is_running and ar.is_assisting():
                     ar.try_assist(self.ai.contextmgr.messages())
                 time.sleep(0.5)
@@ -139,10 +139,10 @@ class Service:
             log.debug("agent already running; exiting")
             return
         try:
+            ar = self.agentrunner
             while True:
-                ar = self.agentrunner
                 if not ar.is_running and ar.is_vibing():
-                    log.info("agent is vibing...")
+                    ar.harness(self.ai.contextmgr.messages())
                 time.sleep(0.5)
         finally:
             lock.release()
