@@ -28,9 +28,9 @@ class Service:
         self.assistant_thread = threading.Thread(target=self.assistant)
         self.assistant_thread.start()
 
-#         self.agentrunner = agr.AgentRunner()
-#         self.agent_thread = threading.Thread(target=self.agent)
-#         self.agent_thread.start()
+        self.agentrunner = agr.AgentRunner()
+        self.agent_thread = threading.Thread(target=self.agent)
+        self.agent_thread.start()
 
         return
 
@@ -113,11 +113,11 @@ class Service:
         return self.assistantrunner.is_assisting()
 
     # AgentRunner controls
-#     def vibe(self, should_vibe):
-#         self.runner.set_vibe(should_vibe)
-# 
-#     def is_vibing(self):
-#         return self.runner.is_vibing()
+    def vibe(self, should_vibe):
+        self.agentrunner.set_vibe(should_vibe)
+
+    def is_vibing(self):
+        return self.agentrunner.is_vibing()
 
     def assistant(self):
         lock = self.assistantrunner.lock

@@ -3,7 +3,8 @@ import logger
 import threading
 import time
 import re
-from ai import behavior as b
+import config as a
+from ai import agentbehavior as b
 from ai import ai
 from huckle import cli, stdin
 import xml.etree.ElementTree as et
@@ -13,24 +14,34 @@ log = logger.Logger()
 
 # Singleton AgentRunner
 class AgentRunner:
-    instance = None
-    is_running = False
-    lock = None
-    terminate = None
-    _is_vibing = False
-    ai = None
+    _instance = None
+    _init_lock = threading.RLock()
 
-    def __new__(self):
-        if self.instance is None:
-            self.instance = super().__new__(self)
-            self.lock = threading.Lock()
+    def __new__(cls):
+        with cls._init_lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+                cls._instance.initialized = False
+            return cls._instance
+
+    def __init__(self):
+        if self.initialized:
+            return
+        with self._init_lock:
+            if self.initialized:
+                return
             self.rlock = threading.RLock()
-            self.ai = ai.AI()
-            self.exception_event = threading.Event()
-            self.terminate = False
-            self._is_vibing = False
+            self.lock = threading.RLock()
 
-        return self.instance
+            self.is_running = False
+            self.config = a.Config()
+
+            self._is_vibing = False
+            self.initialized = True
+            self.terminate = False
+            self.assist_key = None
+
+            self.ai = ai.AI()
 
     def set_vibe(self, should_vibe):
         with self.rlock:
