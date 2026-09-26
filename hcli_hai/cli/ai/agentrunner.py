@@ -1,8 +1,9 @@
-import io
 import logger
 import threading
+import traceback
 import time
 import re
+import openai
 import config as a
 from ai import agentbehavior as b
 from ai import ai
@@ -68,9 +69,9 @@ class AgentRunner:
         with self.rlock:
             self._is_vibing = should_vibe
             if should_vibe is True:
-                log.info(f"vibe runner started.")
+                log.info(f"agent runner started.")
             else:
-                log.info(f"vibe runner stopped.")
+                log.info(f"agent runner stopped.")
 
     def is_vibing(self):
         with self.rlock:
@@ -103,7 +104,7 @@ class AgentRunner:
         try:
             log.info("engaging harness.")
 
-            agent_behavior = self.ai.behavior(io.BytesIO(b.hcli_integration_behavior.encode('utf-8')))
+            agent_behavior = b.hcli_integration_behavior
 
             q_content = messages[-2]['content']
             a_content = messages[-1]['content']
@@ -112,6 +113,8 @@ class AgentRunner:
 
             question = { "role" : "user", "content" : a_content }
             assistance.append(question)
+
+            print(assistance)
 
             response = None
             try:
@@ -133,9 +136,9 @@ class AgentRunner:
                 log.error(traceback.format_exc())
                 return None
 
-            self.check_termination()
             if (response is not None):
                 response = response.choices[0].message.content
+                print(response)
 
             return response
 

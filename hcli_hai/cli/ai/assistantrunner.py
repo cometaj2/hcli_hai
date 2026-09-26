@@ -80,11 +80,11 @@ class AssistantRunner:
             self._is_assisting = should_assist
             if should_assist is True:
                 self.terminate = False
-                log.info(f"assistant runner started.")
+                log.info(f"voice assistant runner started.")
             else:
                 self.terminate = True
                 self.assist_key = None
-                log.info(f"assistant runner stopped.")
+                log.info(f"voice assistant runner stopped.")
 
     def __assisted_key(self):
         with self.rlock:
