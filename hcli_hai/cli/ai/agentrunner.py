@@ -42,11 +42,32 @@ class AgentRunner:
 
             self.ai = ai.AI()
 
+    def __init_provider(self):
+        with self.rlock:
+            log.debug("initializing llm service provider")
+            if self.config.provider == "ollama":
+                self.client = openai.OpenAI(
+                    base_url=self.config.ollama_service_url,
+                    api_key="ollama",   # Ollama ignores the key
+                )
+                log.debug(f"using ollama at {self.config.ollama_service_url}")
+
+            elif self.config.provider == "xai":
+                self.client = openai.OpenAI(
+                    api_key=os.getenv("XAI_API_KEY"),
+                    base_url="https://api.x.ai/v1",
+                )
+                log.debug("using grok (xai) at https://api.x.ai/v1")
+
+            else:
+                msg = "no provider selected. select from the list of available providers."
+                log.error(msg)
+                raise BadRequestError(detail=msg)
+
     def set_vibe(self, should_vibe):
         with self.rlock:
             self._is_vibing = should_vibe
             if should_vibe is True:
-                self.ai.behavior(io.BytesIO(b.hcli_integration_behavior.encode('utf-8')))
                 log.info(f"vibe runner started.")
             else:
                 log.info(f"vibe runner stopped.")
@@ -55,15 +76,16 @@ class AgentRunner:
         with self.rlock:
             return self._is_vibing
 
-
-
-    def harness(self, command):
+    def harness(self, text, messages):
         self.is_running = True
         self.terminate = False
 
         try:
-            decision = froute(inputstream)
-            log.info("attempting to vibe...")
+            decision = froute(text)
+            if decision == "do":
+                self.__run(messages)
+            else:
+                return None
         except TerminationException as e:
             self.abort()
         except Exception as e:
@@ -71,6 +93,63 @@ class AgentRunner:
         finally:
             self.terminate = False
             self.is_running = False
+
+        return
+
+    def __run(self, messages):
+        self.is_running = True
+        self.terminate = False
+
+        try:
+            log.info("engaging harness.")
+
+            agent_behavior = self.ai.behavior(io.BytesIO(b.hcli_integration_behavior.encode('utf-8')))
+
+            q_content = messages[-2]['content']
+            a_content = messages[-1]['content']
+
+            assistance = [{"role": "system", "content": agent_behavior}]
+
+            question = { "role" : "user", "content" : a_content }
+            assistance.append(question)
+
+            response = None
+            try:
+                model = self.config.model
+
+                if self.config.provider is not None and self.config.model is not None:
+                    self.__init_provider()
+
+                    response = self.client.chat.completions.create(
+                                                    model=model,
+                                                    messages=assistance
+                                               )
+                    log.debug(response)
+                else:
+                    msg = "no provider or model selected. select from the list of available providers and models."
+                    log.warning(msg)
+
+            except Exception as e:
+                log.error(traceback.format_exc())
+                return None
+
+            self.check_termination()
+            if (response is not None):
+                response = response.choices[0].message.content
+
+            return response
+
+        except TerminationException as e:
+            log.debug("agent terminated.")
+            self.abort()
+        except Exception as e:
+            log.error(traceback.format_exc())
+            self.abort()
+        finally:
+            self.terminate = False
+            self.is_running = False
+
+        log.info("disengaging harness.")
 
         return
 

@@ -29,14 +29,24 @@ class Service:
         self.assistant_thread.start()
 
         self.agentrunner = agr.AgentRunner()
-        self.agent_thread = threading.Thread(target=self.agent)
-        self.agent_thread.start()
 
         return
 
     def chat(self, inputstream):
         text = self.ai.consume_request(inputstream)
-        response = self.ai.process_request()
+        response = None
+
+        if self.agentrunner.is_vibing():
+            response = self.agentrunner.harness(text, self.ai.contextmgr.messages())
+
+        # talk path
+        if response is None:
+            response = self.ai.process_request()
+
+        # model/harness failure: don't commit
+        if response is None:
+            return None
+
         self.ai.commit_response(response)
         return response
 
@@ -115,13 +125,6 @@ class Service:
     def is_assisting(self):
         return self.assistantrunner.is_assisting()
 
-    # AgentRunner controls
-    def vibe(self, should_vibe):
-        self.agentrunner.set_vibe(should_vibe)
-
-    def is_vibing(self):
-        return self.agentrunner.is_vibing()
-
     def assistant(self):
         lock = self.assistantrunner.lock
         if not lock.acquire(blocking=False):
@@ -136,17 +139,9 @@ class Service:
         finally:
             lock.release()
 
-    def agent(self):
-        lock = self.agentrunner.lock
-        if not lock.acquire(blocking=False):
-            log.debug("agent already running; exiting")
-            return
-        try:
-            ar = self.agentrunner
-            while True:
-                if not ar.is_running and ar.is_vibing():
-                    pass
-#                     ar.harness(self.ai.contextmgr.messages())
-                time.sleep(0.5)
-        finally:
-            lock.release()
+    # AgentRunner controls
+    def vibe(self, should_vibe):
+        self.agentrunner.set_vibe(should_vibe)
+
+    def is_vibing(self):
+        return self.agentrunner.is_vibing()
