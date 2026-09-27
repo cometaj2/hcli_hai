@@ -19,23 +19,33 @@ log = logger.Logger()
 # Singleton Plan class to hold the ephemeral plan
 class Plan:
     _instance = None
-    _rlock = threading.RLock()
+    _init_lock = threading.RLock()
 
     def __new__(cls):
-        with cls._rlock:
+        with cls._init_lock:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
-                cls._instance._plan = ""
+                cls._instance.initialized = False
             return cls._instance
+
+    def __init__(self):
+        if self.initialized:
+            return
+        with self._init_lock:
+            if self.initialized:
+                return
+            self.rlock = threading.RLock()
+            self._plan = ""
+            self.initialized = True
 
     @property
     def plan(self):
-        with self._rlock:
+        with self.rlock:
             return self._plan
 
     @plan.setter
     def plan(self, value):
-        with self._rlock:
+        with self.rlock:
             self._plan = value
 
 # We create a default context and allow for it to be initialized in a few different ways to facilitate initialization from file

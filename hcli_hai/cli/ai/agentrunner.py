@@ -2,12 +2,15 @@ import logger
 import threading
 import traceback
 import time
+import inspect
 import re
+import os
 import openai
+import json
 import config as a
-from ai import agentbehavior as b
 from ai import ai
 from ai.router import froute
+from pathlib import Path
 
 log = logger.Logger()
 
@@ -41,6 +44,10 @@ class AgentRunner:
             self.terminate = False
             self.assist_key = None
 
+            current = os.path.dirname(inspect.getfile(lambda: None))
+
+            self.agent_behavior = Path(os.path.join(current, "AGENT.md")).read_text(encoding="utf-8")
+
             self.ai = ai.AI()
 
     def __init_provider(self):
@@ -64,6 +71,13 @@ class AgentRunner:
                 msg = "no provider selected. select from the list of available providers."
                 log.error(msg)
                 raise BadRequestError(detail=msg)
+
+    def __is_valid_json(self, string):
+        try:
+            json.loads(string)
+            return True
+        except ValueError:
+            return False
 
     def set_vibe(self, should_vibe):
         with self.rlock:
@@ -104,12 +118,10 @@ class AgentRunner:
         try:
             log.info("engaging harness.")
 
-            agent_behavior = b.hcli_integration_behavior
-
             q_content = messages[-2]['content']
             a_content = messages[-1]['content']
 
-            assistance = [{"role": "system", "content": agent_behavior}]
+            assistance = [{"role": "system", "content": self.agent_behavior}]
 
             question = { "role" : "user", "content" : a_content }
             assistance.append(question)
@@ -138,7 +150,12 @@ class AgentRunner:
 
             if (response is not None):
                 response = response.choices[0].message.content
-                print(response)
+                log.info(response)
+                if self.__is_valid_json(response):
+                    self.ai.contextmgr.set_status(response)
+                else:
+                    log.error("invalid json task")
+                    raise TerminationException("terminated")
 
             return response
 
