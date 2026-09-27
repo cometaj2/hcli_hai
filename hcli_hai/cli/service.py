@@ -140,7 +140,7 @@ class Service:
             lock.release()
 
     # AgentRunner controls
-    def vibe(self, should_vibe):
+    def agent(self, should_vibe):
         self.agentrunner.set_vibe(should_vibe)
 
     def is_vibing(self):

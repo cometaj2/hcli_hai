@@ -26,7 +26,7 @@ class CLI:
             'model': self._handle_model,
             'set': lambda: self.service.set(self.commands[2]) if len(self.commands) == 3 else None,
             'rm': lambda: self.service.rm(self.commands[2]) if len(self.commands) == 3 else None,
-            'vibe': self._handle_vibe,
+            'agent': self._handle_agent,
             'assist': self._handle_assist,
             'provider': self._handle_provider
         }
@@ -126,12 +126,12 @@ class CLI:
 
         return None
 
-    def _handle_vibe(self) -> None:
+    def _handle_agent(self) -> None:
         if len(self.commands) == 3:
             if self.commands[2] == "start":
-                self.service.vibe(True)
+                self.service.agent(True)
             elif self.commands[2] == "stop":
-                self.service.vibe(False)
+                self.service.agent(False)
             elif self.commands[2] == "status":
                 return io.BytesIO(self.service.status().encode('utf-8'))
         return None
