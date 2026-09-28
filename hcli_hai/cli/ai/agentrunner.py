@@ -112,6 +112,9 @@ class AgentRunner:
         self.terminate = False
 
         try:
+            if not self.is_vibing():
+                return None
+
             if self.pending_bash():
                 log.info("agent waiting for observation via hai agent next")
                 return None
@@ -176,6 +179,9 @@ class AgentRunner:
         self.terminate = False
 
         try:
+            if not self.is_vibing():
+                return None
+
             log.info("engaging harness next.")
 
             bash = self.pending_bash()
@@ -201,6 +207,8 @@ class AgentRunner:
 
             self.ai.contextmgr.set_status(response)
             self.__join_if_terminal(response)
+            log.info("disengaging harness.")
+
             return response
 
         except TerminationException:
@@ -212,7 +220,6 @@ class AgentRunner:
         finally:
             self.terminate = False
             self.is_running = False
-            log.info("disengaging harness.")
 
         return None
 
