@@ -114,9 +114,6 @@ class Service:
     def rm(self, id):
         return self.ai.rm(id)
 
-    def status(self):
-        return self.ai.status()
-
     def reset(self):
         return self.ai.reset()
 
@@ -151,7 +148,10 @@ class Service:
     def agent(self, should_vibe):
         self.agentrunner.set_vibe(should_vibe)
         if should_vibe is False:
-            self.ai.contextmgr.set_status("")
+            self.ai.contextmgr.set_plan("")
+
+    def plan(self):
+        return self.ai.plan()
 
     def next(self, inputstream):
         if inputstream is None:

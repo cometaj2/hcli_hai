@@ -91,7 +91,7 @@ class AgentRunner:
 
     def pending_bash(self):
         with self.rlock:
-            raw = self.ai.contextmgr.status()
+            raw = self.ai.contextmgr.get_plan()
             if not raw:
                 return None
             try:
@@ -157,7 +157,7 @@ class AgentRunner:
                 log.error("invalid json task")
                 raise TerminationException("terminated")
 
-            self.ai.contextmgr.set_status(response)
+            self.ai.contextmgr.set_plan(response)
             self.__join_if_terminal(response)
             return response
 
@@ -189,7 +189,7 @@ class AgentRunner:
                 log.warning("no pending bash step to observe; refusing next.")
                 return None
 
-            plan = self.ai.contextmgr.status() or ""
+            plan = self.ai.contextmgr.get_plan() or ""
             self.ai.contextmgr.append_observation(bash, observation)
 
             assistance = [
@@ -205,7 +205,7 @@ class AgentRunner:
                 log.error("invalid json task")
                 raise TerminationException("terminated")
 
-            self.ai.contextmgr.set_status(response)
+            self.ai.contextmgr.set_plan(response)
             self.__join_if_terminal(response)
             log.info("disengaging harness.")
 

@@ -98,6 +98,10 @@
             "http": "get"
         },
         {
+            "command": "hai agent plan",
+            "http": "get"
+        },
+        {
             "command": "hai agent next",
             "http": "post"
         },
@@ -219,7 +223,7 @@
                 {
                     "href": "haiassist",
                     "name": "assist",
-                    "description": "The \"assist\" command allows you to interact with an overview assistant that targets the last received response in a conversation."
+                    "description": "The \"assist\" command allows you to interact with an overview voice assistant that targets the last received response in a conversation."
                 },
                 {
                     "href": "haiprovider",
@@ -571,7 +575,12 @@
                 {
                     "href": "haiagentstatus",
                     "name": "status",
-                    "description": "Get agent status and plan."
+                    "description": "Get agent status."
+                },
+                {
+                    "href": "haiagentplan",
+                    "name": "plan",
+                    "description": "Get agent plan."
                 },
                 {
                     "href": "haiagentnext",
@@ -622,7 +631,7 @@
             "section": [
                 {
                     "name": "name",
-                    "description": "status - returns the current plan and agent status."
+                    "description": "status - returns status on if agent is enabled."
                 },
                 {
                     "name": "synopsis",
@@ -630,7 +639,25 @@
                 },
                 {
                     "name": "description",
-                    "description": "The \"status\" command allows you to retrieve the current agent status and plan from the current conversation context."
+                    "description": "The \"status\" command allows you get status on whether the agent is enabled or not."
+                }
+            ]
+        },
+        {
+            "id": "haiagentplan",
+            "name": "plan",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "plan - returns the agent's current plan."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai agent plan"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"plan\" command allows you to get the agent's next step in the plan it's trying to execute to fulfill the user's goal."
                 }
             ]
         },
@@ -640,7 +667,7 @@
             "section": [
                 {
                     "name": "name",
-                    "description": "next - returns the current plan and agent status."
+                    "description": "next - iterate one step in the current plan."
                 },
                 {
                     "name": "synopsis",
@@ -648,7 +675,7 @@
                 },
                 {
                     "name": "description",
-                    "description": "The \"next\" command allows you iterate one agent turn in the plan and to act on an observation received as input stream (stdin)."
+                    "description": "The \"next\" command allows you to iterate one agent step in the plan by the received input stream (stdin) which is presumably tied to an expected planned command line to execute."
                 }
             ]
         },
@@ -658,11 +685,11 @@
             "section": [
                 {
                     "name": "name",
-                    "description": "assist - receive summarizing assistance for the last received response in a conversation context, or, simply attempts to reads an input stream out loud."
+                    "description": "assist - receive summarizing assistance for the last received response in a conversation context, or, simply attempts to read an input stream out loud."
                 },
                 {
                     "name": "synopsis",
-                    "description": "hai assist"
+                    "description": "hai assist <command>"
                 },
                 {
                     "name": "description",
@@ -693,7 +720,7 @@
             "section": [
                 {
                     "name": "name",
-                    "description": "status - returns status on if assistant is enabled."
+                    "description": "status - returns status on if voice assistant is enabled."
                 },
                 {
                     "name": "synopsis",
@@ -737,7 +764,7 @@
                 },
                 {
                     "name": "description",
-                    "description": "The \"stop\" command stops the assistant from summarizing conversations."
+                    "description": "The \"stop\" command stops the voice assistant from summarizing conversations."
                 }
             ]
         },

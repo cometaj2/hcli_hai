@@ -325,7 +325,7 @@ class AI:
         with self.rlock:
             self.contextmgr.set_name(name)
 
-    # output current plan as status
-    def status(self):
+    # output current plan
+    def plan(self):
         with self.rlock:
-            return self.contextmgr.status()
+            return self.contextmgr.get_plan()

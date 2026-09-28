@@ -298,11 +298,11 @@ class ContextManager:
 
             return self.context.title
 
-    def set_status(self, plan):
+    def set_plan(self, plan):
         with self.rlock:
             self.plan.plan = plan
 
-    def status(self):
+    def get_plan(self):
         with self.rlock:
             return self.plan.plan
 

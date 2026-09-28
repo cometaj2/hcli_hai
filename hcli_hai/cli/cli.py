@@ -132,8 +132,11 @@ class CLI:
                 self.service.agent(True)
             elif self.commands[2] == "stop":
                 self.service.agent(False)
+            elif self.commands[2] == "plan":
+                return io.BytesIO(self.service.plan().encode('utf-8'))
             elif self.commands[2] == "status":
-                return io.BytesIO(self.service.status().encode('utf-8'))
+                status = self.service.is_vibing()
+                return io.BytesIO(str(status).encode('utf-8'))
             elif self.commands[2] == "next":
                 response = self.service.next(self.inputstream)
                 if response is not None:
