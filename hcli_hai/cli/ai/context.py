@@ -36,7 +36,22 @@ class Plan:
                 return
             self.rlock = threading.RLock()
             self._plan = ""
+            self._observations = []
             self.initialized = True
+
+    @property
+    def observations(self):
+        with self.rlock:
+            return list(self._observations)
+
+    def append_observation(self, bash, result):
+        with self.rlock:
+            self._observations.append({"bash": bash or "", "result": result or ""})
+
+    def clear(self):
+        with self.rlock:
+            self._plan = ""
+            self._observations = []
 
     @property
     def plan(self):
@@ -290,6 +305,14 @@ class ContextManager:
     def status(self):
         with self.rlock:
             return self.plan.plan
+
+    def append_observation(self, bash, result):
+        with self.rlock:
+            self.plan.append_observation(bash, result)
+
+    def observations(self):
+        with self.rlock:
+            return self.plan.observations
 
 class TrimCounter:
 

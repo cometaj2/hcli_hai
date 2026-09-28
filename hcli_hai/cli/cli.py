@@ -134,6 +134,10 @@ class CLI:
                 self.service.agent(False)
             elif self.commands[2] == "status":
                 return io.BytesIO(self.service.status().encode('utf-8'))
+            elif self.commands[2] == "next":
+                response = self.service.next(self.inputstream)
+                if response is not None:
+                    return io.BytesIO(response.encode("utf-8"))
         return None
 
     def _handle_assist(self) -> None:

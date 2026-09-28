@@ -98,6 +98,10 @@
             "http": "get"
         },
         {
+            "command": "hai agent next",
+            "http": "post"
+        },
+        {
             "command": "hai assist",
             "http": "post"
         },
@@ -568,6 +572,11 @@
                     "href": "haiagentstatus",
                     "name": "status",
                     "description": "Get agent status and plan."
+                },
+                {
+                    "href": "haiagentnext",
+                    "name": "next",
+                    "description": "Iterate one turn in the plan per stdin observation."
                 }
             ]
         },
@@ -622,6 +631,24 @@
                 {
                     "name": "description",
                     "description": "The \"status\" command allows you to retrieve the current agent status and plan from the current conversation context."
+                }
+            ]
+        },
+        {
+            "id": "haiagentnext",
+            "name": "next",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "next - returns the current plan and agent status."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai agent next"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"next\" command allows you iterate one agent turn in the plan and to act on an observation received as input stream (stdin)."
                 }
             ]
         },

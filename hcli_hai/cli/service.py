@@ -33,17 +33,25 @@ class Service:
         return
 
     def chat(self, inputstream):
+        if self.agentrunner.is_vibing():
+            pending = self.agentrunner.pending_bash()
+            if pending:
+                # already emitted a command; do not plan again and do not talk
+                msg = "agent waiting for observation via hai agent next"
+                log.error(msg)
+                raise ConflictError(detail=msg)
+
         text = self.ai.consume_request(inputstream)
         response = None
 
-        if self.agentrunner.is_vibing():
-            response = self.agentrunner.harness(text, self.ai.contextmgr.messages())
+        response = self.agentrunner.harness(text, self.ai.contextmgr.messages())
+        if response is not None:
+            # plan is in status; do not commit JSON into the chat transcript
+            return None
 
-        # talk path
         if response is None:
             response = self.ai.process_request()
 
-        # model/harness failure: don't commit
         if response is None:
             return None
 
@@ -142,6 +150,15 @@ class Service:
     # AgentRunner controls
     def agent(self, should_vibe):
         self.agentrunner.set_vibe(should_vibe)
+        if should_vibe is False:
+            self.ai.contextmgr.set_status("")
+
+    def next(self, inputstream):
+        if inputstream is None:
+            observation = ""
+        else:
+            observation = inputstream.read().decode("utf-8")
+        return self.agentrunner.next(observation)
 
     def is_vibing(self):
         return self.agentrunner.is_vibing()
