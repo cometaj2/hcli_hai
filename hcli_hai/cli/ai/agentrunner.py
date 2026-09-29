@@ -115,19 +115,18 @@ class AgentRunner:
                 if not self.is_vibing():
                     return None
 
+                log.info("engaging harness.")
                 pending = self.pending_bash()
 
                 if observation is None:
                     if pending:
                         log.info("agent waiting for observation via hai agent next")
                         return None
-                    log.info("engaging harness.")
                     user = messages[-1]["content"]
                 else:
                     if not pending:
                         log.warning("no pending bash step to observe; refusing next.")
                         return None
-                    log.info("engaging harness next.")
                     plan = self.ai.contextmgr.get_plan() or ""
                     self.ai.contextmgr.append_observation(pending, observation)
                     user = self.__scratch(plan)
@@ -139,7 +138,7 @@ class AgentRunner:
                 if response is None:
                     return None
 
-                self.validate_plan(response)
+                self.__validate_plan(response)
                 self.ai.contextmgr.set_plan(response)
                 self.__join_if_terminal(response)
                 return response
@@ -221,7 +220,7 @@ class AgentRunner:
         if self.terminate:
             raise TerminationException("terminated")
 
-    def validate_plan(self, plan):
+    def __validate_plan(self, plan):
         if not self.__is_valid_json(plan):
             log.error("invalid json plan")
             raise TerminationException("terminated")
@@ -240,10 +239,10 @@ class AgentRunner:
         whitelist = {"echo", "ls", "grep", "curl"}
         log.info("whitelist: " + str(whitelist))
         log.info("proposed command: " + bash)
-        if not self.validate_bash_command(bash, whitelist):
+        if not self.__validate_bash_command(bash, whitelist):
             raise TerminationException("terminated")
 
-    def validate_bash_command(self, command_string, whitelist):
+    def __validate_bash_command(self, command_string, whitelist):
         try:
             # Parse the string into a Bash AST
             trees = bashlex.parse(command_string)
