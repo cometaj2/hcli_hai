@@ -19,7 +19,7 @@ STATUSES = ("continue", "done", "need_help")
 WHITELIST = frozenset({
     "pwd", "ls", "echo", "grep", "curl", "cat", "head", "tail", "wc",
 })
-MAX_REPAIRS = 3
+MAX_REPAIRS = 5
 
 
 class AgentRunner:
@@ -260,12 +260,17 @@ class AgentRunner:
                         prompt = user
                     else:
                         log.warning("plan rejected (%d/%d): %s" % (attempt, MAX_REPAIRS, critique))
+                        prev = last if last and len(last) <= 800 else (last[:800] + "\n...")
                         prompt = (
                             user
-                            + "\n\nYour previous output was rejected.\n"
+                            + "\n\nYour previous output was rejected. It is not the user task.\n"
+                            + "Do not describe JSON. Do not invent keys. Do not process the previous output.\n"
+                            + "Stay on the original goal. If observations already answer it, status=done, bash=\"\", put the answer in say.\n"
                             + "error: %s\n" % critique
-                            + "previous output:\n%s\n\n" % last
-                            + "Emit one corrected JSON object. No markdown."
+                            + "rejected output (do not copy its keys):\n%s\n\n" % prev
+                            + "Emit exactly this shape:\n"
+                            + '{"status":"done","goal":"<original goal>","why":"","bash":"","say":"<answer>"}\n'
+                            + "or status=continue with a whitelisted bash and say=\"\".\n"
                         )
 
                     last = self.__complete([
@@ -336,7 +341,10 @@ class AgentRunner:
             parts.append("\n\n".join(blob))
 
         parts.append(
-            "Use only these observations. Emit the next JSON object. "
+            "The blocks above are evidence, not a format to copy.\n"
+            "Emit one plan object with keys status,goal,why,bash,say.\n"
+            "If the observations already answer the goal, status=done, bash=\"\", say=the answer.\n"
+            "Do not invent keys. Do not dump observations back as JSON.\n"
             "Do not assume output you have not been given."
         )
         return "\n\n".join(parts)
