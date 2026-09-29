@@ -3,6 +3,7 @@ import threading
 import traceback
 import inspect
 import os
+import re
 import openai
 import json
 import config as a
@@ -12,6 +13,13 @@ from pathlib import Path
 from hcli_problem_details import *
 
 log = logger.Logger()
+
+PLAN_KEYS = ("status", "goal", "why", "bash", "say")
+STATUSES = ("continue", "done", "need_help")
+WHITELIST = frozenset({
+    "pwd", "ls", "echo", "grep", "curl", "cat", "head", "tail", "wc",
+})
+MAX_REPAIRS = 3
 
 
 class AgentRunner:
@@ -69,13 +77,6 @@ class AgentRunner:
                 log.error(msg)
                 raise BadRequestError(detail=msg)
 
-    def __is_valid_json(self, string):
-        try:
-            json.loads(string)
-            return True
-        except ValueError:
-            return False
-
     def set_vibe(self, should_vibe):
         with self.rlock:
             self._is_vibing = should_vibe
@@ -107,6 +108,125 @@ class AgentRunner:
                 return None
             return bash
 
+    def __system_prompt(self):
+        return (
+            self.agent_behavior
+            + "\n\n# Live constraints (harness-enforced)\n"
+            + "Allowed programs: " + ", ".join(sorted(WHITELIST)) + "\n"
+            + "If the next step needs anything else, status=need_help, bash=\"\", say=the blocker.\n"
+            + "Output one JSON object with keys: " + ", ".join(PLAN_KEYS) + ".\n"
+            + "No markdown. No text before or after the object.\n"
+        )
+
+    def __dump(self, plan):
+        return json.dumps({k: plan.get(k, "") for k in PLAN_KEYS}, ensure_ascii=False)
+
+    def __parse_plan(self, text):
+        raw = (text or "").strip()
+        if not raw:
+            return None, "empty output; emit one json object with keys status,goal,why,bash,say"
+
+        if raw.startswith("```"):
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```$", "", raw)
+            raw = raw.strip()
+
+        start, end = raw.find("{"), raw.rfind("}")
+        if start == -1 or end <= start:
+            return None, "no json object found; emit only one object with keys status,goal,why,bash,say"
+
+        try:
+            obj = json.loads(raw[start:end + 1])
+        except ValueError as e:
+            return None, "invalid json: %s" % e
+
+        if not isinstance(obj, dict):
+            return None, "top-level value must be a json object, not %s" % type(obj).__name__
+
+        extra = set(obj) - set(PLAN_KEYS)
+        missing = [k for k in PLAN_KEYS if k not in obj]
+        if extra or missing:
+            return None, "keys must be exactly %s; missing=%s extra=%s" % (
+                list(PLAN_KEYS), missing, sorted(extra)
+            )
+
+        if obj.get("status") not in STATUSES:
+            return None, "status must be one of %s, got %r" % (list(STATUSES), obj.get("status"))
+
+        for k in PLAN_KEYS:
+            if not isinstance(obj.get(k), str):
+                return None, "%s must be a string" % k
+
+        status = obj["status"]
+        bash = obj["bash"].strip()
+        say = obj["say"].strip()
+        obj["bash"] = bash
+        obj["say"] = say
+        obj["goal"] = obj["goal"].strip()
+        obj["why"] = obj["why"].strip()
+
+        if status == "continue":
+            if not bash:
+                return None, "status=continue requires a non-empty bash"
+            if say:
+                return None, "status=continue requires say=\"\""
+        else:
+            if bash:
+                return None, "status=%s requires bash=\"\"" % status
+            if not say:
+                return None, "status=%s requires a non-empty say" % status
+
+        return obj, None
+
+    def __bash_error(self, command_string):
+        command_string = (command_string or "").strip()
+        if not command_string:
+            return "status=continue requires a non-empty bash"
+        if "\n" in command_string:
+            return "bash must be one simple command line"
+
+        try:
+            trees = bashlex.parse(command_string)
+        except Exception as e:
+            return "invalid bash syntax: %s" % e
+
+        if len(trees) != 1:
+            return "bash must be exactly one command line"
+
+        programs = []
+        forbidden = []
+
+        def walk(node):
+            kind = getattr(node, "kind", None)
+            if kind == "pipeline":
+                forbidden.append("pipes")
+            elif kind in ("commandsubstitution", "processsubstitution"):
+                forbidden.append("substitution")
+            elif kind == "redirect":
+                forbidden.append("redirects")
+            elif kind == "operator":
+                forbidden.append("chaining")
+            elif kind == "command":
+                parts = getattr(node, "parts", None) or []
+                if parts and getattr(parts[0], "kind", None) == "word":
+                    programs.append(parts[0].word)
+            for part in getattr(node, "parts", None) or []:
+                walk(part)
+
+        walk(trees[0])
+
+        if forbidden:
+            return "bash must be one simple command line; no pipes, chaining, redirects, or substitution"
+        if len(programs) != 1:
+            return "bash must invoke exactly one program, found %s" % programs
+        if programs[0] not in WHITELIST:
+            return (
+                "unauthorized command %r; allowed: %s. "
+                "use status=need_help if the task requires it"
+                % (programs[0], ", ".join(sorted(WHITELIST)))
+            )
+        return None
+
     def __step(self, messages, observation=None):
         with self.lock:
             self.is_running = True
@@ -131,17 +251,58 @@ class AgentRunner:
                     self.ai.contextmgr.append_observation(pending, observation)
                     user = self.__scratch(plan)
 
-                response = self.__complete([
-                    {"role": "system", "content": self.agent_behavior},
-                    {"role": "user", "content": user},
-                ])
-                if response is None:
-                    return None
+                last = None
+                critique = None
+                partial_goal = ""
 
-                self.__validate_plan(response)
-                self.ai.contextmgr.set_plan(response)
-                self.__join_if_terminal(response)
-                return response
+                for attempt in range(MAX_REPAIRS):
+                    if critique is None:
+                        prompt = user
+                    else:
+                        log.warning("plan rejected (%d/%d): %s" % (attempt, MAX_REPAIRS, critique))
+                        prompt = (
+                            user
+                            + "\n\nYour previous output was rejected.\n"
+                            + "error: %s\n" % critique
+                            + "previous output:\n%s\n\n" % last
+                            + "Emit one corrected JSON object. No markdown."
+                        )
+
+                    last = self.__complete([
+                        {"role": "system", "content": self.__system_prompt()},
+                        {"role": "user", "content": prompt},
+                    ])
+                    if last is None:
+                        return None
+
+                    plan, critique = self.__parse_plan(last)
+                    if plan is not None and plan.get("goal"):
+                        partial_goal = plan["goal"]
+                    if plan is None:
+                        continue
+
+                    if plan["status"] == "continue":
+                        critique = self.__bash_error(plan["bash"])
+                        if critique:
+                            continue
+
+                    payload = self.__dump(plan)
+                    self.ai.contextmgr.set_plan(payload)
+                    self.__join_if_terminal(payload)
+                    return payload
+
+                log.error("plan repair exhausted: %s" % (critique or "unknown"))
+                fallback = {
+                    "status": "need_help",
+                    "goal": partial_goal,
+                    "why": "",
+                    "bash": "",
+                    "say": "could not produce a valid plan: %s" % (critique or "unknown"),
+                }
+                payload = self.__dump(fallback)
+                self.ai.contextmgr.set_plan(payload)
+                self.__join_if_terminal(payload)
+                return payload
 
             except TerminationException:
                 log.debug("agent terminated.")
@@ -187,10 +348,17 @@ class AgentRunner:
             return None
 
         self.__init_provider()
-        response = self.client.chat.completions.create(
-            model=model,
-            messages=messages,
-        )
+        kwargs = dict(model=model, messages=messages)
+        response = None
+        try:
+            response = self.client.chat.completions.create(
+                response_format={"type": "json_object"},
+                **kwargs
+            )
+        except Exception as e:
+            log.debug("json response_format unsupported; retrying without it: %s" % e)
+            response = self.client.chat.completions.create(**kwargs)
+
         log.debug(response)
         text = response.choices[0].message.content
         log.info(text)
@@ -219,58 +387,6 @@ class AgentRunner:
     def check_termination(self):
         if self.terminate:
             raise TerminationException("terminated")
-
-    def __validate_plan(self, plan):
-        if not self.__is_valid_json(plan):
-            log.error("invalid json plan")
-            raise TerminationException("terminated")
-
-        task = json.loads(plan)
-        if not isinstance(task, dict):
-            log.error("plan is not a json object")
-            raise TerminationException("terminated")
-
-        bash = task.get("bash")
-        if bash is None or not str(bash).strip():
-            log.info("no bash in plan; skipping command whitelist")
-            return
-
-        bash = str(bash).strip()
-        whitelist = {"echo", "ls", "grep", "curl"}
-        log.info("whitelist: " + str(whitelist))
-        log.info("proposed command: " + bash)
-        if not self.__validate_bash_command(bash, whitelist):
-            raise TerminationException("terminated")
-
-    def __validate_bash_command(self, command_string, whitelist):
-        try:
-            # Parse the string into a Bash AST
-            trees = bashlex.parse(command_string)
-        except bashlex.errors.ParsingError:
-            return False  # Invalid Bash syntax
-
-        def check_node(node):
-            # If the node represents an executed command
-            if node.kind == 'command':
-                # Extract the base command name (e.g., 'git' from 'git commit')
-                parts = node.parts
-                if parts and parts[0].kind == 'word':
-                    command_name = parts[0].word
-                    if command_name not in whitelist:
-                        log.error(f"unauthorized command detected: {command_name}")
-                        raise ValueError(f"unauthorized command detected: {command_name}")
-
-            # Recursively check sub-commands (like inside pipes or subshells)
-            if hasattr(node, 'parts'):
-                for part in node.parts:
-                    check_node(part)
-
-        try:
-            for tree in trees:
-                check_node(tree)
-            return True
-        except ValueError:
-            return False
 
 
 class TerminationException(Exception):
