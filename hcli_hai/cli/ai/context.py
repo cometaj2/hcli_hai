@@ -177,6 +177,7 @@ class ContextManager:
             self.config = c.Config()
             self.context = self.config.get_context()
             self.plan = Plan()
+            self.plan.clear()
 
     def trim(self):
         self.counter.trim(self.context)

@@ -8,6 +8,7 @@ import logger
 from ai import ai
 from ai import assistantrunner as asr
 from ai import agentrunner as agr
+from ai.router import froute
 import threading
 
 from datetime import datetime
@@ -44,10 +45,12 @@ class Service:
         text = self.ai.consume_request(inputstream)
         response = None
 
-        response = self.agentrunner.harness(text, self.ai.contextmgr.messages())
-        if response is not None:
-            # plan is in status; do not commit JSON into the chat transcript
-            return None
+        decision = froute(text)
+        if decision == "do":
+            response = self.agentrunner.harness()
+            if response is not None:
+                # plan is in status; do not commit JSON into the chat transcript
+                return None
 
         if response is None:
             response = self.ai.process_request()
@@ -148,7 +151,7 @@ class Service:
     def agent(self, should_vibe):
         self.agentrunner.set_vibe(should_vibe)
         if should_vibe is False:
-            self.ai.contextmgr.set_plan("")
+            self.ai.contextmgr.plan.clear()
 
     def plan(self):
         return self.ai.plan()

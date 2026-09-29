@@ -110,9 +110,7 @@ class AI:
                     msg = "the token trim backoff completely collapsed. this means that the stream was too large to fit within the total allowable context limit of " + str(self.contextmgr.counter.max_context_length) + " tokens, and the last trimming operation ended up completely wiping out the remaining conversation context."
                     log.error(msg)
                     self.contextmgr.save()
-                    PayloadTooLargeError(detail=msg)
-
-                    return warning
+                    raise PayloadTooLargeError(detail=msg)
 
                 output_response = response.choices[0].message.content
                 #output_response_role = response.choices[0].message.role

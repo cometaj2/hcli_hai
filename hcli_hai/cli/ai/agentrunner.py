@@ -6,8 +6,8 @@ import os
 import openai
 import json
 import config as a
+import bashlex
 from ai import ai
-from ai.router import froute
 from pathlib import Path
 from hcli_problem_details import *
 
@@ -107,121 +107,58 @@ class AgentRunner:
                 return None
             return bash
 
-    def harness(self, text, messages):
-        self.is_running = True
-        self.terminate = False
-
-        try:
-            if not self.is_vibing():
-                return None
-
-            if self.pending_bash():
-                log.info("agent waiting for observation via hai agent next")
-                return None
-
-            decision = froute(text)
-            if decision != "do":
-                return None
-
-            return self.__run(messages)
-
-        except TerminationException:
-            self.abort()
-        except Exception:
-            log.error(traceback.format_exc())
-            self.abort()
-        finally:
+    def __step(self, messages, observation=None):
+        with self.lock:
+            self.is_running = True
             self.terminate = False
-            self.is_running = False
+            try:
+                if not self.is_vibing():
+                    return None
 
-        return None
+                pending = self.pending_bash()
 
-    def __run(self, messages):
-        self.is_running = True
-        self.terminate = False
+                if observation is None:
+                    if pending:
+                        log.info("agent waiting for observation via hai agent next")
+                        return None
+                    log.info("engaging harness.")
+                    user = messages[-1]["content"]
+                else:
+                    if not pending:
+                        log.warning("no pending bash step to observe; refusing next.")
+                        return None
+                    log.info("engaging harness next.")
+                    plan = self.ai.contextmgr.get_plan() or ""
+                    self.ai.contextmgr.append_observation(pending, observation)
+                    user = self.__scratch(plan)
 
-        try:
-            log.info("engaging harness.")
+                response = self.__complete([
+                    {"role": "system", "content": self.agent_behavior},
+                    {"role": "user", "content": user},
+                ])
+                if response is None:
+                    return None
 
-            a_content = messages[-1]["content"]
-            assistance = [
-                {"role": "system", "content": self.agent_behavior},
-                {"role": "user", "content": a_content},
-            ]
+                self.validate_plan(response)
+                self.ai.contextmgr.set_plan(response)
+                self.__join_if_terminal(response)
+                return response
 
-            response = self.__complete(assistance)
-            if response is None:
-                return None
+            except TerminationException:
+                log.debug("agent terminated.")
+            except Exception:
+                log.error(traceback.format_exc())
+            finally:
+                self.terminate = False
+                self.is_running = False
+                log.info("disengaging harness.")
+            return None
 
-            if not self.__is_valid_json(response):
-                log.error("invalid json task")
-                raise TerminationException("terminated")
-
-            self.ai.contextmgr.set_plan(response)
-            self.__join_if_terminal(response)
-            return response
-
-        except TerminationException:
-            log.debug("agent terminated.")
-            self.abort()
-        except Exception:
-            log.error(traceback.format_exc())
-            self.abort()
-        finally:
-            self.terminate = False
-            self.is_running = False
-            log.info("disengaging harness.")
-
-        return None
+    def harness(self):
+        return self.__step(self.ai.contextmgr.messages())
 
     def next(self, observation):
-        self.is_running = True
-        self.terminate = False
-
-        try:
-            if not self.is_vibing():
-                return None
-
-            log.info("engaging harness next.")
-
-            bash = self.pending_bash()
-            if not bash:
-                log.warning("no pending bash step to observe; refusing next.")
-                return None
-
-            plan = self.ai.contextmgr.get_plan() or ""
-            self.ai.contextmgr.append_observation(bash, observation)
-
-            assistance = [
-                {"role": "system", "content": self.agent_behavior},
-                {"role": "user", "content": self.__scratch(plan)},
-            ]
-
-            response = self.__complete(assistance)
-            if response is None:
-                return None
-
-            if not self.__is_valid_json(response):
-                log.error("invalid json task")
-                raise TerminationException("terminated")
-
-            self.ai.contextmgr.set_plan(response)
-            self.__join_if_terminal(response)
-            log.info("disengaging harness.")
-
-            return response
-
-        except TerminationException:
-            log.debug("agent terminated.")
-            self.abort()
-        except Exception:
-            log.error(traceback.format_exc())
-            self.abort()
-        finally:
-            self.terminate = False
-            self.is_running = False
-
-        return None
+        return self.__step(self.ai.contextmgr.messages(), observation)
 
     def __scratch(self, current_plan):
         parts = []
@@ -284,9 +221,57 @@ class AgentRunner:
         if self.terminate:
             raise TerminationException("terminated")
 
-    def abort(self):
-        self.is_running = False
-        self.terminate = False
+    def validate_plan(self, plan):
+        if not self.__is_valid_json(plan):
+            log.error("invalid json plan")
+            raise TerminationException("terminated")
+
+        task = json.loads(plan)
+        if not isinstance(task, dict):
+            log.error("plan is not a json object")
+            raise TerminationException("terminated")
+
+        bash = task.get("bash")
+        if bash is None or not str(bash).strip():
+            log.info("no bash in plan; skipping command whitelist")
+            return
+
+        bash = str(bash).strip()
+        whitelist = {"echo", "ls", "grep", "curl"}
+        log.info("whitelist: " + str(whitelist))
+        log.info("proposed command: " + bash)
+        if not self.validate_bash_command(bash, whitelist):
+            raise TerminationException("terminated")
+
+    def validate_bash_command(self, command_string, whitelist):
+        try:
+            # Parse the string into a Bash AST
+            trees = bashlex.parse(command_string)
+        except bashlex.errors.ParsingError:
+            return False  # Invalid Bash syntax
+
+        def check_node(node):
+            # If the node represents an executed command
+            if node.kind == 'command':
+                # Extract the base command name (e.g., 'git' from 'git commit')
+                parts = node.parts
+                if parts and parts[0].kind == 'word':
+                    command_name = parts[0].word
+                    if command_name not in whitelist:
+                        log.error(f"unauthorized command detected: {command_name}")
+                        raise ValueError(f"unauthorized command detected: {command_name}")
+
+            # Recursively check sub-commands (like inside pipes or subshells)
+            if hasattr(node, 'parts'):
+                for part in node.parts:
+                    check_node(part)
+
+        try:
+            for tree in trees:
+                check_node(tree)
+            return True
+        except ValueError:
+            return False
 
 
 class TerminationException(Exception):
