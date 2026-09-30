@@ -17,7 +17,7 @@ log = logger.Logger()
 PLAN_KEYS = ("status", "goal", "why", "bash", "say")
 STATUSES = ("continue", "done", "need_help")
 WHITELIST = frozenset({
-    "pwd", "ls", "echo", "grep", "curl", "cat", "head", "tail", "wc", "man",
+    "pwd", "ls", "echo", "grep", "curl", "cat", "head", "tail", "wc", "man", "hat", "huckle", "ddgr",
 })
 MAX_REPAIRS = 5
 

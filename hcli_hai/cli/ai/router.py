@@ -13,7 +13,7 @@ _URL = re.compile(
     r"|[a-z0-9-]+\.(com|org|net|io|ai|dev|app|co|info|edu|gov)\b"
     r")"
 )
-_FLAGS = re.compile(r"(^|\s)(-[a-zA-Z]|--[a-z0-9-]+)\b")
+_FLAGS = re.compile(r"(^|\s)(-[a-zA-Z]|--[a-zA-Z0-9-]+)\b")
 _PATH = re.compile(
     r"(?i)(^|\s)("
     r"~\/\S+"
@@ -22,6 +22,29 @@ _PATH = re.compile(
     r"|[a-z0-9._-]+\.(py|sh|bash|zsh|json|yaml|yml|toml|md|txt|log|cfg|ini|conf)"
     r")\b"
 )
+
+# --- code detection (improved) -------------------------------------------
+def _looks_like_code_dump(text: str) -> bool:
+    """Returns True if the input looks like a pasted code file (e.g. router.py)."""
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if len(lines) < 5:
+        return False
+
+    code_signals = 0
+    for line in lines:
+        if re.match(r"^[A-Z_][A-Z0-9_]*\s*=\s*re\.compile", line):
+            code_signals += 1
+        elif re.match(r"^(async )?def ", line):
+            code_signals += 1
+        elif re.match(r"^(import |from )", line):
+            code_signals += 1
+        elif re.match(r"^log = logger\.", line):
+            code_signals += 1
+        elif re.match(r"^_[A-Z_]+\s*=", line):
+            code_signals += 1
+
+    return code_signals >= 4
+
 
 # --- action frames -------------------------------------------------------
 _WEB_VERBS = re.compile(
@@ -144,6 +167,18 @@ def _score(text):
     s = 0.0
     low = t.lower()
 
+    # --- Code dump detection (fixed for inception) ---
+    if _looks_like_code_dump(t):
+        # Only treat as "do" if user explicitly asks for action
+        # outside of what looks like code.
+        explicit_action = any(phrase in low for phrase in [
+            "run this", "execute this", "fix this", "debug this",
+            "please run", "can you run", "could you run"
+        ])
+        if not explicit_action:
+            return 0.10
+    # -------------------------------------------------
+
     web_v = bool(_WEB_VERBS.search(t))
     web_o = bool(_WEB_OBJECTS.search(t))
     git_v = bool(_GIT_VERBS.search(t))
@@ -254,6 +289,7 @@ def route_ollama(client, model, text):
         return "do"
     return "talk"
 
+
 def froute(text):
     score = _score(text)
     log.info("fast score relative to 'doing': " + str(score))
@@ -264,6 +300,7 @@ def froute(text):
         decision = "talk"
         log.info("fast classification " + decision)
     return decision
+
 
 def sroute(client, model, text):
     score = _score(text)
