@@ -34,7 +34,8 @@ class Service:
         return
 
     def chat(self, inputstream):
-        if self.agentrunner.is_vibing():
+        is_vibing = self.agentrunner.is_vibing()
+        if is_vibing:
             pending = self.agentrunner.pending_bash()
             if pending:
                 # already emitted a command; do not plan again and do not talk
@@ -45,12 +46,13 @@ class Service:
         text = self.ai.consume_request(inputstream)
         response = None
 
-        decision = froute(text)
-        if decision == "do":
-            response = self.agentrunner.harness()
-            if response is not None:
-                # plan is in status; do not commit JSON into the chat transcript
-                return None
+        if is_vibing:
+            decision = froute(text)
+            if decision == "do":
+                response = self.agentrunner.harness()
+                if response is not None:
+                    # plan is in status; do not commit JSON into the chat transcript
+                    return None
 
         if response is None:
             response = self.ai.process_request()

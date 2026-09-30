@@ -51,7 +51,7 @@ class AgentRunner:
             self.assist_key = None
 
             current = os.path.dirname(inspect.getfile(lambda: None))
-            self.agent_behavior = Path(os.path.join(current, "AGENT.md")).read_text(encoding="utf-8")
+            self.agent_behavior = Path(self.config.dot_hai_agent_file).read_text(encoding="utf-8")
 
             self.ai = ai.AI()
 
