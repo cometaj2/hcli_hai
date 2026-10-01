@@ -155,6 +155,15 @@ class Service:
         if should_vibe is False:
             self.ai.contextmgr.plan.clear()
 
+    def status(self):
+        if not self.agentrunner.is_vibing():
+            return "inactive"
+        else:
+            if self.agentrunner.pending_bash() is not None:
+                return "next"
+            else:
+                return "busy"
+
     def plan(self):
         return self.ai.plan()
 

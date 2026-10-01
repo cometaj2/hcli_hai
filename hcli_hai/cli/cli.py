@@ -137,6 +137,9 @@ class CLI:
             elif self.commands[2] == "enabled":
                 status = self.service.is_vibing()
                 return io.BytesIO(str(status).encode('utf-8'))
+            elif self.commands[2] == "status":
+                status = self.service.status()
+                return io.BytesIO(str(status).encode('utf-8'))
             elif self.commands[2] == "next":
                 response = self.service.next(self.inputstream)
                 if response is not None:
