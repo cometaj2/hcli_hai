@@ -360,7 +360,7 @@ class AI:
                 )
 
                 raw_title = response.choices[0].message.content.strip()
-                title = " ".join(raw_title.split()[:10])
+                title = " ".join(raw_title.strip('"').split()[:10])
 
                 log.info(f"Generated title: {title}")
                 return title
