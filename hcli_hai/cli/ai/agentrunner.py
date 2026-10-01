@@ -17,7 +17,7 @@ log = logger.Logger()
 PLAN_KEYS = ("status", "goal", "why", "bash", "say")
 STATUSES = ("continue", "done", "need_help")
 WHITELIST = frozenset({
-    "pwd", "ls", "echo", "grep", "curl", "cat", "head", "tail", "wc", "man", "hat", "huckle", "ddgr",
+    "git", "pwd", "ls", "echo", "grep", "curl", "cat", "head", "tail", "wc", "man", "hat", "huckle", "ddgr",
 })
 MAX_REPAIRS = 5
 
@@ -114,6 +114,10 @@ class AgentRunner:
             + "\n\n# Live constraints (harness-enforced)\n"
             + "Allowed programs: " + ", ".join(sorted(WHITELIST)) + "\n"
             + "If the next step needs anything else, status=need_help, bash=\"\", say=the blocker.\n"
+            + "When finishing (status=done), write a clear, concise summary in 'say' that includes:\n"
+            + "- The final result or answer\n"
+            + "- Key observations that led to the conclusion (if relevant)\n"
+            + "- Any important context for the user\n"
             + "Output one JSON object with keys: " + ", ".join(PLAN_KEYS) + ".\n"
             + "No markdown. No text before or after the object.\n"
         )
@@ -389,8 +393,60 @@ class AgentRunner:
         if not terminal or not say:
             return
 
-        self.ai.commit_response(say)
+        # === Heavy context augmentation ===
+        goal = plan.get("goal", "").strip()
+        obs = self.ai.contextmgr.observations() or []
+
+        if status == "done":
+            header = "**Task completed.**"
+        elif status == "need_help":
+            header = "**Agent needs help.**"
+        else:
+            header = "**Agent finished.**"
+
+        parts = [header]
+
+        if goal:
+            parts.append(f"**Goal:** {goal}")
+
+        if obs:
+            trace = []
+            for i, item in enumerate(obs, 1):
+                cmd = item.get("bash", "").strip()
+                result = (item.get("result") or "").strip()
+                # Truncate very long results to keep context manageable
+                if len(result) > 800:
+                    result = result[:800] + "\n... (truncated)"
+                trace.append(f"{i}. `{cmd}`\n > {result}")
+            parts.append("**Execution trace:**\n" + "\n\n".join(trace))
+
+        parts.append(f"**Result:**\n{say}")
+
+        enriched_say = "\n\n".join(parts)
+
+        self.ai.commit_response(enriched_say)
         self.ai.contextmgr.plan.clear()
+
+
+#     def __join_if_terminal(self, response):
+#         try:
+#             plan = json.loads(response)
+#         except ValueError:
+#             return
+# 
+#         if not isinstance(plan, dict):
+#             return
+# 
+#         status = plan.get("status")
+#         bash = (plan.get("bash") or "").strip()
+#         say = (plan.get("say") or "").strip()
+# 
+#         terminal = status in ("done", "need_help") or (not bash and bool(say))
+#         if not terminal or not say:
+#             return
+# 
+#         self.ai.commit_response(say)
+#         self.ai.contextmgr.plan.clear()
 
     def check_termination(self):
         if self.terminate:
