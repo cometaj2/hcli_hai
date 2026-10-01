@@ -27,7 +27,7 @@ class CLI:
             'set': lambda: self.service.set(self.commands[2]) if len(self.commands) == 3 else None,
             'rm': lambda: self.service.rm(self.commands[2]) if len(self.commands) == 3 else None,
             'agent': self._handle_agent,
-            'assist': self._handle_assist,
+            'voice': self._handle_assist,
             'provider': self._handle_provider
         }
 
@@ -134,7 +134,7 @@ class CLI:
                 self.service.agent(False)
             elif self.commands[2] == "plan":
                 return io.BytesIO(self.service.plan().encode('utf-8'))
-            elif self.commands[2] == "status":
+            elif self.commands[2] == "enabled":
                 status = self.service.is_vibing()
                 return io.BytesIO(str(status).encode('utf-8'))
             elif self.commands[2] == "next":
@@ -151,7 +151,7 @@ class CLI:
                 self.service.assist(True)
             elif self.commands[2] == "stop":
                 self.service.assist(False)
-            elif self.commands[2] == "status":
+            elif self.commands[2] == "enabled":
                 status = self.service.is_assisting()
                 return io.BytesIO(str(status).encode('utf-8'))
         return None
