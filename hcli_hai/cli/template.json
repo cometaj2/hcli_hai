@@ -38,6 +38,10 @@
             "http": "post"
         },
         {
+            "command": "hai title auto",
+            "http": "post"
+        },
+        {
             "command": "hai context",
             "http": "get"
         },
@@ -451,6 +455,11 @@
                     "href": "haititleset",
                     "name": "set",
                     "description": "The \"set\" command allows you to set the user provided title for the current context."
+                },
+                {
+                    "href": "haititleauto",
+                    "name": "auto",
+                    "description": "The \"auto\" command automatically generates and a title using the current conversation context."
                 }
             ]
         },
@@ -474,6 +483,24 @@
             "parameter": {
                 "href": "haititlesetparameter"
             }
+        },
+        {
+            "id": "haititleauto",
+            "name": "auto",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "auto - automatically sets a title for the current context."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai title auto"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"auto\" command automatically sets a title based on the current conversation context."
+                }
+            ]
         },
         {
             "id": "haicontext",

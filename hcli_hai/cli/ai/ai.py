@@ -130,7 +130,11 @@ class AI:
             tokens = self.contextmgr.counter.get_stats(self.contextmgr.context)
             log.info("response - total context tokens: " + str(tokens['total_tokens']))
 
-            self.contextmgr.generate_title()
+            # Auto-title after first assistant response if no title exists yet
+
+            if not self.contextmgr.title():
+                title = self.generate_title()
+                self.set_title(title)
             self.contextmgr.save()
 
     # get the current context as json output
@@ -313,6 +317,58 @@ class AI:
                 log.error(msg)
                 raise BadRequestError(detail=msg)
 
+    def generate_title(self, max_messages: int = 4):
+        """
+        Generate a concise title (≤10 words) using only the most recent messages.
+        System messages are explicitly excluded so they don't interfere with the
+        title generation system prompt.
+        The title request/response is never added to the conversation context.
+        """
+        with self.rlock:
+            if self.config.model is None:
+                msg = "no model selected. select from the list of available models."
+                log.error(msg)
+                raise BadRequestError(detail=msg)
+
+            all_messages = self.contextmgr.messages()
+            if not all_messages:
+                return None
+
+            # Take only the last N messages
+            recent_messages = all_messages[-max_messages:]
+
+            # Explicitly remove any system messages to avoid interference
+            recent_messages = [
+                msg for msg in recent_messages if msg.get("role") != "system"
+            ]
+
+            if not recent_messages:
+                return None
+
+            title_prompt = "You are a title generator. Create a short, complete, and self-contained title that summarizes the main topic or goal of the conversation. The title must be a well-formed phrase or headline. Do not use sentence fragments, open-ended questions, or incomplete thoughts. Output about 10 words. Return only the title, nothing else."
+
+            title_messages = [*recent_messages,
+                              { "role": "user", "content": title_prompt}
+                             ]
+
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.config.model,
+                    messages=title_messages,
+                    max_tokens=20,
+                    temperature=0.2,
+                )
+
+                raw_title = response.choices[0].message.content.strip()
+                title = " ".join(raw_title.split()[:10])
+
+                log.info(f"Generated title: {title}")
+                return title
+
+            except Exception as e:
+                log.error(traceback.format_exc())
+                return None
+
     # get the context name
     def name(self):
         with self.rlock:
@@ -331,7 +387,8 @@ class AI:
     # set the context title
     def set_title(self, title):
         with self.rlock:
-            self.contextmgr.set_title(title)
+            if title is not None:
+                self.contextmgr.set_title(title)
 
     # output current plan
     def plan(self):

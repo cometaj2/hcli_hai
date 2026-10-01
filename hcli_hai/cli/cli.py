@@ -72,6 +72,8 @@ class CLI:
         if len(self.commands) == 2:
             title = self.service.title()
             return io.BytesIO((title or "None").encode('utf-8'))
+        if len(self.commands) == 3 and self.commands[2] == "auto":
+            self.service.auto_title()
         if len(self.commands) == 4 and self.commands[2] == "set":
             self.service.set_title(self.commands[3])
 

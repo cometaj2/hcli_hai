@@ -87,6 +87,11 @@ class Service:
     def set_title(self, title):
         return self.ai.set_title(title)
 
+    def auto_title(self):
+        title = self.ai.generate_title()
+        self.ai.set_title(title)
+        return title
+
     def ls(self):
         return self.ai.ls()
 

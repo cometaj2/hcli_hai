@@ -10,7 +10,6 @@ import logger
 
 from utils import hutils
 from utils import formatting as f
-from utils import summary as s
 from hcli_problem_details import *
 
 log = logger.Logger()
@@ -291,22 +290,6 @@ class ContextManager:
         with self.rlock:
             self.context.provider = provider
             self.save()
-
-    # produces a summary then a title for the current context.
-    def generate_title(self):
-        with self.rlock:
-            text = ""
-            for item in self.context.messages:
-                if "content" in item:
-                    text += item["content"]
-
-            title = s.AdvancedTitleGenerator().generate_title(text)
-            log.debug("title: " + title)
-            self.context.title = title
-
-            self.save()
-
-            return self.context.title
 
     def set_plan(self, plan):
         with self.rlock:
