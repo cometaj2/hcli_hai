@@ -81,6 +81,12 @@ class Service:
     def set_name(self, name):
         return self.ai.set_name(name)
 
+    def title(self):
+        return self.ai.title()
+
+    def set_title(self, title):
+        return self.ai.set_title(title)
+
     def ls(self):
         return self.ai.ls()
 

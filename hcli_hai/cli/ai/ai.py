@@ -323,6 +323,16 @@ class AI:
         with self.rlock:
             self.contextmgr.set_name(name)
 
+    # get the context title
+    def title(self):
+        with self.rlock:
+            return self.contextmgr.title()
+
+    # set the context title
+    def set_title(self, title):
+        with self.rlock:
+            self.contextmgr.set_title(title)
+
     # output current plan
     def plan(self):
         with self.rlock:

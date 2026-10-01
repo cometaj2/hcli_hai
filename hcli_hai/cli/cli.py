@@ -23,6 +23,7 @@ class CLI:
             'current': lambda: io.BytesIO(self.service.current().encode('utf-8')),
             'behavior': lambda: self.service.behavior(self.inputstream) if self.inputstream else None,
             'name': self._handle_name,
+            'title': self._handle_title,
             'model': self._handle_model,
             'set': lambda: self.service.set(self.commands[2]) if len(self.commands) == 3 else None,
             'rm': lambda: self.service.rm(self.commands[2]) if len(self.commands) == 3 else None,
@@ -64,6 +65,15 @@ class CLI:
             return io.BytesIO((name or "None").encode('utf-8'))
         if len(self.commands) == 4 and self.commands[2] == "set":
             self.service.set_name(self.commands[3])
+
+        return None
+
+    def _handle_title(self) -> Optional[io.BytesIO]:
+        if len(self.commands) == 2:
+            title = self.service.title()
+            return io.BytesIO((title or "None").encode('utf-8'))
+        if len(self.commands) == 4 and self.commands[2] == "set":
+            self.service.set_title(self.commands[3])
 
         return None
 

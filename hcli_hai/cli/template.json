@@ -30,6 +30,14 @@
             "http": "post"
         },
         {
+            "command": "hai title",
+            "http": "get"
+        },
+        {
+            "command": "hai title set {p}",
+            "http": "post"
+        },
+        {
             "command": "hai context",
             "http": "get"
         },
@@ -188,6 +196,11 @@
                     "href": "hainame",
                     "name": "name",
                     "description": "The \"name\" command allows you to view the user provided name for the current context."
+                },
+                {
+                    "href": "haititle",
+                    "name": "title",
+                    "description": "The \"title\" command allows you to view the title for the current context."
                 },
                 {
                     "href": "haicurrent",
@@ -414,6 +427,52 @@
             ],
             "parameter": {
                 "href": "hainamesetparameter"
+            }
+        },
+        {
+            "id": "haititle",
+            "name": "title",
+            "section": [
+                {
+                    "name": "title",
+                    "description": "title - title of the current context."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai title"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"title\" command allows you to view the title for the current context."
+                }
+            ],
+            "command": [
+                {
+                    "href": "haititleset",
+                    "name": "set",
+                    "description": "The \"set\" command allows you to set the user provided title for the current context."
+                }
+            ]
+        },
+        {
+            "id": "haititleset",
+            "name": "set",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "set - sets the title for the current context."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai title set <user provided title>"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"set\" command allows you to set the user provided title for the current context."
+                }
+            ],
+            "parameter": {
+                "href": "haititlesetparameter"
             }
         },
         {
