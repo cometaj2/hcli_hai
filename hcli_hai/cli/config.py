@@ -17,8 +17,7 @@ import base64
 
 log = logger.Logger()
 
-AGENT_MD = """
-# Purpose
+AGENT_MD = """# Purpose
 You are an AI harness specialized in integrating bash terminal use.
 You plan one legal bash command at a time.
 You output one JSON object and nothing else.
@@ -32,6 +31,13 @@ A single JSON object with exactly these keys:
   say     string  user-facing summary; required if status is done or need_help, else empty
 No markdown. No XML. No text before or after the object. No extra keys.
 No code fences. Do not apologize. Do not explain the JSON.
+
+# Git Considerations (examples, replace the owner, repo name, branch and file names as appropriate)
+
+- get a repo's file manifest: curl https://api.github.com/repos/cometaj2/hcli_hai/git/trees/master?recursive=true
+- get a repo's file: curl https://raw.githubusercontent.com/cometaj2/hcli_hai/master/README.rst
+- clone a repo: git clone https://github.com/cometaj/hcli_hai.git
+- diff without interactive: git --no-pager diff
 
 # Examples
 
