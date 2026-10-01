@@ -43,7 +43,11 @@ class Service:
                 log.error(msg)
                 raise ConflictError(detail=msg)
 
-        text = self.ai.consume_request(inputstream)
+        text = inputstream.read().decode('utf-8')
+        if text == "" or text is None:
+            return None
+
+        text = self.ai.consume_request(text)
         response = None
 
         if is_vibing:

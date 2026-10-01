@@ -73,20 +73,19 @@ class AI:
                 raise BadRequestError(detail=msg)
 
     # Consume the user prompt request into the context
-    def consume_request(self, inputstream):
+    def consume_request(self, text):
         with self.rlock:
             if self.config.model is not None:
-                inputstream = inputstream.read().decode('utf-8')
-                if inputstream != "":
-                    inputstream = inputstream.rstrip()
-                    question = { "role" : "user", "content" : inputstream }
+                if text != "":
+                    text = text.rstrip()
+                    question = { "role" : "user", "content" : text }
                     self.contextmgr.append(question)
                     self.contextmgr.trim()
 
                     tokens = self.contextmgr.counter.get_stats(self.contextmgr.context)
                     log.info("request  - total context tokens: " + str(tokens['total_tokens']))
 
-                    return inputstream
+                    return text
 
     # Process the completion to return a response without adding to the context.
     def process_request(self):
@@ -94,29 +93,20 @@ class AI:
             if self.config.model is not None:
                 if self.contextmgr.counter.total_tokens != 0:
                     try:
-                        # Separate system message from user messages
                         model = self.config.model
 
-                        user_messages = [msg for msg in self.contextmgr.messages()]
+                        messages = [msg for msg in self.contextmgr.messages()]
                         response = self.client.chat.completions.create(
                                                         model=model,
-                                                        messages=user_messages
+                                                        messages=messages
                                                    )
-                        log.debug(response)
+                        return response.choices[0].message.content
                     except Exception as e:
                         log.error(traceback.format_exc())
                         return None
                 else:
-                    msg = "the token trim backoff completely collapsed. this means that the stream was too large to fit within the total allowable context limit of " + str(self.contextmgr.counter.max_context_length) + " tokens, and the last trimming operation ended up completely wiping out the remaining conversation context."
-                    log.error(msg)
-                    self.contextmgr.save()
-                    raise PayloadTooLargeError(detail=msg)
+                    return None
 
-                output_response = response.choices[0].message.content
-                #output_response_role = response.choices[0].message.role
-
-                # Extract the text content from the response
-                return output_response
             else:
                 msg = "no model selected. select from the list of available models."
                 log.error(msg)
