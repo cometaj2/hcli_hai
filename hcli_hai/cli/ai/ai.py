@@ -309,7 +309,7 @@ class AI:
 
     def generate_title(self, max_messages: int = 4):
         """
-        Generate a concise title (≤10 words) using only the most recent messages.
+        Generate a concise title (<=10 words) using only the most recent messages.
         System messages are explicitly excluded so they don't interfere with the
         title generation system prompt.
         The title request/response is never added to the conversation context.
@@ -381,6 +381,6 @@ class AI:
                 self.contextmgr.set_title(title)
 
     # output current plan
-    def plan(self):
+    def task(self):
         with self.rlock:
-            return self.contextmgr.get_plan()
+            return self.contextmgr.get_step()

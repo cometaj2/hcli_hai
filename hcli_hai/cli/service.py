@@ -170,8 +170,8 @@ class Service:
     def status(self):
         return self.orchestrator.status()
 
-    def plan(self):
-        return self.ai.plan()
+    def task(self):
+        return self.ai.task()
 
     def next(self, inputstream):
         if inputstream is None:

@@ -114,7 +114,7 @@
             "http": "get"
         },
         {
-            "command": "hai agent plan",
+            "command": "hai agent task",
             "http": "get"
         },
         {
@@ -673,14 +673,14 @@
                     "description": "Get agent harness processing status."
                 },
                 {
-                    "href": "haiagentplan",
-                    "name": "plan",
-                    "description": "Get agent plan."
+                    "href": "haiagenttask",
+                    "name": "task",
+                    "description": "Get agent task."
                 },
                 {
                     "href": "haiagentnext",
                     "name": "next",
-                    "description": "Iterate one turn in the plan per stdin observation."
+                    "description": "Iterate one turn in the task per stdin observation."
                 }
             ]
         },
@@ -757,20 +757,20 @@
             ]
         },
         {
-            "id": "haiagentplan",
-            "name": "plan",
+            "id": "haiagenttask",
+            "name": "task",
             "section": [
                 {
                     "name": "name",
-                    "description": "plan - returns the agent's current plan."
+                    "description": "task - returns the agent's current task."
                 },
                 {
                     "name": "synopsis",
-                    "description": "hai agent plan"
+                    "description": "hai agent task"
                 },
                 {
                     "name": "description",
-                    "description": "The \"plan\" command allows you to get the agent's next step in the plan it's trying to execute to fulfill the user's goal."
+                    "description": "The \"task\" command allows you to get the agent's next step in the plan the agent orchestrator is trying to execute to fulfill the user's goal."
                 }
             ]
         },
@@ -780,7 +780,7 @@
             "section": [
                 {
                     "name": "name",
-                    "description": "next - iterate one step in the current plan."
+                    "description": "next - iterate one step (one task) in the current plan."
                 },
                 {
                     "name": "synopsis",
@@ -788,7 +788,7 @@
                 },
                 {
                     "name": "description",
-                    "description": "The \"next\" command allows you to iterate one agent step in the plan by the received input stream (stdin) which is presumably tied to an expected planned command line to execute."
+                    "description": "The \"next\" command allows you to iterate one agent step (one task) in the orchestrator's plan per the received input stream (stdin) tied to an expected tasked command line to execute."
                 }
             ]
         },

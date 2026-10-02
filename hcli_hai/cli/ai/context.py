@@ -443,6 +443,14 @@ class ContextManager:
         with self.rlock:
             return self.plan.plan
 
+    def get_step(self):
+        with self.rlock:
+            step = self.plan._doc["step"]
+            if step:
+                return json.dumps(step)
+            else:
+                return None
+
     def append_observation(self, bash, result):
         with self.rlock:
             self.plan.append_observation(bash, result)
