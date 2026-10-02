@@ -1,28 +1,27 @@
 import logger
 import threading
 import traceback
-import inspect
 import os
 import re
 import openai
 import json
 import config as a
-import bashlex
 from ai import ai
+from ai.policy import STEP_KEYS, STEP_STATUSES, WHITELIST, bash_error
 from pathlib import Path
-from hcli_problem_details import *
 
 log = logger.Logger()
 
-PLAN_KEYS = ("status", "goal", "why", "bash", "say")
-STATUSES = ("continue", "done", "need_help")
-WHITELIST = frozenset({
-    "git", "pwd", "ls", "echo", "grep", "curl", "cat", "head", "tail", "wc", "man", "hat", "huckle", "ddgr",
-})
 MAX_REPAIRS = 5
 
 
 class AgentRunner:
+    """Execute one orchestrator task. Emits a single whitelisted command, or a terminal step.
+
+    Does not own the user goal, the task list, or the client loop. The orchestrator calls
+    step() and decides what the observation means for the rest of the plan.
+    """
+
     _instance = None
     _init_lock = threading.RLock()
 
@@ -41,18 +40,11 @@ class AgentRunner:
                 return
             self.rlock = threading.RLock()
             self.lock = threading.RLock()
-
             self.is_running = False
             self.config = a.Config()
-
-            self._is_vibing = False
             self.initialized = True
             self.terminate = False
-            self.assist_key = None
-
-            current = os.path.dirname(inspect.getfile(lambda: None))
             self.agent_behavior = Path(self.config.dot_hai_agent_file).read_text(encoding="utf-8")
-
             self.ai = ai.AI()
 
     def __init_provider(self):
@@ -73,59 +65,26 @@ class AgentRunner:
                 log.debug("using grok (xai) at https://api.x.ai/v1")
 
             else:
-                msg = "no provider selected. select from the list of available providers."
-                log.error(msg)
-                raise BadRequestError(detail=msg)
-
-    def set_vibe(self, should_vibe):
-        with self.rlock:
-            self._is_vibing = should_vibe
-            if should_vibe is True:
-                log.info("agent runner started.")
-            else:
-                self.ai.contextmgr.plan.clear()
-                log.info("agent runner stopped.")
-
-    def is_vibing(self):
-        with self.rlock:
-            return self._is_vibing
-
-    def pending_bash(self):
-        with self.rlock:
-            raw = self.ai.contextmgr.get_plan()
-            if not raw:
-                return None
-            try:
-                plan = json.loads(raw)
-            except ValueError:
-                return None
-            if not isinstance(plan, dict):
-                return None
-            if plan.get("status") != "continue":
-                return None
-            bash = (plan.get("bash") or "").strip()
-            if not bash:
-                return None
-            return bash
+                log.error("no provider selected. select from the list of available providers.")
+                return False
+            return True
 
     def __system_prompt(self):
         return (
             self.agent_behavior
-            + "\n\n# Live constraints (harness-enforced)\n"
+            + "\n\n# Live constraints (runner-enforced)\n"
+            + "You execute exactly one task. Do not plan the rest of the user goal.\n"
             + "Allowed programs: " + ", ".join(sorted(WHITELIST)) + "\n"
-            + "If the next step needs anything else, status=need_help, bash=\"\", say=the blocker.\n"
-            + "When finishing (status=done), write a clear, concise summary in 'say' that includes:\n"
-            + "- The final result or answer\n"
-            + "- Key observations that led to the conclusion (if relevant)\n"
-            + "- Any important context for the user\n"
-            + "Output one JSON object with keys: " + ", ".join(PLAN_KEYS) + ".\n"
+            + "If this task needs anything else, status=need_help, bash=\"\", say=the blocker.\n"
+            + "When this task's acceptance is met, status=done, bash=\"\", say=what was learned.\n"
+            + "Output one JSON object with keys: " + ", ".join(STEP_KEYS) + ".\n"
             + "No markdown. No text before or after the object.\n"
         )
 
-    def __dump(self, plan):
-        return json.dumps({k: plan.get(k, "") for k in PLAN_KEYS}, ensure_ascii=False)
+    def __dump(self, step):
+        return json.dumps({k: step.get(k, "") for k in STEP_KEYS}, ensure_ascii=False)
 
-    def __parse_plan(self, text):
+    def __parse_step(self, text):
         raw = (text or "").strip()
         if not raw:
             return None, "empty output; emit one json object with keys status,goal,why,bash,say"
@@ -147,207 +106,68 @@ class AgentRunner:
         if not isinstance(obj, dict):
             return None, "top-level value must be a json object, not %s" % type(obj).__name__
 
-        extra = set(obj) - set(PLAN_KEYS)
-        missing = [k for k in PLAN_KEYS if k not in obj]
+        extra = set(obj) - set(STEP_KEYS)
+        missing = [k for k in STEP_KEYS if k not in obj]
         if extra or missing:
             return None, "keys must be exactly %s; missing=%s extra=%s" % (
-                list(PLAN_KEYS), missing, sorted(extra)
+                list(STEP_KEYS), missing, sorted(extra)
             )
 
-        if obj.get("status") not in STATUSES:
-            return None, "status must be one of %s, got %r" % (list(STATUSES), obj.get("status"))
+        if obj.get("status") not in STEP_STATUSES:
+            return None, "status must be one of %s, got %r" % (list(STEP_STATUSES), obj.get("status"))
 
-        for k in PLAN_KEYS:
+        for k in STEP_KEYS:
             if not isinstance(obj.get(k), str):
                 return None, "%s must be a string" % k
 
-        status = obj["status"]
-        bash = obj["bash"].strip()
-        say = obj["say"].strip()
-        obj["bash"] = bash
-        obj["say"] = say
+        obj["bash"] = obj["bash"].strip()
+        obj["say"] = obj["say"].strip()
         obj["goal"] = obj["goal"].strip()
         obj["why"] = obj["why"].strip()
+        status = obj["status"]
 
         if status == "continue":
-            if not bash:
+            if not obj["bash"]:
                 return None, "status=continue requires a non-empty bash"
-            if say:
+            if obj["say"]:
                 return None, "status=continue requires say=\"\""
         else:
-            if bash:
+            if obj["bash"]:
                 return None, "status=%s requires bash=\"\"" % status
-            if not say:
+            if not obj["say"]:
                 return None, "status=%s requires a non-empty say" % status
 
         return obj, None
 
-    def __bash_error(self, command_string):
-        command_string = (command_string or "").strip()
-        if not command_string:
-            return "status=continue requires a non-empty bash"
-        if "\n" in command_string:
-            return "bash must be one simple command line"
+    def __scratch(self, task, observations):
+        parts = [
+            "task id: %s" % (task.get("id") or ""),
+            "task intent: %s" % (task.get("intent") or ""),
+            "acceptance: %s" % (task.get("acceptance") or "observations answer the task intent"),
+        ]
+        hint = (task.get("hint") or "").strip()
+        if hint:
+            parts.append("hint: " + hint)
 
-        try:
-            trees = bashlex.parse(command_string)
-        except Exception as e:
-            return "invalid bash syntax: %s" % e
-
-        if len(trees) != 1:
-            return "bash must be exactly one command line"
-
-        programs = []
-        forbidden = []
-
-        def walk(node):
-            kind = getattr(node, "kind", None)
-            if kind == "pipeline":
-                forbidden.append("pipes")
-            elif kind in ("commandsubstitution", "processsubstitution"):
-                forbidden.append("substitution")
-            elif kind == "redirect":
-                forbidden.append("redirects")
-            elif kind == "operator":
-                forbidden.append("chaining")
-            elif kind == "command":
-                parts = getattr(node, "parts", None) or []
-                if parts and getattr(parts[0], "kind", None) == "word":
-                    programs.append(parts[0].word)
-            for part in getattr(node, "parts", None) or []:
-                walk(part)
-
-        walk(trees[0])
-
-        if forbidden:
-            return "bash must be one simple command line; no pipes, chaining, redirects, or substitution"
-        if len(programs) != 1:
-            return "bash must invoke exactly one program, found %s" % programs
-        if programs[0] not in WHITELIST:
-            return (
-                "unauthorized command %r; allowed: %s. "
-                "use status=need_help if the task requires it"
-                % (programs[0], ", ".join(sorted(WHITELIST)))
-            )
-        return None
-
-    def __step(self, messages, observation=None):
-        with self.lock:
-            self.is_running = True
-            self.terminate = False
-            try:
-                if not self.is_vibing():
-                    return None
-
-                log.info("engaging harness.")
-                pending = self.pending_bash()
-
-                if observation is None:
-                    if pending:
-                        log.info("agent waiting for observation via hai agent next")
-                        return None
-                    user = messages[-1]["content"]
-                else:
-                    if not pending:
-                        log.warning("no pending bash step to observe; refusing next.")
-                        return None
-                    plan = self.ai.contextmgr.get_plan() or ""
-                    self.ai.contextmgr.append_observation(pending, observation)
-                    user = self.__scratch(plan)
-
-                last = None
-                critique = None
-                partial_goal = ""
-
-                for attempt in range(MAX_REPAIRS):
-                    if critique is None:
-                        prompt = user
-                    else:
-                        log.warning("plan rejected (%d/%d): %s" % (attempt, MAX_REPAIRS, critique))
-                        prev = last if last and len(last) <= 800 else (last[:800] + "\n...")
-                        prompt = (
-                            user
-                            + "\n\nYour previous output was rejected. It is not the user task.\n"
-                            + "Do not describe JSON. Do not invent keys. Do not process the previous output.\n"
-                            + "Stay on the original goal. If observations already answer it, status=done, bash=\"\", put the answer in say.\n"
-                            + "error: %s\n" % critique
-                            + "rejected output (do not copy its keys):\n%s\n\n" % prev
-                            + "Emit exactly this shape:\n"
-                            + '{"status":"done","goal":"<original goal>","why":"","bash":"","say":"<answer>"}\n'
-                            + "or status=continue with a whitelisted bash and say=\"\".\n"
-                        )
-
-                    last = self.__complete([
-                        {"role": "system", "content": self.__system_prompt()},
-                        {"role": "user", "content": prompt},
-                    ])
-                    if last is None:
-                        return None
-
-                    plan, critique = self.__parse_plan(last)
-                    if plan is not None and plan.get("goal"):
-                        partial_goal = plan["goal"]
-                    if plan is None:
-                        continue
-
-                    if plan["status"] == "continue":
-                        critique = self.__bash_error(plan["bash"])
-                        if critique:
-                            continue
-
-                    payload = self.__dump(plan)
-                    self.ai.contextmgr.set_plan(payload)
-                    self.__join_if_terminal(payload)
-                    return payload
-
-                log.error("plan repair exhausted: %s" % (critique or "unknown"))
-                fallback = {
-                    "status": "need_help",
-                    "goal": partial_goal,
-                    "why": "",
-                    "bash": "",
-                    "say": "could not produce a valid plan: %s" % (critique or "unknown"),
-                }
-                payload = self.__dump(fallback)
-                self.ai.contextmgr.set_plan(payload)
-                self.__join_if_terminal(payload)
-                return payload
-
-            except TerminationException:
-                log.debug("agent terminated.")
-            except Exception:
-                log.error(traceback.format_exc())
-            finally:
-                self.terminate = False
-                self.is_running = False
-                log.info("disengaging harness.")
-            return None
-
-    def harness(self):
-        return self.__step(self.ai.contextmgr.messages())
-
-    def next(self, observation):
-        return self.__step(self.ai.contextmgr.messages(), observation)
-
-    def __scratch(self, current_plan):
-        parts = []
-        if current_plan:
-            parts.append("current plan:\n" + current_plan)
-
-        obs = self.ai.contextmgr.observations()
-        if obs:
+        if observations:
             blob = []
-            for i, item in enumerate(obs, 1):
+            for i, item in enumerate(observations, 1):
+                result = item.get("result") or ""
+                if len(result) > 4000:
+                    result = result[:4000] + "\n... (truncated)"
                 blob.append(
                     "observation %d\nbash: %s\nresult:\n%s"
-                    % (i, item.get("bash", ""), item.get("result", ""))
+                    % (i, item.get("bash", ""), result)
                 )
             parts.append("\n\n".join(blob))
+        else:
+            parts.append("no observations yet for this task.")
 
         parts.append(
             "The blocks above are evidence, not a format to copy.\n"
-            "Emit one plan object with keys status,goal,why,bash,say.\n"
-            "If the observations already answer the goal, status=done, bash=\"\", say=the answer.\n"
+            "Emit one step object with keys status,goal,why,bash,say.\n"
+            "goal must restate this task intent, not the broader user goal.\n"
+            "If the observations already meet acceptance, status=done, bash=\"\", say=what was learned.\n"
             "Do not invent keys. Do not dump observations back as JSON.\n"
             "Do not assume output you have not been given."
         )
@@ -359,9 +179,10 @@ class AgentRunner:
             log.warning("no provider or model selected. select from the list of available providers and models.")
             return None
 
-        self.__init_provider()
+        if not self.__init_provider():
+            return None
+
         kwargs = dict(model=model, messages=messages)
-        response = None
         try:
             response = self.client.chat.completions.create(
                 response_format={"type": "json_object"},
@@ -376,77 +197,82 @@ class AgentRunner:
         log.info(text)
         return text
 
-    def __join_if_terminal(self, response):
-        try:
-            plan = json.loads(response)
-        except ValueError:
-            return
+    def step(self, task, observations):
+        with self.lock:
+            self.is_running = True
+            self.terminate = False
+            try:
+                task = task or {}
+                observations = list(observations or [])
+                log.info("runner stepping task %s." % (task.get("id") or "?"))
+                user = self.__scratch(task, observations)
+                last = None
+                critique = None
+                partial_goal = (task.get("intent") or "").strip()
 
-        if not isinstance(plan, dict):
-            return
+                for attempt in range(MAX_REPAIRS):
+                    if critique is None:
+                        prompt = user
+                    else:
+                        log.warning("step rejected (%d/%d): %s" % (attempt, MAX_REPAIRS, critique))
+                        prev = last if last and len(last) <= 800 else ((last or "")[:800] + "\n...")
+                        prompt = (
+                            user
+                            + "\n\nYour previous output was rejected. It is not a new task.\n"
+                            + "Do not describe JSON. Do not invent keys. Do not process the previous output.\n"
+                            + "Stay on this task. If observations already meet acceptance, status=done, bash=\"\", put what was learned in say.\n"
+                            + "error: %s\n" % critique
+                            + "rejected output (do not copy its keys):\n%s\n\n" % prev
+                            + "Emit exactly this shape:\n"
+                            + '{"status":"done","goal":"<task intent>","why":"","bash":"","say":"<what was learned>"}\n'
+                            + "or status=continue with a whitelisted bash and say=\"\".\n"
+                        )
 
-        status = plan.get("status")
-        bash = (plan.get("bash") or "").strip()
-        say = (plan.get("say") or "").strip()
+                    last = self.__complete([
+                        {"role": "system", "content": self.__system_prompt()},
+                        {"role": "user", "content": prompt},
+                    ])
+                    if last is None:
+                        return None
 
-        terminal = status in ("done", "need_help") or (not bash and bool(say))
-        if not terminal or not say:
-            return
+                    step, critique = self.__parse_step(last)
+                    if step is not None and step.get("goal"):
+                        partial_goal = step["goal"]
+                    if step is None:
+                        continue
 
-        # === Heavy context augmentation ===
-        goal = plan.get("goal", "").strip()
-        obs = self.ai.contextmgr.observations() or []
+                    if not step.get("goal"):
+                        step["goal"] = partial_goal
 
-        if status == "done":
-            header = "**Task completed.**"
-        elif status == "need_help":
-            header = "**Agent needs help.**"
-        else:
-            header = "**Agent finished.**"
+                    if step["status"] == "continue":
+                        critique = bash_error(step["bash"])
+                        if critique:
+                            continue
 
-        parts = [header]
+                    log.info("runner accepted %s for task %s." % (step["status"], task.get("id") or "?"))
+                    return step
 
-        if goal:
-            parts.append(f"**Goal:** {goal}")
-
-        if obs:
-            trace = []
-            for i, item in enumerate(obs, 1):
-                cmd = item.get("bash", "").strip()
-                result = (item.get("result") or "").strip()
-                # Truncate very long results to keep context manageable
-                if len(result) > 800:
-                    result = result[:800] + "\n... (truncated)"
-                trace.append(f"{i}. `{cmd}`\n > {result}")
-            parts.append("**Execution trace:**\n" + "\n\n".join(trace))
-
-        parts.append(f"**Result:**\n{say}")
-
-        enriched_say = "\n\n".join(parts)
-
-        self.ai.commit_response(enriched_say)
-        self.ai.contextmgr.plan.clear()
-
-
-#     def __join_if_terminal(self, response):
-#         try:
-#             plan = json.loads(response)
-#         except ValueError:
-#             return
-# 
-#         if not isinstance(plan, dict):
-#             return
-# 
-#         status = plan.get("status")
-#         bash = (plan.get("bash") or "").strip()
-#         say = (plan.get("say") or "").strip()
-# 
-#         terminal = status in ("done", "need_help") or (not bash and bool(say))
-#         if not terminal or not say:
-#             return
-# 
-#         self.ai.commit_response(say)
-#         self.ai.contextmgr.plan.clear()
+                log.error("step repair exhausted: %s" % (critique or "unknown"))
+                return {
+                    "status": "need_help",
+                    "goal": partial_goal,
+                    "why": "",
+                    "bash": "",
+                    "say": "could not produce a valid step: %s" % (critique or "unknown"),
+                }
+            except Exception:
+                log.error(traceback.format_exc())
+                return {
+                    "status": "need_help",
+                    "goal": (task or {}).get("intent") or "",
+                    "why": "",
+                    "bash": "",
+                    "say": "runner failed before producing a step",
+                }
+            finally:
+                self.terminate = False
+                self.is_running = False
+                log.info("runner idle.")
 
     def check_termination(self):
         if self.terminate:

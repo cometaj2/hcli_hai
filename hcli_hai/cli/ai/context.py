@@ -11,11 +11,26 @@ import logger
 from utils import hutils
 from utils import formatting as f
 from hcli_problem_details import *
+from ai.policy import empty_step
 
 log = logger.Logger()
 
 
-# Singleton Plan class to hold the ephemeral plan
+def _empty_doc():
+    return {
+        "goal": "",
+        "plan_status": "idle",
+        "cursor": "",
+        "tasks": [],
+        "step": empty_step(),
+        "say": "",
+        "replans": 0,
+    }
+
+
+# Singleton plan. Ephemeral: not written into the saved conversation context.
+# `hai agent plan` reads public(), which keeps status/goal/why/bash/say at the top level
+# so an existing client can still run bash and post the observation to `hai agent next`.
 class Plan:
     _instance = None
     _init_lock = threading.RLock()
@@ -34,33 +49,162 @@ class Plan:
             if self.initialized:
                 return
             self.rlock = threading.RLock()
-            self._plan = ""
-            self._observations = []
+            self._doc = _empty_doc()
             self.initialized = True
+
+    def clear(self):
+        with self.rlock:
+            self._doc = _empty_doc()
+
+    def doc(self):
+        with self.rlock:
+            return json.loads(json.dumps(self._doc))
+
+    def replace(self, doc):
+        with self.rlock:
+            self._doc = doc
+
+    def public(self):
+        with self.rlock:
+            step = self._doc.get("step") or empty_step()
+            status = step.get("status") or ""
+            bash = (step.get("bash") or "") if status == "continue" else ""
+            say = self._doc.get("say") or ""
+            if not say:
+                say = step.get("say") or ""
+            if status == "continue":
+                say = ""
+            tasks = []
+            for task in self._doc.get("tasks") or []:
+                view = dict(task)
+                obs = []
+                for item in view.get("observations") or []:
+                    result = item.get("result") or ""
+                    if len(result) > 2000:
+                        result = result[:2000] + "\n... (truncated)"
+                    obs.append({"bash": item.get("bash") or "", "result": result})
+                view["observations"] = obs
+                tasks.append(view)
+            return {
+                "status": status,
+                "goal": self._doc.get("goal") or "",
+                "why": step.get("why") or "",
+                "bash": bash,
+                "say": say,
+                "plan_status": self._doc.get("plan_status") or "idle",
+                "cursor": self._doc.get("cursor") or "",
+                "tasks": tasks,
+                "step": {
+                    "status": status,
+                    "goal": step.get("goal") or "",
+                    "why": step.get("why") or "",
+                    "bash": bash,
+                    "say": say,
+                },
+            }
+
+    def dumps(self):
+        with self.rlock:
+            return json.dumps(self.public_unlocked(), ensure_ascii=False)
+
+    def public_unlocked(self):
+        step = self._doc.get("step") or empty_step()
+        status = step.get("status") or ""
+        bash = (step.get("bash") or "") if status == "continue" else ""
+        say = self._doc.get("say") or ""
+        if not say:
+            say = step.get("say") or ""
+        if status == "continue":
+            say = ""
+        tasks = []
+        for task in self._doc.get("tasks") or []:
+            view = dict(task)
+            obs = []
+            for item in view.get("observations") or []:
+                result = item.get("result") or ""
+                if len(result) > 2000:
+                    result = result[:2000] + "\n... (truncated)"
+                obs.append({"bash": item.get("bash") or "", "result": result})
+            view["observations"] = obs
+            tasks.append(view)
+        return {
+            "status": status,
+            "goal": self._doc.get("goal") or "",
+            "why": step.get("why") or "",
+            "bash": bash,
+            "say": say,
+            "plan_status": self._doc.get("plan_status") or "idle",
+            "cursor": self._doc.get("cursor") or "",
+            "tasks": tasks,
+            "step": {
+                "status": status,
+                "goal": step.get("goal") or "",
+                "why": step.get("why") or "",
+                "bash": bash,
+                "say": say,
+            },
+        }
 
     @property
     def observations(self):
         with self.rlock:
-            return list(self._observations)
+            out = []
+            for task in self._doc.get("tasks") or []:
+                for item in task.get("observations") or []:
+                    out.append({"bash": item.get("bash") or "", "result": item.get("result") or ""})
+            return out
 
     def append_observation(self, bash, result):
         with self.rlock:
-            self._observations.append({"bash": bash or "", "result": result or ""})
-
-    def clear(self):
-        with self.rlock:
-            self._plan = ""
-            self._observations = []
+            cursor = self._doc.get("cursor") or ""
+            tasks = self._doc.get("tasks") or []
+            target = None
+            for task in tasks:
+                if task.get("id") == cursor:
+                    target = task
+                    break
+            if target is None and tasks:
+                target = tasks[-1]
+            if target is None:
+                return
+            target.setdefault("observations", []).append({"bash": bash or "", "result": result or ""})
 
     @property
     def plan(self):
-        with self.rlock:
-            return self._plan
+        return self.dumps()
 
     @plan.setter
     def plan(self, value):
         with self.rlock:
-            self._plan = value
+            if not value:
+                self._doc = _empty_doc()
+                return
+            try:
+                obj = json.loads(value)
+            except ValueError:
+                self._doc = _empty_doc()
+                self._doc["say"] = value
+                return
+            if not isinstance(obj, dict):
+                self._doc = _empty_doc()
+                return
+            doc = _empty_doc()
+            doc["goal"] = obj.get("goal") or ""
+            doc["plan_status"] = obj.get("plan_status") or "active"
+            doc["cursor"] = obj.get("cursor") or ""
+            doc["tasks"] = obj.get("tasks") or []
+            doc["say"] = obj.get("say") or ""
+            step = obj.get("step") if isinstance(obj.get("step"), dict) else empty_step()
+            if not step.get("status"):
+                step = {
+                    "status": obj.get("status") or "",
+                    "goal": obj.get("goal") or "",
+                    "why": obj.get("why") or "",
+                    "bash": obj.get("bash") or "",
+                    "say": obj.get("say") or "",
+                }
+            doc["step"] = step
+            self._doc = doc
 
 # We create a default context and allow for it to be initialized in a few different ways to facilitate initialization from file
 class Context:

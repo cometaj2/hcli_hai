@@ -8,6 +8,7 @@ import logger
 from ai import ai
 from ai import assistantrunner as asr
 from ai import agentrunner as agr
+from ai import orchestrator as orch
 from ai.router import froute
 import threading
 
@@ -30,13 +31,14 @@ class Service:
         self.assistant_thread.start()
 
         self.agentrunner = agr.AgentRunner()
+        self.orchestrator = orch.Orchestrator()
 
         return
 
     def chat(self, inputstream):
-        is_vibing = self.agentrunner.is_vibing()
+        is_vibing = self.orchestrator.is_vibing()
         if is_vibing:
-            pending = self.agentrunner.pending_bash()
+            pending = self.orchestrator.pending_bash()
             if pending:
                 # already emitted a command; do not plan again and do not talk
                 msg = "agent waiting for observation via hai agent next"
@@ -48,18 +50,15 @@ class Service:
             return None
 
         text = self.ai.consume_request(text)
-        response = None
 
         if is_vibing:
             decision = froute(text)
             if decision == "do":
-                response = self.agentrunner.harness()
-                if response is not None:
-                    # plan is in status; do not commit JSON into the chat transcript
-                    return None
+                self.orchestrator.harness()
+                # plan is in hai agent plan; do not commit JSON into the chat transcript
+                return None
 
-        if response is None:
-            response = self.ai.process_request()
+        response = self.ai.process_request()
 
         if response is None:
             return None
@@ -164,20 +163,12 @@ class Service:
         finally:
             lock.release()
 
-    # AgentRunner controls
+    # Agent controls. The orchestrator plans tasks; AgentRunner executes the active task.
     def agent(self, should_vibe):
-        self.agentrunner.set_vibe(should_vibe)
-        if should_vibe is False:
-            self.ai.contextmgr.plan.clear()
+        self.orchestrator.set_vibe(should_vibe)
 
     def status(self):
-        if not self.agentrunner.is_vibing():
-            return "inactive"
-        else:
-            if self.agentrunner.pending_bash() is not None:
-                return "next"
-            else:
-                return "busy"
+        return self.orchestrator.status()
 
     def plan(self):
         return self.ai.plan()
@@ -187,7 +178,7 @@ class Service:
             observation = ""
         else:
             observation = inputstream.read().decode("utf-8")
-        return self.agentrunner.next(observation)
+        return self.orchestrator.next(observation)
 
     def is_vibing(self):
-        return self.agentrunner.is_vibing()
+        return self.orchestrator.is_vibing()
