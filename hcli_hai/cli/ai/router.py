@@ -104,6 +104,9 @@ _SHELL_OBJECTS = re.compile(
 _FILE_VERBS = re.compile(
     r"(?i)\b("
     r"open|opening|read|reading|cat|head|tail|"
+    r"inspect|inspecting|examine|examining|review|reviewing|"
+    r"explore|exploring|skim|skimming|scan|scanning|"
+    r"look\s+(at|through|in|around)|"
     r"write|writing|edit|editing|create|creating|"
     r"delete|deleting|remove|removing|rm|unlink|"
     r"move|moving|mv|copy|copying|cp|"
@@ -115,7 +118,9 @@ _FILE_OBJECTS = re.compile(
     r"(?i)\b("
     r"file|files|folder|folders|directory|directories|dir|"
     r"path|paths|filename|config|dotfile|dotfiles|"
-    r"disk|filesystem|home directory"
+    r"disk|filesystem|home directory|"
+    r"repo|repository|repositories|codebase|workspace|project|"
+    r"folder structure|directory tree|working tree|cwd"
     r")\b"
 )
 _HCLI_OBJECTS = re.compile(
@@ -155,7 +160,12 @@ _SEARCH_FOR = re.compile(
 )
 _ONLINE = re.compile(r"(?i)\b(on the web|on google|online)\b")
 _LOCAL = re.compile(
-    r"(?i)\b(on (this|my) (machine|computer|box|system)|locally)\b"
+    r"(?i)\b("
+    r"on (this|my) (machine|computer|box|system)|locally|"
+    r"local (files?|folders?|director(?:y|ies)|repos?|repositor(?:y|ies)|codebase|tree)|"
+    r"(this|the|current|working) (folder|directory|dir|repo|repository|codebase|tree|files)|"
+    r"current folder structure|here in (the )?(repo|folder|directory)"
+    r")\b"
 )
 
 
@@ -245,8 +255,10 @@ def _score(text):
         s += 0.25
     if _LOCAL.search(t):
         s += 0.30
-
-    if talk and not concrete:
+    if _LOCAL.search(t) and (file_v or file_o or git_o):
+        s += 0.25
+    local_files = bool(_LOCAL.search(t) and (file_v or file_o))
+    if talk and not concrete and not local_files:
         s -= 0.70
     if hypo and not concrete:
         s -= 0.45
@@ -276,7 +288,9 @@ def route_ollama(client, model, text):
                 "content": (
                     "Classify the user turn. Reply with one word only: do or talk.\n"
                     "do = they want an action now: run a command, git, files, "
-                    "shell, HCLI, search or open the web, read/write local paths.\n"
+                    "shell, HCLI, search or open the web, read/write local paths, "
+                    "inspect or read the local repo, current directory, or folder. "
+                    "A request to summarize after reading local files is still do.\n"
                     "talk = they want an explanation, opinion, or conversation. "
                     "Questions like 'how does X work' or 'tell me about X' are talk."
                 ),
