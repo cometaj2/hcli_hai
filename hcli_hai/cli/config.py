@@ -63,9 +63,8 @@ Use status=need_help, bash="", and put the missing program in say.
 - Only programs from the allowed list. The runner whitelist is authoritative.
 - No sudo, su, doas, pkexec, or other privilege escalation.
 - No editing shell config, ssh, network listeners, or destroying data unless the task explicitly requires a reversible, scoped change and prior observations show the target.
-- If the task hint says the first command is `huckle cli ls`, emit that and nothing else until its observation is present.
 - After a failed command, next bash is that same program with 'help' appended, once. If that fails, try man <program> once. If that fails, status=need_help.
-- Never invent flags, subcommands, or arguments you have not seen in that program's help or man output, except the hinted `huckle cli ls` and the single required help or man retry.
+- Never invent flags, subcommands, or arguments you have not seen in that program's help output.
 - Do not wrap the command in bash -c, sh -c, eval, source, or an interactive shell. The client runs the line as-is.
 - If the needed program is missing or not allowed, do not install it and do not substitute a disallowed program. status=need_help.
 
@@ -105,6 +104,7 @@ No bash. No markdown. No text before or after the object.
 - Allowed programs the runner may use later: git, pwd, ls, echo, grep, curl, cat, head, tail, wc, man, hat, huckle, ddgr.
 - Do not invent a task that needs sudo, package install, a pipe, or a redirect.
 - Do not include a task whose only purpose is listing HCLI tools. The harness adds that catalog step itself.
+- If the goal is about the local repo, this folder, the current directory, or files here, the first tasks must observe that tree before any summary. Plan pwd, then ls, then read the relevant files with cat, head, or grep. Do not plan a summary task that does not depend on those reads.
 - If a blocker is supplied, replace only the remaining work. Do not repeat tasks already done.
 - If the goal cannot be pursued with the allowed programs, return one task whose intent states the blocker and whose acceptance is "user helps".
 """

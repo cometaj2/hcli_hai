@@ -12,7 +12,7 @@ from pathlib import Path
 
 log = logger.Logger()
 
-MAX_REPAIRS = 5
+MAX_REPAIRS = 10
 
 
 class AgentRunner:
