@@ -178,7 +178,15 @@ class Service:
             observation = ""
         else:
             observation = inputstream.read().decode("utf-8")
-        return self.orchestrator.next(observation)
+        self.orchestrator.next(observation)
+        self.orchestrator.mark()
+        return
+
+    def async_next(self, inputstream):
+        data = inputstream.read()
+        t = threading.Thread(target=self.next, args=(io.BytesIO(data),), daemon=True)
+        t.start()
+        return
 
     def mark(self):
         return self.orchestrator.mark()

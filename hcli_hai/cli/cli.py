@@ -153,7 +153,7 @@ class CLI:
                 status = self.service.status()
                 return io.BytesIO(str(status).encode('utf-8'))
             elif self.commands[2] == "next":
-                response = self.service.next(self.inputstream)
+                response = self.service.async_next(self.inputstream)
                 return io.BytesIO("".encode("utf-8"))
         if len(self.commands) == 4 and self.commands[2] == "next" and self.commands[3] == "mark":
             response = self.service.mark()
