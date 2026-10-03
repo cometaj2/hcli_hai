@@ -154,8 +154,10 @@ class CLI:
                 return io.BytesIO(str(status).encode('utf-8'))
             elif self.commands[2] == "next":
                 response = self.service.next(self.inputstream)
-                if response is not None:
-                    return io.BytesIO(response.encode("utf-8"))
+                return io.BytesIO("".encode("utf-8"))
+        if len(self.commands) == 4 and self.commands[2] == "next" and self.commands[3] == "mark":
+            response = self.service.mark()
+            return io.BytesIO("".encode("utf-8"))
         return None
 
     def _handle_assist(self) -> None:

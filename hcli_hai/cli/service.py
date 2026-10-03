@@ -180,5 +180,8 @@ class Service:
             observation = inputstream.read().decode("utf-8")
         return self.orchestrator.next(observation)
 
+    def mark(self):
+        return self.orchestrator.mark()
+
     def is_vibing(self):
         return self.orchestrator.is_vibing()

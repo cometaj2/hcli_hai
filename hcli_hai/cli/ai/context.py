@@ -142,7 +142,10 @@ class Plan:
                 "why": step.get("why") or "",
                 "bash": bash,
                 "say": say,
+                "claimed": bool(step.get("claimed")),
+                "id": step.get("id") or "",
             },
+            "claimed": bool(step.get("claimed")),
         }
 
     @property
@@ -167,7 +170,25 @@ class Plan:
                 target = tasks[-1]
             if target is None:
                 return
-            target.setdefault("observations", []).append({"bash": bash or "", "result": result or ""})
+            obs = target.setdefault("observations", [])
+            bash = bash or ""
+            for item in obs:
+                if (item.get("bash") or "") == bash:
+                    item["result"] = result or ""
+                    return
+            obs.append({"bash": bash, "result": result or ""})
+
+    def has_observation(self, bash):
+        wanted = (bash or "").strip()
+        with self.rlock:
+            cursor = self._doc.get("cursor") or ""
+            for task in self._doc.get("tasks") or []:
+                if task.get("id") != cursor:
+                    continue
+                for item in task.get("observations") or []:
+                    if (item.get("bash") or "").strip() == wanted:
+                        return True
+        return False
 
     @property
     def plan(self):
@@ -445,11 +466,8 @@ class ContextManager:
 
     def get_step(self):
         with self.rlock:
-            step = self.plan._doc["step"]
-            if step:
-                return json.dumps(step)
-            else:
-                return None
+            step = self.plan._doc.get("step") or empty_step()
+            return json.dumps(step)
 
     def append_observation(self, bash, result):
         with self.rlock:

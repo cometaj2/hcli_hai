@@ -10,6 +10,7 @@ from ai import ai
 from ai import agentrunner as agr
 from ai.policy import bash_error, empty_step, next_runnable
 from pathlib import Path
+from hcli_problem_details import ConflictError
 
 log = logger.Logger()
 
@@ -97,6 +98,11 @@ class Orchestrator:
                 return "idle"
             return "planning"
 
+    def task(self):
+        if not self.is_vibing():
+            return None
+        return self.ai.contextmgr.get_step()
+
     def public(self):
         return self.ai.contextmgr.plan.dumps()
 
@@ -137,8 +143,24 @@ class Orchestrator:
                 log.warning("no pending bash step to observe; refusing next.")
                 return None
 
-            log.info("orchestrator observed result for: %s" % pending)
+            log.info("orchestrator stored observation for: %s" % pending)
             self.ai.contextmgr.append_observation(pending, observation or "")
+            return self.public()
+
+    def mark(self):
+        with self.lock:
+            if not self.is_vibing():
+                log.warning("agent is not running; refusing mark.")
+                return None
+            pending = self.pending_bash()
+            if not pending:
+                log.warning("no pending bash step to mark.")
+                return self.public()
+            if not self.ai.contextmgr.plan.has_observation(pending):
+                msg = "hai agent next has not recorded an observation for this step"
+                log.error(msg)
+                raise ConflictError(detail=msg)
+            log.info("orchestrator marking step done: %s" % pending)
             self._set_plan_status("planning")
             return self._run_until_blocked()
 
@@ -182,7 +204,7 @@ class Orchestrator:
             self._write(doc)
             log.info("orchestrator task %s active: %s" % (task.get("id"), task.get("intent")))
 
-            step = self.runner.step(task, task.get("observations") or [])
+            step = self.runner.step(self._with_prior(doc, task), task.get("observations") or [])
             if step is None:
                 step = {
                     "status": "need_help",
@@ -193,7 +215,17 @@ class Orchestrator:
                 }
 
             if step.get("status") == "continue":
-                critique = bash_error(step.get("bash"))
+                bash = (step.get("bash") or "").strip()
+                critique = bash_error(bash)
+                if not critique and self._already_observed(doc, bash):
+                    critique = None
+                    step = {
+                        "status": "done",
+                        "goal": task.get("intent") or "",
+                        "why": "",
+                        "bash": "",
+                        "say": "already observed %s; not running it again" % bash,
+                    }
                 if critique:
                     step = {
                         "status": "need_help",
@@ -202,6 +234,13 @@ class Orchestrator:
                         "bash": "",
                         "say": critique,
                     }
+                else:
+                    doc_ids = self._plan_state()
+                    seq = int(doc_ids.get("step_seq") or 0) + 1
+                    step["id"] = "s%d" % seq
+                    step["claimed"] = False
+                    doc_ids["step_seq"] = seq
+                    self._write(doc_ids)
 
             doc = self._plan_state()
             current = self._task(doc, task.get("id"))
@@ -263,6 +302,37 @@ class Orchestrator:
             task["depends_on"] = [dep for dep in (task.get("depends_on") or []) if dep in known and dep != task.get("id")]
         self._install(goal, done + fresh, replans + 1)
         return self._run_until_blocked()
+
+    def _already_observed(self, doc, bash):
+        wanted = (bash or "").strip()
+        if not wanted:
+            return False
+        for task in doc.get("tasks") or []:
+            for item in task.get("observations") or []:
+                if (item.get("bash") or "").strip() == wanted:
+                    return True
+        return False
+
+    def _with_prior(self, doc, task):
+        call = dict(task)
+        notes = []
+        for earlier in doc.get("tasks") or []:
+            if earlier.get("id") == task.get("id"):
+                continue
+            learned = (earlier.get("result") or "").strip()
+            obs = earlier.get("observations") or []
+            snippet = ""
+            if obs:
+                snippet = (obs[-1].get("result") or "").strip()
+                if len(snippet) > 500:
+                    snippet = snippet[:500] + "\n... (truncated)"
+            if learned or snippet:
+                notes.append("%s: %s\n%s" % (earlier.get("id"), learned, snippet))
+        if notes:
+            hint = (call.get("hint") or "").strip()
+            prior = "Earlier tasks already observed:\n" + "\n".join(notes)
+            call["hint"] = (hint + "\n" + prior).strip()
+        return call
 
     def _task(self, doc, task_id):
         for task in doc.get("tasks") or []:
@@ -445,10 +515,8 @@ class Orchestrator:
                 return None, "task %d needs a string intent" % i
             acceptance = item.get("acceptance") or ""
             if not isinstance(acceptance, str):
-                return None, "task %d acceptance must be a string" % i
-            deps = item.get("depends_on") or []
-            if not isinstance(deps, list) or not all(isinstance(d, str) for d in deps):
-                return None, "task %d depends_on must be a list of strings" % i
+                acceptance = str(acceptance)
+            deps = self._coerce_deps(item.get("depends_on"))
             task_id = item.get("id")
             if not isinstance(task_id, str) or not task_id.strip() or task_id in seen:
                 task_id = "t%d" % i
@@ -470,6 +538,28 @@ class Orchestrator:
         if not (obj.get("goal") or fallback_goal):
             return None, "planner output needs a goal"
         return normalized, None
+
+    def _coerce_deps(self, value):
+        if value is None or value == "":
+            return []
+        if isinstance(value, str):
+            return [part.strip() for part in value.split(",") if part.strip()]
+        if isinstance(value, dict):
+            dep = value.get("id") or value.get("intent") or ""
+            return [str(dep)] if dep else []
+        if isinstance(value, (list, tuple)):
+            deps = []
+            for item in value:
+                if isinstance(item, str) and item.strip():
+                    deps.append(item.strip())
+                elif isinstance(item, dict):
+                    dep = item.get("id") or item.get("intent") or ""
+                    if dep:
+                        deps.append(str(dep))
+                elif isinstance(item, (int, float)) and not isinstance(item, bool):
+                    deps.append(str(item))
+            return deps
+        return []
 
     def _complete(self, messages):
         model = self.config.model

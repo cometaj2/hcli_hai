@@ -122,6 +122,10 @@
             "http": "post"
         },
         {
+            "command": "hai agent next mark",
+            "http": "post"
+        },
+        {
             "command": "hai voice",
             "http": "post"
         },
@@ -680,7 +684,7 @@
                 {
                     "href": "haiagentnext",
                     "name": "next",
-                    "description": "Iterate one turn in the task per stdin observation."
+                    "description": "Record the observation for the current command. Does not claim the step."
                 }
             ]
         },
@@ -788,7 +792,32 @@
                 },
                 {
                     "name": "description",
-                    "description": "The \"next\" command allows you to iterate one agent step (one task) in the orchestrator's plan per the received input stream (stdin) tied to an expected tasked command line to execute."
+                    "description": "The \"next\" command records the stdin observation for the current command and leaves that command visible so it can be retried. Call hai agent next mark after this succeeds to claim the step and advance."
+                }
+            ],
+            "command": [
+                {
+                    "href": "haiagentnextmark",
+                    "name": "mark",
+                    "description": "Claim the current step after hai agent next has recorded its observation, then advance the plan."
+                }
+            ]
+        },
+        {
+            "id": "haiagentnextmark",
+            "name": "mark",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "mark - claim the current step after its observation has been recorded."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai agent next mark"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"mark\" command claims the pending command after hai agent next has stored its observation, then advances the plan. Until mark, hai agent task still returns that command so a failed execution can be retried."
                 }
             ]
         },
