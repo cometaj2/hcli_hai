@@ -132,7 +132,7 @@ class Orchestrator:
             if not tasks:
                 return self._finish("need_help", critique or "could not break the goal into tasks")
 
-            tasks = self._ensure_catalog(tasks)
+#            tasks = self._ensure_catalog(tasks)
             self._install(user, tasks, replans=0)
             return self._run_until_blocked()
 
@@ -209,7 +209,8 @@ class Orchestrator:
             self._write(doc)
             log.info("orchestrator task %s active: %s" % (task.get("id"), task.get("intent")))
 
-            step = self.runner.step(self._with_prior(doc, task), task.get("observations") or [])
+            accrued = self._accrued(doc)
+            step = self.runner.step(self._with_prior(doc, task), accrued)
             if step is None:
                 step = {
                     "status": "need_help",
@@ -222,15 +223,38 @@ class Orchestrator:
             if step.get("status") == "continue":
                 bash = (step.get("bash") or "").strip()
                 critique = bash_error(bash)
-                if not critique and self._already_observed(doc, bash):
+                if not critique and self._redundant(doc, bash):
+                    hinted = self._with_prior(doc, task)
+                    hinted["hint"] = (
+                        (hinted.get("hint") or "")
+                        + "\nDo not emit %s. That listing or file was already observed. "
+                        "If this task's acceptance is met, status=done and say what was learned. "
+                        "Otherwise emit a different file that appeared in the listing."
+                    ) % bash
+                    retry = self.runner.step(hinted, self._accrued(doc))
+                    if retry and not (
+                        retry.get("status") == "continue" and self._redundant(doc, retry.get("bash"))
+                    ):
+                        step = retry
+                    else:
+                        step = {
+                            "status": "done",
+                            "goal": task.get("intent") or "",
+                            "why": "",
+                            "bash": "",
+                            "say": self._learned(task),
+                        }
                     critique = None
-                    step = {
-                        "status": "done",
-                        "goal": task.get("intent") or "",
-                        "why": "",
-                        "bash": "",
-                        "say": "already observed %s; not running it again" % bash,
-                    }
+                if not critique and step.get("status") == "continue":
+                    missing = self._unlisted_path(doc, step.get("bash"))
+                    if missing:
+                        step = {
+                            "status": "need_help",
+                            "goal": task.get("intent") or "",
+                            "why": "",
+                            "bash": "",
+                            "say": "path %s was not in an observed listing" % missing,
+                        }
                 if critique:
                     step = {
                         "status": "need_help",
@@ -308,6 +332,62 @@ class Orchestrator:
         self._install(goal, done + fresh, replans + 1)
         return self._run_until_blocked()
 
+    def _redundant(self, doc, bash):
+        wanted = self._observe_key(bash)
+        if wanted is None:
+            return False
+        for task in doc.get("tasks") or []:
+            for item in task.get("observations") or []:
+                if self._observe_key(item.get("bash")) == wanted:
+                    return True
+        return False
+
+    def _observe_key(self, bash):
+        parts = (bash or "").split()
+        if not parts:
+            return None
+        prog = parts[0]
+        args = [p for p in parts[1:] if not p.startswith("-") and not p.isdigit()]
+        if prog == "ls":
+            return ("ls",)
+        if prog == "pwd":
+            return ("pwd",)
+        if prog in ("cat", "head", "tail", "grep") and args:
+            return ("read", args[-1])
+        return (prog, tuple(parts[1:]))
+
+    def _unlisted_path(self, doc, bash):
+        parts = (bash or "").split()
+        if not parts or parts[0] not in ("cat", "head", "tail", "grep"):
+            return None
+        args = [p for p in parts[1:] if not p.startswith("-") and not p.isdigit()]
+        if not args:
+            return None
+        path = args[-1]
+        name = path.rstrip("/").split("/")[-1]
+        if not name or name in (".", ".."):
+            return None
+        listings = []
+        for task in doc.get("tasks") or []:
+            for item in task.get("observations") or []:
+                if (item.get("bash") or "").split()[:1] == ["ls"]:
+                    listings.append(item.get("result") or "")
+        if not listings:
+            return None
+        blob = "\n".join(listings)
+        if name not in blob.split():
+            return path
+        return None
+
+    def _learned(self, task):
+        obs = task.get("observations") or []
+        if not obs:
+            return "observed"
+        result = (obs[-1].get("result") or "").strip()
+#         if len(result) > 400:
+#             result = result[:400] + "\n... (truncated)"
+        return result or "observed"
+
     def _already_observed(self, doc, bash):
         wanted = (bash or "").strip()
         if not wanted:
@@ -318,25 +398,18 @@ class Orchestrator:
                     return True
         return False
 
+    def _accrued(self, doc):
+        out = []
+        for task in doc.get("tasks") or []:
+            for item in task.get("observations") or []:
+                out.append({
+                    "bash": item.get("bash") or "",
+                    "result": item.get("result") or "",
+                })
+        return out
+
     def _with_prior(self, doc, task):
         call = dict(task)
-        notes = []
-        for earlier in doc.get("tasks") or []:
-            if earlier.get("id") == task.get("id"):
-                continue
-            learned = (earlier.get("result") or "").strip()
-            obs = earlier.get("observations") or []
-            snippet = ""
-            if obs:
-                snippet = (obs[-1].get("result") or "").strip()
-                if len(snippet) > 500:
-                    snippet = snippet[:500] + "\n... (truncated)"
-            if learned or snippet:
-                notes.append("%s: %s\n%s" % (earlier.get("id"), learned, snippet))
-        if notes:
-            hint = (call.get("hint") or "").strip()
-            prior = "Earlier tasks already observed:\n" + "\n".join(notes)
-            call["hint"] = (hint + "\n" + prior).strip()
         skill = (doc.get("skill") or "").strip()
         if skill:
             area = doc.get("skill_area") or "skill"
@@ -399,8 +472,8 @@ class Orchestrator:
             for item in task.get("observations") or []:
                 cmd = (item.get("bash") or "").strip()
                 result = (item.get("result") or "").strip()
-                if len(result) > 800:
-                    result = result[:800] + "\n... (truncated)"
+#                 if len(result) > 800:
+#                     result = result[:800] + "\n... (truncated)"
                 trace.append("%d. `%s`\n > %s" % (n, cmd, result))
                 n += 1
         if trace:
@@ -487,7 +560,7 @@ class Orchestrator:
         skill = (doc.get("skill") or getattr(self, "_skill", "") or "").strip()
         if skill:
             parts.append("area skill (%s):\n%s" % (doc.get("skill_area") or getattr(self, "_skill_area", "") or "skill", skill))
-            parts.append("Follow the area skill. Do not emit bash.")
+            parts.append("Follow the area skill. Do not emit bash. Do not copy the skill into a task intent.")
         if critique:
             prev = last if last and len(last) <= 800 else ((last or "")[:800] + "\n...")
             parts.append("previous output rejected: %s\n%s" % (critique, prev))

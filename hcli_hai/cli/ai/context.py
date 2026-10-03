@@ -80,8 +80,8 @@ class Plan:
                 obs = []
                 for item in view.get("observations") or []:
                     result = item.get("result") or ""
-                    if len(result) > 2000:
-                        result = result[:2000] + "\n... (truncated)"
+#                     if len(result) > 2000:
+#                         result = result[:2000] + "\n... (truncated)"
                     obs.append({"bash": item.get("bash") or "", "result": result})
                 view["observations"] = obs
                 tasks.append(view)
@@ -122,8 +122,8 @@ class Plan:
             obs = []
             for item in view.get("observations") or []:
                 result = item.get("result") or ""
-                if len(result) > 2000:
-                    result = result[:2000] + "\n... (truncated)"
+#                 if len(result) > 2000:
+#                     result = result[:2000] + "\n... (truncated)"
                 obs.append({"bash": item.get("bash") or "", "result": result})
             view["observations"] = obs
             tasks.append(view)

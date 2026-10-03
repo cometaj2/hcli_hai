@@ -12,7 +12,7 @@ from pathlib import Path
 
 log = logger.Logger()
 
-MAX_REPAIRS = 10
+MAX_REPAIRS = 5
 
 
 class AgentRunner:
@@ -153,18 +153,20 @@ class AgentRunner:
             blob = []
             for i, item in enumerate(observations, 1):
                 result = item.get("result") or ""
-                if len(result) > 4000:
-                    result = result[:4000] + "\n... (truncated)"
+#                 if len(result) > 4000:
+#                     result = result[:4000] + "\n... (truncated)"
                 blob.append(
                     "observation %d\nbash: %s\nresult:\n%s"
                     % (i, item.get("bash", ""), result)
                 )
             parts.append("\n\n".join(blob))
         else:
-            parts.append("no observations yet for this task.")
+            parts.append("no observations yet.")
 
         parts.append(
             "The blocks above are evidence, not a format to copy.\n"
+            "Observations are the whole run so far, including earlier tasks.\n"
+            "The next bash must use that evidence. Do not invent a path, URL, flag, or tool name that is not in it.\n"
             "Emit one step object with keys status,goal,why,bash,say.\n"
             "goal must restate this task intent, not the broader user goal.\n"
             "If the observations already meet acceptance, status=done, bash=\"\", say=what was learned.\n"

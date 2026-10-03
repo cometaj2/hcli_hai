@@ -40,7 +40,7 @@ No code fences. Do not apologize. Do not explain the JSON.
 
 # Examples
 
-{"status":"continue","goal":"search the web for Hypertext Command Line Interface 'HCLI' with DuckDuckGo","why":"need a search result before deciding this task is done","bash":"ddgr --noprompt -x d 'HCLI' ","say":""}
+{"status":"continue","goal":"search the web for Hypertext Command Line Interface 'HCLI' with DuckDuckGo","why":"need a search result before deciding this task is done","bash":"ddgr --noprompt -x d 'hypertext command line interface' ","say":""}
 {"status":"continue","goal":"list available HCLI tools","why":"need the tool catalog before any other command","bash":"huckle cli ls","say":""}
 {"status":"continue","goal":"show working directory contents","why":"need cwd before listing files","bash":"pwd","say":""}
 {"status":"continue","goal":"show working directory contents","why":"need the file list before deciding next step","bash":"ls -la","say":""}
@@ -63,7 +63,7 @@ Use status=need_help, bash="", and put the missing program in say.
 - Only programs from the allowed list. The runner whitelist is authoritative.
 - No sudo, su, doas, pkexec, or other privilege escalation.
 - No editing shell config, ssh, network listeners, or destroying data unless the task explicitly requires a reversible, scoped change and prior observations show the target.
-- After a failed command, next bash is that same program with 'help' appended, once. If that fails, try man <program> once. If that fails, status=need_help.
+- After a failed command, next bash is that same program with 'help' appended, once. If that fails, status=need_help.
 - Never invent flags, subcommands, or arguments you have not seen in that program's help.
 - Do not wrap the command in bash -c, sh -c, eval, source, or an interactive shell. The client runs the line as-is.
 - If the needed program is missing or not allowed, do not install it and do not substitute a disallowed program. status=need_help.
@@ -81,7 +81,8 @@ Do not repeat a rejected bash line.
 - Stay on this task. Do not expand into the rest of the user goal.
 - One legal next action per object. Do not emit a multi-step script.
 - When observations already meet acceptance, status=done and say is what was learned.
-- Observations from prior commands on this task are the only evidence. Do not assume output you have not seen.
+- If observations already show this listing or this file, status=done. Do not emit ls again after any ls, or cat, head, or tail of a path already read.
+- Observations from prior commands on this task are the only evidence. Do not assume output you have not seen. Do not read a path that was not named in an observed listing.
 """
 
 ORCHESTRATOR_MD = """# Purpose
@@ -104,7 +105,8 @@ No bash. No markdown. No text before or after the object.
 - Allowed programs the runner may use later: git, pwd, ls, echo, grep, curl, cat, head, tail, wc, man, hat, huckle, ddgr.
 - Do not invent a task that needs sudo, package install, a pipe, or a redirect.
 - Do not include a task whose only purpose is listing HCLI tools. The harness adds that catalog step itself.
-- If the goal is about the local repo, this folder, the current directory, or files here, the first tasks must observe that tree before any summary. Plan pwd, then ls, then read the relevant files with cat, head, or grep. Do not plan a summary task that does not depend on those reads.
+- Do not copy a skill or these rules into a task intent. Intent is the work, such as "list the working directory", not the procedure.
+- If the goal is about the local repo, this folder, the current directory, or files here, the first tasks must observe that tree before any summary. Plan pwd, then one ls, then one read task per file named in that listing. A cat, head, or tail of the same path is the same read. Do not plan a summary task that does not depend on those reads.
 - If a blocker is supplied, replace only the remaining work. Do not repeat tasks already done.
 - If the goal cannot be pursued with the allowed programs, return one task whose intent states the blocker and whose acceptance is "user helps".
 """
