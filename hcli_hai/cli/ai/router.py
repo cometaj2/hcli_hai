@@ -304,6 +304,24 @@ def route_ollama(client, model, text):
     return "talk"
 
 
+def skill_area(text):
+    """Pick one skill file from the same frames used for scoring. Not a do/talk decision."""
+    t = (text or "").strip()
+    if not t:
+        return None
+    file_v = bool(_FILE_VERBS.search(t))
+    file_o = bool(_FILE_OBJECTS.search(t))
+    if _LOCAL.search(t) and (file_v or file_o):
+        return "LOCAL"
+    if _WEB_VERBS.search(t) or _URL.search(t) or _ONLINE.search(t):
+        return "WEB"
+    if _GIT_VERBS.search(t) or _GIT_OBJECTS.search(t) or _GIT_CMD.search(t):
+        return "GIT"
+    if _HCLI_OBJECTS.search(t):
+        return "HCLI"
+    return None
+
+
 def froute(text):
     score = _score(text)
     log.info("fast score relative to 'doing': " + str(score))

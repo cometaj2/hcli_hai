@@ -9,6 +9,7 @@ import config as a
 from ai import ai
 from ai import agentrunner as agr
 from ai.policy import bash_error, empty_step, next_runnable
+from ai.router import skill_area
 from pathlib import Path
 from hcli_problem_details import ConflictError
 
@@ -124,6 +125,8 @@ class Orchestrator:
 
             log.info("orchestrator planning.")
             self.ai.contextmgr.plan.clear()
+            self._skill_area, self._skill = self._load_skill(user)
+            log.info("orchestrator skill: %s" % (self._skill_area or "none"))
             self._set_plan_status("planning", user)
             tasks, critique = self._plan_tasks(user, None)
             if not tasks:
@@ -187,6 +190,8 @@ class Orchestrator:
         doc["step"] = empty_step()
         doc["say"] = ""
         doc["replans"] = replans
+        doc["skill_area"] = getattr(self, "_skill_area", "") or ""
+        doc["skill"] = getattr(self, "_skill", "") or ""
         self._write(doc)
         log.info("orchestrator installed %d task(s)." % len(tasks))
 
@@ -332,6 +337,11 @@ class Orchestrator:
             hint = (call.get("hint") or "").strip()
             prior = "Earlier tasks already observed:\n" + "\n".join(notes)
             call["hint"] = (hint + "\n" + prior).strip()
+        skill = (doc.get("skill") or "").strip()
+        if skill:
+            area = doc.get("skill_area") or "skill"
+            hint = (call.get("hint") or "").strip()
+            call["hint"] = ("Area skill (%s):\n%s\n%s" % (area, skill[:1200], hint)).strip()
         return call
 
     def _task(self, doc, task_id):
@@ -474,11 +484,29 @@ class Orchestrator:
         if blocker:
             parts.append("blocker:\n" + blocker)
             parts.append("Replace only the remaining work. Do not repeat tasks already done.")
+        skill = (doc.get("skill") or getattr(self, "_skill", "") or "").strip()
+        if skill:
+            parts.append("area skill (%s):\n%s" % (doc.get("skill_area") or getattr(self, "_skill_area", "") or "skill", skill))
+            parts.append("Follow the area skill. Do not emit bash.")
         if critique:
             prev = last if last and len(last) <= 800 else ((last or "")[:800] + "\n...")
             parts.append("previous output rejected: %s\n%s" % (critique, prev))
         parts.append("Emit the task list for the remaining work. No bash.")
         return "\n\n".join(parts)
+
+    def _load_skill(self, goal):
+        area = skill_area(goal)
+        if not area:
+            return "", ""
+        path = os.path.join(self.config.dot_hai_skills, area + ".md")
+        if not os.path.exists(path):
+            path = os.path.join(os.path.dirname(__file__), "..", "skills", area + ".md")
+        if not os.path.exists(path):
+            return area, ""
+        try:
+            return area, Path(path).read_text(encoding="utf-8").strip()
+        except OSError:
+            return area, ""
 
     def _parse_tasks(self, text, fallback_goal):
         raw = (text or "").strip()

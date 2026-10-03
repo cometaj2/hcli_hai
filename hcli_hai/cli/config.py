@@ -64,7 +64,7 @@ Use status=need_help, bash="", and put the missing program in say.
 - No sudo, su, doas, pkexec, or other privilege escalation.
 - No editing shell config, ssh, network listeners, or destroying data unless the task explicitly requires a reversible, scoped change and prior observations show the target.
 - After a failed command, next bash is that same program with 'help' appended, once. If that fails, try man <program> once. If that fails, status=need_help.
-- Never invent flags, subcommands, or arguments you have not seen in that program's help output.
+- Never invent flags, subcommands, or arguments you have not seen in that program's help.
 - Do not wrap the command in bash -c, sh -c, eval, source, or an interactive shell. The client runs the line as-is.
 - If the needed program is missing or not allowed, do not install it and do not substitute a disallowed program. status=need_help.
 
@@ -117,6 +117,7 @@ class Config:
     dot_hai_config_file = dot_hai_config + "/config"
     dot_hai_agent_file = dot_hai_config + "/AGENT.md"
     dot_hai_orchestrator_file = dot_hai_config + "/ORCHESTRATOR.md"
+    dot_hai_skills = dot_hai_config + "/skills"
     dot_hai_context = dot_hai + "/share"
     context = ""
     provider = None # xai or ollama
@@ -217,6 +218,24 @@ class Config:
             hutils.create_file(self.dot_hai_orchestrator_file)
             with open(self.dot_hai_orchestrator_file, "w") as planner:
                 planner.write(ORCHESTRATOR_MD)
+        self._seed_skills()
+
+    def _seed_skills(self):
+        packaged = os.path.join(os.path.dirname(__file__), "skills")
+        if not os.path.isdir(packaged):
+            return
+        hutils.create_folder(self.dot_hai_skills)
+        for name in os.listdir(packaged):
+            if not name.endswith(".md"):
+                continue
+            dest = os.path.join(self.dot_hai_skills, name)
+            if os.path.exists(dest):
+                continue
+            with open(os.path.join(packaged, name), "r", encoding="utf-8") as src:
+                text = src.read()
+            hutils.create_file(dest)
+            with open(dest, "w", encoding="utf-8") as out:
+                out.write(text)
 
     def save(self):
         if os.path.exists(self.dot_hai_config_file):
