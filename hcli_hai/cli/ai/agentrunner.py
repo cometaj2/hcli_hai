@@ -7,7 +7,7 @@ import openai
 import json
 import config as a
 from ai import ai
-from ai.policy import STEP_KEYS, STEP_STATUSES, WHITELIST, bash_error
+from ai.policy import STEP_KEYS, STEP_STATUSES, WHITELIST, bash_error, evidence_met
 from pathlib import Path
 
 log = logger.Logger()
@@ -75,8 +75,10 @@ class AgentRunner:
             + "\n\n# Live constraints (runner-enforced)\n"
             + "You execute exactly one task. Do not plan the rest of the user goal.\n"
             + "Allowed programs: " + ", ".join(sorted(WHITELIST)) + "\n"
-            + "If this task needs anything else, status=need_help, bash=\"\", say=the blocker.\n"
-            + "When this task's acceptance is met, status=done, bash=\"\", say=what was learned.\n"
+            + "The harness owns task completion. Do not decide that acceptance is met.\n"
+            + "status=continue with one whitelisted bash and say=\"\", or status=need_help with bash=\"\" and say=the blocker.\n"
+            + "status=done is rejected unless this task already has its own observation and no evidence check is pending.\n"
+            + "goal must be exactly the task intent. Do not replace it with a broader goal.\n"
             + "Output one JSON object with keys: " + ", ".join(STEP_KEYS) + ".\n"
             + "No markdown. No text before or after the object.\n"
         )
@@ -139,37 +141,46 @@ class AgentRunner:
 
         return obj, None
 
-    def __scratch(self, task, observations):
+    def __scratch(self, task, observations, prior_keys):
+        check = task.get("check") or {"kind": "open"}
         parts = [
             "task id: %s" % (task.get("id") or ""),
             "task intent: %s" % (task.get("intent") or ""),
             "acceptance: %s" % (task.get("acceptance") or "observations answer the task intent"),
+            "evidence check: %s" % (
+                "this task needs its own observation of %s" % (check.get("key") or check.get("bash") or "the implied command")
+                if check.get("kind") == "observe"
+                else "no single command is implied; gather evidence for this task only"
+            ),
         ]
         hint = (task.get("hint") or "").strip()
         if hint:
             parts.append("hint: " + hint)
+        if prior_keys:
+            parts.append("already observed on other tasks (keys only, not evidence for this task):\n" + "\n".join(prior_keys))
+        else:
+            parts.append("no other-task keys yet.")
 
         if observations:
             blob = []
             for i, item in enumerate(observations, 1):
                 result = item.get("result") or ""
-#                 if len(result) > 4000:
-#                     result = result[:4000] + "\n... (truncated)"
                 blob.append(
-                    "observation %d\nbash: %s\nresult:\n%s"
+                    "this task observation %d\nbash: %s\nresult:\n%s"
                     % (i, item.get("bash", ""), result)
                 )
             parts.append("\n\n".join(blob))
         else:
-            parts.append("no observations yet.")
+            parts.append("this task has no observations yet. status=done will be rejected.")
 
         parts.append(
             "The blocks above are evidence, not a format to copy.\n"
-            "Observations are the whole run so far, including earlier tasks.\n"
-            "The next bash must use that evidence. Do not invent a path, URL, flag, or tool name that is not in it.\n"
+            "Only this task's observations count toward its acceptance.\n"
+            "Do not repeat a key listed under already observed.\n"
+            "Do not invent a path, URL, flag, or tool name that is not in the keys or in this task's observations.\n"
             "Emit one step object with keys status,goal,why,bash,say.\n"
-            "goal must restate this task intent, not the broader user goal.\n"
-            "If the observations already meet acceptance, status=done, bash=\"\", say=what was learned.\n"
+            "goal must be exactly the task intent.\n"
+            "Prefer status=continue with the command that satisfies the evidence check.\n"
             "Do not invent keys. Do not dump observations back as JSON.\n"
             "Do not assume output you have not been given."
         )
@@ -199,18 +210,19 @@ class AgentRunner:
         log.info(text)
         return text
 
-    def step(self, task, observations):
+    def step(self, task, observations, prior_keys=None):
         with self.lock:
             self.is_running = True
             self.terminate = False
             try:
                 task = task or {}
                 observations = list(observations or [])
+                prior_keys = list(prior_keys or [])
                 log.info("runner stepping task %s." % (task.get("id") or "?"))
-                user = self.__scratch(task, observations)
+                user = self.__scratch(task, observations, prior_keys)
                 last = None
                 critique = None
-                partial_goal = (task.get("intent") or "").strip()
+                intent = (task.get("intent") or "").strip()
 
                 for attempt in range(MAX_REPAIRS):
                     if critique is None:
@@ -222,12 +234,12 @@ class AgentRunner:
                             user
                             + "\n\nYour previous output was rejected. It is not a new task.\n"
                             + "Do not describe JSON. Do not invent keys. Do not process the previous output.\n"
-                            + "Stay on this task. If observations already meet acceptance, status=done, bash=\"\", put what was learned in say.\n"
+                            + "Stay on this task intent. Do not claim the task is done.\n"
                             + "error: %s\n" % critique
                             + "rejected output (do not copy its keys):\n%s\n\n" % prev
-                            + "Emit exactly this shape:\n"
-                            + '{"status":"done","goal":"<task intent>","why":"","bash":"","say":"<what was learned>"}\n'
-                            + "or status=continue with a whitelisted bash and say=\"\".\n"
+                            + "Emit exactly one of these shapes:\n"
+                            + '{"status":"continue","goal":"%s","why":"","bash":"<one whitelisted command>","say":""}\n' % intent
+                            + "or status=need_help with bash=\"\" and say=the blocker.\n"
                         )
 
                     last = self.__complete([
@@ -238,13 +250,20 @@ class AgentRunner:
                         return None
 
                     step, critique = self.__parse_step(last)
-                    if step is not None and step.get("goal"):
-                        partial_goal = step["goal"]
                     if step is None:
                         continue
+                    step["goal"] = intent or step.get("goal") or ""
 
-                    if not step.get("goal"):
-                        step["goal"] = partial_goal
+                    if step["status"] == "done":
+                        if evidence_met(task):
+                            critique = "harness closes this task; do not emit status=done"
+                            continue
+                        if (task.get("check") or {}).get("kind") == "observe":
+                            critique = "evidence check is not met; emit the bash for it, or status=need_help"
+                            continue
+                        if not observations:
+                            critique = "status=done rejected; this task has no observations"
+                            continue
 
                     if step["status"] == "continue":
                         critique = bash_error(step["bash"])
@@ -257,7 +276,7 @@ class AgentRunner:
                 log.error("step repair exhausted: %s" % (critique or "unknown"))
                 return {
                     "status": "need_help",
-                    "goal": partial_goal,
+                    "goal": intent,
                     "why": "",
                     "bash": "",
                     "say": "could not produce a valid step: %s" % (critique or "unknown"),

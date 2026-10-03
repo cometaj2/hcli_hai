@@ -8,16 +8,19 @@ import openai
 import config as a
 from ai import ai
 from ai import agentrunner as agr
-from ai.policy import bash_error, empty_step, next_runnable
+from ai.policy import (
+    bash_error, empty_step, next_runnable, observe_key, alloc_id,
+    derive_check, evidence_met, task_has_key, listing_files, check_key,
+)
 from ai.router import skill_area
 from pathlib import Path
 from hcli_problem_details import ConflictError
 
 log = logger.Logger()
 
-MAX_TASKS = 8
-MAX_REPLANS = 2
-MAX_ADVANCE = 8
+MAX_TASKS = 100   # 8
+MAX_REPLANS = 10  # 2
+MAX_ADVANCE = 100 # 8
 
 TASK_KEYS = ("id", "intent", "acceptance", "depends_on")
 
@@ -196,8 +199,10 @@ class Orchestrator:
         log.info("orchestrator installed %d task(s)." % len(tasks))
 
     def _run_until_blocked(self):
-        for _ in range(MAX_ADVANCE):
-            doc = self._plan_state()
+        advances = 0
+        while advances < MAX_ADVANCE:
+            doc = self._compile(self._plan_state())
+            self._write(doc)
             task = next_runnable(doc.get("tasks") or [])
             if task is None:
                 return self._finish("done", self._summary(doc))
@@ -209,8 +214,18 @@ class Orchestrator:
             self._write(doc)
             log.info("orchestrator task %s active: %s" % (task.get("id"), task.get("intent")))
 
-            accrued = self._accrued(doc)
-            step = self.runner.step(self._with_prior(doc, task), accrued)
+            if evidence_met(task):
+                self._close_task(task.get("id"), self._learned(task))
+                continue
+
+            forced = self._forced_bash(doc, task)
+            if forced:
+                log.info("orchestrator evidence command for %s: %s" % (task.get("id"), forced))
+                return self._emit_continue(task, forced, "evidence check")
+
+            advances += 1
+            own = list(task.get("observations") or [])
+            step = self.runner.step(self._with_prior(doc, task), own, self._prior_keys(doc, task))
             if step is None:
                 step = {
                     "status": "need_help",
@@ -219,31 +234,34 @@ class Orchestrator:
                     "bash": "",
                     "say": "runner produced no step",
                 }
+            step["goal"] = task.get("intent") or step.get("goal") or ""
+
+            if step.get("status") == "done":
+                if evidence_met(task):
+                    self._close_task(task.get("id"), self._learned(task))
+                    continue
+                if (task.get("check") or {}).get("kind") != "observe" and own:
+                    self._close_task(task.get("id"), step.get("say") or self._learned(task))
+                    continue
+                step = {
+                    "status": "need_help",
+                    "goal": task.get("intent") or "",
+                    "why": "",
+                    "bash": "",
+                    "say": "done rejected; this task has no evidence of its own",
+                }
 
             if step.get("status") == "continue":
                 bash = (step.get("bash") or "").strip()
                 critique = bash_error(bash)
                 if not critique and self._redundant(doc, bash):
-                    hinted = self._with_prior(doc, task)
-                    hinted["hint"] = (
-                        (hinted.get("hint") or "")
-                        + "\nDo not emit %s. That listing or file was already observed. "
-                        "If this task's acceptance is met, status=done and say what was learned. "
-                        "Otherwise emit a different file that appeared in the listing."
-                    ) % bash
-                    retry = self.runner.step(hinted, self._accrued(doc))
-                    if retry and not (
-                        retry.get("status") == "continue" and self._redundant(doc, retry.get("bash"))
-                    ):
-                        step = retry
-                    else:
-                        step = {
-                            "status": "done",
-                            "goal": task.get("intent") or "",
-                            "why": "",
-                            "bash": "",
-                            "say": self._learned(task),
-                        }
+                    step = {
+                        "status": "need_help",
+                        "goal": task.get("intent") or "",
+                        "why": "",
+                        "bash": "",
+                        "say": "already observed %s; not evidence for this task" % bash,
+                    }
                     critique = None
                 if not critique and step.get("status") == "continue":
                     missing = self._unlisted_path(doc, step.get("bash"))
@@ -263,42 +281,54 @@ class Orchestrator:
                         "bash": "",
                         "say": critique,
                     }
-                else:
-                    doc_ids = self._plan_state()
-                    seq = int(doc_ids.get("step_seq") or 0) + 1
-                    step["id"] = "s%d" % seq
-                    step["claimed"] = False
-                    doc_ids["step_seq"] = seq
-                    self._write(doc_ids)
+                elif step.get("status") == "continue":
+                    return self._emit_continue(task, step.get("bash"), step.get("why") or "")
 
             doc = self._plan_state()
             current = self._task(doc, task.get("id"))
             if current is None:
                 return self._finish("need_help", "active task disappeared")
-
-            if step.get("status") == "continue":
-                current["status"] = "active"
-                doc["cursor"] = current.get("id") or ""
-                doc["plan_status"] = "active"
-                doc["step"] = step
-                doc["say"] = ""
-                self._write(doc)
-                log.info("orchestrator waiting for client to run: %s" % step.get("bash"))
-                return self.public()
-
-            if step.get("status") == "done":
-                current["status"] = "done"
-                current["result"] = step.get("say") or ""
-                doc["cursor"] = current.get("id") or ""
-                doc["step"] = empty_step()
-                doc["plan_status"] = "active"
-                self._write(doc)
-                log.info("orchestrator task %s done." % current.get("id"))
-                continue
-
             return self._on_need_help(step.get("say") or "task blocked")
 
         return self._finish("need_help", "advanced too many tasks without a client command")
+
+    def _emit_continue(self, task, bash, why):
+        doc = self._plan_state()
+        current = self._task(doc, task.get("id"))
+        if current is None:
+            return self._finish("need_help", "active task disappeared")
+        seq = int(doc.get("step_seq") or 0) + 1
+        step = {
+            "status": "continue",
+            "goal": current.get("intent") or "",
+            "why": why or "",
+            "bash": bash,
+            "say": "",
+            "id": "s%d" % seq,
+            "claimed": False,
+        }
+        current["status"] = "active"
+        doc["cursor"] = current.get("id") or ""
+        doc["plan_status"] = "active"
+        doc["step"] = step
+        doc["step_seq"] = seq
+        doc["say"] = ""
+        self._write(doc)
+        log.info("orchestrator waiting for client to run: %s" % bash)
+        return self.public()
+
+    def _close_task(self, task_id, result):
+        doc = self._plan_state()
+        current = self._task(doc, task_id)
+        if current is None:
+            return
+        current["status"] = "done"
+        current["result"] = result or ""
+        doc["cursor"] = current.get("id") or ""
+        doc["step"] = empty_step()
+        doc["plan_status"] = "active"
+        self._write(doc)
+        log.info("orchestrator task %s done." % current.get("id"))
 
     def _on_need_help(self, blocker):
         doc = self._plan_state()
@@ -317,16 +347,20 @@ class Orchestrator:
             return self._finish("need_help", critique or blocker)
 
         done = [t for t in (doc.get("tasks") or []) if t.get("status") == "done"]
-        done_ids = {t.get("id") for t in done}
+        used = {t.get("id") for t in done}
         fresh = []
         for task in tasks:
-            if task.get("id") in done_ids:
+            if self._covered(done, task):
                 continue
+            if not task.get("id") or task.get("id") in used:
+                task["id"] = alloc_id(used)
+            else:
+                used.add(task.get("id"))
             fresh.append(task)
         if not fresh:
             return self._finish("need_help", blocker)
 
-        known = done_ids | {t.get("id") for t in fresh}
+        known = used | {t.get("id") for t in fresh}
         for task in fresh:
             task["depends_on"] = [dep for dep in (task.get("depends_on") or []) if dep in known and dep != task.get("id")]
         self._install(goal, done + fresh, replans + 1)
@@ -343,18 +377,92 @@ class Orchestrator:
         return False
 
     def _observe_key(self, bash):
-        parts = (bash or "").split()
-        if not parts:
+        return observe_key(bash)
+
+    def _covered(self, done, task):
+        key = check_key(task)
+        if key and any(task_has_key(item, key) for item in done):
+            return True
+        intent = (task.get("intent") or "").strip().lower()
+        return any((item.get("intent") or "").strip().lower() == intent for item in done)
+
+    def _forced_bash(self, doc, task):
+        check = task.get("check") or {}
+        if check.get("kind") != "observe":
             return None
-        prog = parts[0]
-        args = [p for p in parts[1:] if not p.startswith("-") and not p.isdigit()]
-        if prog == "ls":
-            return ("ls",)
-        if prog == "pwd":
-            return ("pwd",)
-        if prog in ("cat", "head", "tail", "grep") and args:
-            return ("read", args[-1])
-        return (prog, tuple(parts[1:]))
+        bash = (check.get("bash") or "").strip()
+        if not bash or bash_error(bash):
+            return None
+        if task_has_key(task, check_key(task)):
+            return None
+        key = check_key(task) or ()
+        if key and key[0] == "read":
+            if not self._listings(doc):
+                return None
+            if self._unlisted_path(doc, bash):
+                return None
+        return bash
+
+    def _listings(self, doc):
+        found = []
+        for task in doc.get("tasks") or []:
+            for item in task.get("observations") or []:
+                if (item.get("bash") or "").split()[:1] == ["ls"]:
+                    found.append(item.get("result") or "")
+        return found
+
+    def _prior_keys(self, doc, task):
+        keys = []
+        for other in doc.get("tasks") or []:
+            if other.get("id") == task.get("id"):
+                continue
+            for item in other.get("observations") or []:
+                key = observe_key(item.get("bash"))
+                if key and key not in keys:
+                    keys.append(key)
+        return [" ".join(key) for key in keys]
+
+    def _compile(self, doc):
+        if (doc.get("skill_area") or "") != "LOCAL":
+            return doc
+        listings = self._listings(doc)
+        if not listings:
+            return doc
+        names = []
+        for blob in listings:
+            for name in listing_files(blob):
+                if name not in names:
+                    names.append(name)
+        tasks = doc.get("tasks") or []
+        covered = set()
+        for task in tasks:
+            key = check_key(task)
+            if key and key[0] == "read" and len(key) > 1:
+                covered.add(key[1])
+        listing_id = ""
+        for task in tasks:
+            if task_has_key(task, ("ls",)):
+                listing_id = task.get("id") or ""
+                break
+        used = {task.get("id") for task in tasks}
+        for name in names:
+            if name in covered or len(tasks) >= MAX_TASKS:
+                continue
+            task_id = alloc_id(used)
+            tasks.append({
+                "id": task_id,
+                "intent": "read %s" % name,
+                "acceptance": "contents of %s" % name,
+                "depends_on": [listing_id] if listing_id else [],
+                "status": "pending",
+                "observations": [],
+                "hint": "",
+                "check": {"kind": "observe", "key": ["read", name], "bash": "cat %s" % name},
+            })
+            covered.add(name)
+            log.info("orchestrator compiled read task %s for %s" % (task_id, name))
+        doc["tasks"] = tasks
+        return doc
 
     def _unlisted_path(self, doc, bash):
         parts = (bash or "").split()
@@ -367,11 +475,7 @@ class Orchestrator:
         name = path.rstrip("/").split("/")[-1]
         if not name or name in (".", ".."):
             return None
-        listings = []
-        for task in doc.get("tasks") or []:
-            for item in task.get("observations") or []:
-                if (item.get("bash") or "").split()[:1] == ["ls"]:
-                    listings.append(item.get("result") or "")
+        listings = self._listings(doc)
         if not listings:
             return None
         blob = "\n".join(listings)
@@ -622,6 +726,7 @@ class Orchestrator:
             if not isinstance(task_id, str) or not task_id.strip() or task_id in seen:
                 task_id = "t%d" % i
             seen.add(task_id)
+            check = derive_check(intent, acceptance)
             normalized.append({
                 "id": task_id,
                 "intent": intent.strip(),
@@ -630,6 +735,7 @@ class Orchestrator:
                 "status": "pending",
                 "observations": [],
                 "hint": "",
+                "check": check,
             })
 
         known = {t["id"] for t in normalized}
