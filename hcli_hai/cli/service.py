@@ -171,7 +171,7 @@ class Service:
         return self.orchestrator.status()
 
     def task(self):
-        return self.ai.task()
+        return self.orchestrator.task()
 
     def next(self, inputstream):
         if inputstream is None:

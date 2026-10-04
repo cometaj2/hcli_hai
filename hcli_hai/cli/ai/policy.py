@@ -145,26 +145,36 @@ def evidence_met(task):
 
 
 def listing_files(text):
-    """Regular files named by an ls observation. Directories are not files."""
     names = []
     for line in (text or "").splitlines():
         raw = line.strip()
         if not raw or raw.startswith("total "):
             continue
-        if raw[:1] in ("d", "l"):
-            continue
-        if raw[:1] == "-":
+        if not raw.startswith("d") and not raw.startswith("l"):
             parts = raw.split()
-            if len(parts) >= 8:
+            if len(parts) >= 2:
                 names.append(parts[-1])
-            continue
-        for token in raw.split():
-            if token in (".", ".."):
-                continue
-            names.append(token)
-    seen = []
-    for name in names:
-        if name and name not in seen and name not in (".", ".."):
-            seen.append(name)
-    return seen
+    return names
 
+#     """Regular files named by an ls observation. Directories are not files."""
+#     names = []
+#     for line in (text or "").splitlines():
+#         raw = line.strip()
+#         if not raw or raw.startswith("total "):
+#             continue
+#         if raw[:1] in ("d", "l"):
+#             continue
+#         if raw[:1] == "-":
+#             parts = raw.split()
+#             if len(parts) >= 8:
+#                 names.append(parts[-1])
+#             continue
+#         for token in raw.split():
+#             if token in (".", ".."):
+#                 continue
+#             names.append(token)
+#     seen = []
+#     for name in names:
+#         if name and name not in seen and name not in (".", ".."):
+#             seen.append(name)
+#     return seen

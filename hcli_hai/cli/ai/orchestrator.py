@@ -8,6 +8,7 @@ import openai
 import config as a
 from ai import ai
 from ai import agentrunner as agr
+from ai import plan as p
 from ai.policy import (
     bash_error, empty_step, next_runnable, observe_key, alloc_id,
     derive_check, evidence_met, task_has_key, listing_files, check_key,
@@ -54,6 +55,7 @@ class Orchestrator:
             self._is_vibing = False
             self.initialized = True
             self.ai = ai.AI()
+            self.plan = p.Plan()
             self.runner = agr.AgentRunner()
             self.behavior = self._load_behavior()
 
@@ -66,7 +68,7 @@ class Orchestrator:
     def set_vibe(self, should_vibe):
         with self.rlock:
             self._is_vibing = should_vibe
-            self.ai.contextmgr.plan.clear()
+            self.plan.clear()
             if should_vibe is True:
                 log.info("orchestrator started.")
             else:
@@ -78,7 +80,7 @@ class Orchestrator:
 
     def pending_bash(self):
         with self.rlock:
-            public = self.ai.contextmgr.plan.public()
+            public = self.plan.public()
             if public.get("status") != "continue":
                 return None
             bash = (public.get("bash") or "").strip()
@@ -88,7 +90,7 @@ class Orchestrator:
         with self.rlock:
             if not self._is_vibing:
                 return "inactive"
-            public = self.ai.contextmgr.plan.public()
+            public = self.plan.public()
             if public.get("status") == "continue" and public.get("bash"):
                 return "next"
             plan_status = public.get("plan_status") or "idle"
@@ -105,10 +107,10 @@ class Orchestrator:
     def task(self):
         if not self.is_vibing():
             return None
-        return self.ai.contextmgr.get_step()
+        return self.plan.get_step()
 
     def public(self):
-        return self.ai.contextmgr.plan.dumps()
+        return self.plan.dumps()
 
     def harness(self):
         with self.lock:
@@ -127,7 +129,7 @@ class Orchestrator:
                 return self._finish("need_help", "no user goal to plan")
 
             log.info("orchestrator planning.")
-            self.ai.contextmgr.plan.clear()
+            self.plan.clear()
             self._skill_area, self._skill = self._load_skill(user)
             log.info("orchestrator skill: %s" % (self._skill_area or "none"))
             self._set_plan_status("planning", user)
@@ -150,7 +152,7 @@ class Orchestrator:
                 return None
 
             log.info("orchestrator stored observation for: %s" % pending)
-            self.ai.contextmgr.append_observation(pending, observation or "")
+            self.plan.append_observation(pending, observation or "")
             return self.public()
 
     def mark(self):
@@ -162,7 +164,7 @@ class Orchestrator:
             if not pending:
                 log.warning("no pending bash step to mark.")
                 return self.public()
-            if not self.ai.contextmgr.plan.has_observation(pending):
+            if not self.plan.has_observation(pending):
                 msg = "hai agent next has not recorded an observation for this step"
                 log.error(msg)
                 raise ConflictError(detail=msg)
@@ -171,61 +173,61 @@ class Orchestrator:
             return self._run_until_blocked()
 
     def _plan_state(self):
-        return self.ai.contextmgr.plan.doc()
+        return self.plan.get_state()
 
-    def _write(self, doc):
-        self.ai.contextmgr.plan.replace(doc)
+    def _write(self, plan):
+        self.plan.replace(plan)
 
     def _set_plan_status(self, plan_status, goal=None):
-        doc = self._plan_state()
-        doc["plan_status"] = plan_status
+        plan = self._plan_state()
+        plan["plan_status"] = plan_status
         if goal is not None:
-            doc["goal"] = goal
-        doc["step"] = empty_step()
-        self._write(doc)
+            plan["goal"] = goal
+        plan["step"] = empty_step()
+        self._write(plan)
 
     def _install(self, goal, tasks, replans):
-        doc = self._plan_state()
-        doc["goal"] = goal
-        doc["plan_status"] = "active"
-        doc["tasks"] = tasks
-        doc["cursor"] = ""
-        doc["step"] = empty_step()
-        doc["say"] = ""
-        doc["replans"] = replans
-        doc["skill_area"] = getattr(self, "_skill_area", "") or ""
-        doc["skill"] = getattr(self, "_skill", "") or ""
-        self._write(doc)
+        plan = self._plan_state()
+        plan["goal"] = goal
+        plan["plan_status"] = "active"
+        plan["tasks"] = tasks
+        plan["cursor"] = ""
+        plan["step"] = empty_step()
+        plan["say"] = ""
+        plan["replans"] = replans
+        plan["skill_area"] = getattr(self, "_skill_area", "") or ""
+        plan["skill"] = getattr(self, "_skill", "") or ""
+        self._write(plan)
         log.info("orchestrator installed %d task(s)." % len(tasks))
 
     def _run_until_blocked(self):
         advances = 0
         while advances < MAX_ADVANCE:
-            doc = self._compile(self._plan_state())
-            self._write(doc)
-            task = next_runnable(doc.get("tasks") or [])
+            plan = self._compile(self._plan_state())
+            self._write(plan)
+            task = next_runnable(plan.get("tasks") or [])
             if task is None:
-                return self._finish("done", self._summary(doc))
+                return self._finish("done", self._summary(plan))
 
             task["status"] = "active"
-            doc["cursor"] = task.get("id") or ""
-            doc["plan_status"] = "planning"
-            doc["step"] = empty_step()
-            self._write(doc)
+            plan["cursor"] = task.get("id") or ""
+            plan["plan_status"] = "planning"
+            plan["step"] = empty_step()
+            self._write(plan)
             log.info("orchestrator task %s active: %s" % (task.get("id"), task.get("intent")))
 
             if evidence_met(task):
                 self._close_task(task.get("id"), self._learned(task))
                 continue
 
-            forced = self._forced_bash(doc, task)
+            forced = self._forced_bash(plan, task)
             if forced:
                 log.info("orchestrator evidence command for %s: %s" % (task.get("id"), forced))
                 return self._emit_continue(task, forced, "evidence check")
 
             advances += 1
             own = list(task.get("observations") or [])
-            step = self.runner.step(self._with_prior(doc, task), own, self._prior_keys(doc, task))
+            step = self.runner.step(self._with_prior(plan, task), own, self._prior_keys(plan, task))
             if step is None:
                 step = {
                     "status": "need_help",
@@ -254,7 +256,7 @@ class Orchestrator:
             if step.get("status") == "continue":
                 bash = (step.get("bash") or "").strip()
                 critique = bash_error(bash)
-                if not critique and self._redundant(doc, bash):
+                if not critique and self._redundant(plan, bash):
                     step = {
                         "status": "need_help",
                         "goal": task.get("intent") or "",
@@ -264,7 +266,7 @@ class Orchestrator:
                     }
                     critique = None
                 if not critique and step.get("status") == "continue":
-                    missing = self._unlisted_path(doc, step.get("bash"))
+                    missing = self._unlisted_path(plan, step.get("bash"))
                     if missing:
                         step = {
                             "status": "need_help",
@@ -284,8 +286,8 @@ class Orchestrator:
                 elif step.get("status") == "continue":
                     return self._emit_continue(task, step.get("bash"), step.get("why") or "")
 
-            doc = self._plan_state()
-            current = self._task(doc, task.get("id"))
+            plan = self._plan_state()
+            current = self._task(plan, task.get("id"))
             if current is None:
                 return self._finish("need_help", "active task disappeared")
             return self._on_need_help(step.get("say") or "task blocked")
@@ -293,11 +295,11 @@ class Orchestrator:
         return self._finish("need_help", "advanced too many tasks without a client command")
 
     def _emit_continue(self, task, bash, why):
-        doc = self._plan_state()
-        current = self._task(doc, task.get("id"))
+        plan = self._plan_state()
+        current = self._task(plan, task.get("id"))
         if current is None:
             return self._finish("need_help", "active task disappeared")
-        seq = int(doc.get("step_seq") or 0) + 1
+        seq = int(plan.get("step_seq") or 0) + 1
         step = {
             "status": "continue",
             "goal": current.get("intent") or "",
@@ -308,45 +310,45 @@ class Orchestrator:
             "claimed": False,
         }
         current["status"] = "active"
-        doc["cursor"] = current.get("id") or ""
-        doc["plan_status"] = "active"
-        doc["step"] = step
-        doc["step_seq"] = seq
-        doc["say"] = ""
-        self._write(doc)
+        plan["cursor"] = current.get("id") or ""
+        plan["plan_status"] = "active"
+        plan["step"] = step
+        plan["step_seq"] = seq
+        plan["say"] = ""
+        self._write(plan)
         log.info("orchestrator waiting for client to run: %s" % bash)
         return self.public()
 
     def _close_task(self, task_id, result):
-        doc = self._plan_state()
-        current = self._task(doc, task_id)
+        plan = self._plan_state()
+        current = self._task(plan, task_id)
         if current is None:
             return
         current["status"] = "done"
         current["result"] = result or ""
-        doc["cursor"] = current.get("id") or ""
-        doc["step"] = empty_step()
-        doc["plan_status"] = "active"
-        self._write(doc)
+        plan["cursor"] = current.get("id") or ""
+        plan["step"] = empty_step()
+        plan["plan_status"] = "active"
+        self._write(plan)
         log.info("orchestrator task %s done." % current.get("id"))
 
     def _on_need_help(self, blocker):
-        doc = self._plan_state()
-        replans = int(doc.get("replans") or 0)
-        goal = doc.get("goal") or ""
+        plan = self._plan_state()
+        replans = int(plan.get("replans") or 0)
+        goal = plan.get("goal") or ""
         if replans >= MAX_REPLANS:
             return self._finish("need_help", blocker)
 
         log.info("orchestrator replanning (%d/%d): %s" % (replans + 1, MAX_REPLANS, blocker))
-        doc["plan_status"] = "planning"
-        doc["replans"] = replans + 1
-        self._write(doc)
+        plan["plan_status"] = "planning"
+        plan["replans"] = replans + 1
+        self._write(plan)
 
         tasks, critique = self._plan_tasks(goal, blocker)
         if not tasks:
             return self._finish("need_help", critique or blocker)
 
-        done = [t for t in (doc.get("tasks") or []) if t.get("status") == "done"]
+        done = [t for t in (plan.get("tasks") or []) if t.get("status") == "done"]
         used = {t.get("id") for t in done}
         fresh = []
         for task in tasks:
@@ -366,11 +368,11 @@ class Orchestrator:
         self._install(goal, done + fresh, replans + 1)
         return self._run_until_blocked()
 
-    def _redundant(self, doc, bash):
+    def _redundant(self, plan, bash):
         wanted = self._observe_key(bash)
         if wanted is None:
             return False
-        for task in doc.get("tasks") or []:
+        for task in plan.get("tasks") or []:
             for item in task.get("observations") or []:
                 if self._observe_key(item.get("bash")) == wanted:
                     return True
@@ -386,7 +388,7 @@ class Orchestrator:
         intent = (task.get("intent") or "").strip().lower()
         return any((item.get("intent") or "").strip().lower() == intent for item in done)
 
-    def _forced_bash(self, doc, task):
+    def _forced_bash(self, plan, task):
         check = task.get("check") or {}
         if check.get("kind") != "observe":
             return None
@@ -397,23 +399,23 @@ class Orchestrator:
             return None
         key = check_key(task) or ()
         if key and key[0] == "read":
-            if not self._listings(doc):
+            if not self._listings(plan):
                 return None
-            if self._unlisted_path(doc, bash):
+            if self._unlisted_path(plan, bash):
                 return None
         return bash
 
-    def _listings(self, doc):
+    def _listings(self, plan):
         found = []
-        for task in doc.get("tasks") or []:
+        for task in plan.get("tasks") or []:
             for item in task.get("observations") or []:
                 if (item.get("bash") or "").split()[:1] == ["ls"]:
                     found.append(item.get("result") or "")
         return found
 
-    def _prior_keys(self, doc, task):
+    def _prior_keys(self, plan, task):
         keys = []
-        for other in doc.get("tasks") or []:
+        for other in plan.get("tasks") or []:
             if other.get("id") == task.get("id"):
                 continue
             for item in other.get("observations") or []:
@@ -422,18 +424,18 @@ class Orchestrator:
                     keys.append(key)
         return [" ".join(key) for key in keys]
 
-    def _compile(self, doc):
-        if (doc.get("skill_area") or "") != "LOCAL":
-            return doc
-        listings = self._listings(doc)
+    def _compile(self, plan):
+        if (plan.get("skill_area") or "") != "LOCAL":
+            return plan
+        listings = self._listings(plan)
         if not listings:
-            return doc
+            return plan
         names = []
         for blob in listings:
             for name in listing_files(blob):
                 if name not in names:
                     names.append(name)
-        tasks = doc.get("tasks") or []
+        tasks = plan.get("tasks") or []
         covered = set()
         for task in tasks:
             key = check_key(task)
@@ -461,10 +463,10 @@ class Orchestrator:
             })
             covered.add(name)
             log.info("orchestrator compiled read task %s for %s" % (task_id, name))
-        doc["tasks"] = tasks
-        return doc
+        plan["tasks"] = tasks
+        return plan
 
-    def _unlisted_path(self, doc, bash):
+    def _unlisted_path(self, plan, bash):
         parts = (bash or "").split()
         if not parts or parts[0] not in ("cat", "head", "tail", "grep"):
             return None
@@ -475,7 +477,7 @@ class Orchestrator:
         name = path.rstrip("/").split("/")[-1]
         if not name or name in (".", ".."):
             return None
-        listings = self._listings(doc)
+        listings = self._listings(plan)
         if not listings:
             return None
         blob = "\n".join(listings)
@@ -492,19 +494,19 @@ class Orchestrator:
 #             result = result[:400] + "\n... (truncated)"
         return result or "observed"
 
-    def _already_observed(self, doc, bash):
+    def _already_observed(self, plan, bash):
         wanted = (bash or "").strip()
         if not wanted:
             return False
-        for task in doc.get("tasks") or []:
+        for task in plan.get("tasks") or []:
             for item in task.get("observations") or []:
                 if (item.get("bash") or "").strip() == wanted:
                     return True
         return False
 
-    def _accrued(self, doc):
+    def _accrued(self, plan):
         out = []
-        for task in doc.get("tasks") or []:
+        for task in plan.get("tasks") or []:
             for item in task.get("observations") or []:
                 out.append({
                     "bash": item.get("bash") or "",
@@ -512,41 +514,41 @@ class Orchestrator:
                 })
         return out
 
-    def _with_prior(self, doc, task):
+    def _with_prior(self, plan, task):
         call = dict(task)
-        skill = (doc.get("skill") or "").strip()
+        skill = (plan.get("skill") or "").strip()
         if skill:
-            area = doc.get("skill_area") or "skill"
+            area = plan.get("skill_area") or "skill"
             hint = (call.get("hint") or "").strip()
             call["hint"] = ("Area skill (%s):\n%s\n%s" % (area, skill[:1200], hint)).strip()
         return call
 
-    def _task(self, doc, task_id):
-        for task in doc.get("tasks") or []:
+    def _task(self, plan, task_id):
+        for task in plan.get("tasks") or []:
             if task.get("id") == task_id:
                 return task
         return None
 
     def _finish(self, status, say):
-        doc = self._plan_state()
-        doc["plan_status"] = status
-        doc["say"] = say or ""
-        doc["step"] = {
+        plan = self._plan_state()
+        plan["plan_status"] = status
+        plan["say"] = say or ""
+        plan["step"] = {
             "status": "done" if status == "done" else "need_help",
-            "goal": doc.get("goal") or "",
+            "goal": plan.get("goal") or "",
             "why": "",
             "bash": "",
             "say": say or "",
         }
-        doc["cursor"] = ""
-        self._write(doc)
-        self._join(doc["step"]["status"], say or "")
+        plan["cursor"] = ""
+        self._write(plan)
+        self._join(plan["step"]["status"], say or "")
         log.info("orchestrator finished: %s" % status)
         return self.public()
 
-    def _summary(self, doc):
+    def _summary(self, plan):
         lines = []
-        for task in doc.get("tasks") or []:
+        for task in plan.get("tasks") or []:
             if task.get("status") != "done":
                 continue
             learned = (task.get("result") or "").strip()
@@ -557,9 +559,9 @@ class Orchestrator:
         return "The goal is done. No task reported a separate result."
 
     def _join(self, status, say):
-        doc = self._plan_state()
-        goal = (doc.get("goal") or "").strip()
-        tasks = doc.get("tasks") or []
+        plan = self._plan_state()
+        goal = (plan.get("goal") or "").strip()
+        tasks = plan.get("tasks") or []
 
         if status == "done":
             header = "**Task completed.**"
@@ -650,9 +652,9 @@ class Orchestrator:
         )
 
     def _planner_prompt(self, goal, blocker, critique, last):
-        doc = self._plan_state()
+        plan = self._plan_state()
         done = []
-        for task in doc.get("tasks") or []:
+        for task in plan.get("tasks") or []:
             if task.get("status") == "done":
                 done.append("%s: %s" % (task.get("intent"), task.get("result") or "done"))
         parts = ["user goal:\n" + (goal or "")]
@@ -661,9 +663,9 @@ class Orchestrator:
         if blocker:
             parts.append("blocker:\n" + blocker)
             parts.append("Replace only the remaining work. Do not repeat tasks already done.")
-        skill = (doc.get("skill") or getattr(self, "_skill", "") or "").strip()
+        skill = (plan.get("skill") or getattr(self, "_skill", "") or "").strip()
         if skill:
-            parts.append("area skill (%s):\n%s" % (doc.get("skill_area") or getattr(self, "_skill_area", "") or "skill", skill))
+            parts.append("area skill (%s):\n%s" % (plan.get("skill_area") or getattr(self, "_skill_area", "") or "skill", skill))
             parts.append("Follow the area skill. Do not emit bash. Do not copy the skill into a task intent.")
         if critique:
             prev = last if last and len(last) <= 800 else ((last or "")[:800] + "\n...")
