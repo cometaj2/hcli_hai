@@ -256,8 +256,7 @@ class AI:
 
     # get the model to use
     def model(self):
-        with self.rlock:
-            return self.config.model
+        return self.config.model
 
     # set the model to use
     def set_model(self, model):

@@ -19,9 +19,9 @@ from hcli_problem_details import ConflictError
 
 log = logger.Logger()
 
-MAX_TASKS = 100   # 8
-MAX_REPLANS = 10  # 2
-MAX_ADVANCE = 100 # 8
+MAX_TASKS = 20  # 8
+MAX_REPLANS = 5 # 2
+MAX_ADVANCE = 8 # 8
 
 TASK_KEYS = ("id", "intent", "acceptance", "depends_on")
 
@@ -420,7 +420,7 @@ class Orchestrator:
             for item in other.get("observations") or []:
                 key = observe_key(item.get("bash"))
                 if key and key not in keys:
-                    keys.append(key)
+                    keys.append(str(key))
         return [" ".join(key) for key in keys]
 
     def _compile(self, plan):
@@ -489,6 +489,8 @@ class Orchestrator:
         if not obs:
             return "observed"
         result = (obs[-1].get("result") or "").strip()
+#        if len(result) > 400:
+#            result = result[:400] + "\n... (truncated)"
         return result or "observed"
 
     def _already_observed(self, plan, bash):
@@ -575,23 +577,41 @@ class Orchestrator:
             for item in task.get("observations") or []:
                 cmd = (item.get("bash") or "").strip()
                 result = (item.get("result") or "").strip()
+#                 if len(result) > 200:
+#                     result = result[:200] + "\n... (truncated)"
                 trace.append("%d. `%s`\n > %s" % (n, cmd, result))
                 n += 1
         if trace:
             parts.append("**Execution trace:**\n" + "\n\n".join(trace))
 
-        task_lines = []
-        for task in tasks:
-            task_lines.append("- %s [%s] %s" % (
-                task.get("id") or "?",
-                task.get("status") or "pending",
-                task.get("intent") or "",
-            ))
-        if task_lines:
-            parts.append("**Tasks:**\n" + "\n".join(task_lines))
+#         task_lines = []
+#         for task in tasks:
+#             task_lines.append("- %s [%s] %s" % (
+#                 task.get("id") or "?",
+#                 task.get("status") or "pending",
+#                 task.get("intent") or "",
+#             ))
+#         if task_lines:
+#             parts.append("**Tasks:**\n" + "\n".join(task_lines))
 
-        parts.append("**Result:**\n%s" % say)
-        self.ai.commit_response("\n\n".join(parts))
+#        parts.append("**Result:**\n%s" % say)
+#         self.ai.commit_response("\n\n".join(parts))
+
+        # We hijack the context messages with a reinjection in the last
+        # user message and context to help join back into the non harnessed
+        # conversation. This needs to be cleaned up later.
+
+        inceptive_user_message = self.ai.contextmgr.context._messages[-1]["content"]
+        self.ai.contextmgr.context._messages.pop()
+        harnessed_user_message = inceptive_user_message + "\n\n" + "\n\n".join(parts)
+
+        self.ai.consume_request(harnessed_user_message)
+        response = self.ai.process_request()
+
+        if response is None:
+            return None
+
+        self.ai.commit_response(response)
 
     def _plan_tasks(self, goal, blocker):
         last = None
@@ -689,8 +709,8 @@ class Orchestrator:
             if not isinstance(item, dict):
                 return None, "task %d is not an object" % i
             intent = item.get("intent")
-            if not isinstance(intent, str) or not intent.strip():
-                return None, "task %d needs a string intent" % i
+#             if not isinstance(intent, str) or not intent.strip():
+#                 return None, "task %d needs a string intent" % i
             acceptance = item.get("acceptance") or ""
             if not isinstance(acceptance, str):
                 acceptance = str(acceptance)
@@ -702,7 +722,7 @@ class Orchestrator:
             check = derive_check(intent, acceptance)
             normalized.append({
                 "id": task_id,
-                "intent": intent.strip(),
+                "intent": intent.strip() if intent is not None else "",
                 "acceptance": acceptance.strip() or "observations answer the intent",
                 "depends_on": deps,
                 "status": "pending",
