@@ -378,8 +378,3 @@ class AI:
         with self.rlock:
             if title is not None:
                 self.contextmgr.set_title(title)
-
-    # output current plan
-    def task(self):
-        with self.rlock:
-            return self.contextmgr.get_step()
