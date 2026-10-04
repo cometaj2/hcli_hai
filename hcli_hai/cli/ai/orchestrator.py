@@ -137,7 +137,6 @@ class Orchestrator:
             if not tasks:
                 return self._finish("need_help", critique or "could not break the goal into tasks")
 
-#            tasks = self._ensure_catalog(tasks)
             self._install(user, tasks, replans=0)
             return self._run_until_blocked()
 
@@ -490,8 +489,6 @@ class Orchestrator:
         if not obs:
             return "observed"
         result = (obs[-1].get("result") or "").strip()
-#         if len(result) > 400:
-#             result = result[:400] + "\n... (truncated)"
         return result or "observed"
 
     def _already_observed(self, plan, bash):
@@ -578,8 +575,6 @@ class Orchestrator:
             for item in task.get("observations") or []:
                 cmd = (item.get("bash") or "").strip()
                 result = (item.get("result") or "").strip()
-#                 if len(result) > 800:
-#                     result = result[:800] + "\n... (truncated)"
                 trace.append("%d. `%s`\n > %s" % (n, cmd, result))
                 n += 1
         if trace:
@@ -597,30 +592,6 @@ class Orchestrator:
 
         parts.append("**Result:**\n%s" % say)
         self.ai.commit_response("\n\n".join(parts))
-
-    def _ensure_catalog(self, tasks):
-        for task in tasks:
-            intent = (task.get("intent") or "").lower()
-            if "huckle cli ls" in intent or "list available hcli" in intent:
-                task["hint"] = "First bash must be exactly: huckle cli ls"
-                return tasks
-        ids = {t.get("id") for t in tasks}
-        catalog_id = "t0" if "t0" not in ids else "catalog"
-        catalog = {
-            "id": catalog_id,
-            "intent": "list available HCLI tools",
-            "acceptance": "output of huckle cli ls has been observed",
-            "depends_on": [],
-            "status": "pending",
-            "observations": [],
-            "hint": "First bash must be exactly: huckle cli ls",
-        }
-        for task in tasks:
-            deps = task.get("depends_on") or []
-            if catalog_id not in deps:
-                deps = [catalog_id] + deps
-            task["depends_on"] = deps
-        return [catalog] + tasks
 
     def _plan_tasks(self, goal, blocker):
         last = None
