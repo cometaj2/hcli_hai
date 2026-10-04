@@ -134,7 +134,7 @@ class Plan:
     def dumps(self) -> str:
         """Return JSON of the public state."""
         with self._lock:
-            return json.dumps(self.public(), ensure_ascii=False, indent=2)
+            return json.dumps(self.public(), ensure_ascii=False, indent=4)
 
     # ------------------------------------------------------------------
     # Step Management

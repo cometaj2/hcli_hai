@@ -118,6 +118,10 @@
             "http": "get"
         },
         {
+            "command": "hai agent plan",
+            "http": "get"
+        },
+        {
             "command": "hai agent next",
             "http": "post"
         },
@@ -682,6 +686,11 @@
                     "description": "Get agent task."
                 },
                 {
+                    "href": "haiagentplan",
+                    "name": "plan",
+                    "description": "Get agent plan."
+                },
+                {
                     "href": "haiagentnext",
                     "name": "next",
                     "description": "Record the observation for the current command. Does not claim the step."
@@ -775,6 +784,24 @@
                 {
                     "name": "description",
                     "description": "The \"task\" command allows you to get the agent's next step in the plan the agent orchestrator is trying to execute to fulfill the user's goal."
+                }
+            ]
+        },
+        {
+            "id": "haiagentplan",
+            "name": "plan",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "plan - returns the agent's current plan."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai agent plan"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"plan\" command allows you to get the agent's full latest plan that the agent orchestrator is trying to execute to fulfill the user's goal."
                 }
             ]
         },

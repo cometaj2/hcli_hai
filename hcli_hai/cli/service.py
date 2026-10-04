@@ -173,6 +173,9 @@ class Service:
     def task(self):
         return self.orchestrator.task()
 
+    def plan(self):
+        return self.orchestrator.public()
+
     def next(self, inputstream):
         if inputstream is None:
             observation = ""

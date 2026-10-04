@@ -146,6 +146,8 @@ class CLI:
                 self.service.agent(False)
             elif self.commands[2] == "task":
                 return io.BytesIO(json.dumps(self.service.task(), indent=4).encode('utf-8'))
+            elif self.commands[2] == "plan":
+                return io.BytesIO(self.service.plan().encode('utf-8'))
             elif self.commands[2] == "enabled":
                 status = self.service.is_vibing()
                 return io.BytesIO(str(status).encode('utf-8'))
