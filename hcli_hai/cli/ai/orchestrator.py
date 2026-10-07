@@ -19,9 +19,9 @@ from hcli_problem_details import ConflictError
 
 log = logger.Logger()
 
-MAX_TASKS = 20  # 8
-MAX_REPLANS = 5 # 2
-MAX_ADVANCE = 8 # 8
+MAX_TASKS = 8
+MAX_REPLANS = 5
+MAX_ADVANCE = 8
 
 TASK_KEYS = ("id", "intent", "acceptance", "depends_on")
 
@@ -81,9 +81,10 @@ class Orchestrator:
     def pending_bash(self):
         with self.rlock:
             public = self.plan.public()
-            if public.get("status") != "continue":
+            step = public.get("step") or {}
+            if step.get("status") != "continue":
                 return None
-            bash = (public.get("bash") or "").strip()
+            bash = (step.get("bash") or "").strip()
             return bash or None
 
     def status(self):
@@ -91,7 +92,8 @@ class Orchestrator:
             if not self._is_vibing:
                 return "inactive"
             public = self.plan.public()
-            if public.get("status") == "continue" and public.get("bash"):
+            step = public.get("step") or {}
+            if step.get("status") == "continue" and step.get("bash"):
                 return "next"
             plan_status = public.get("plan_status") or "idle"
             if plan_status == "planning":
@@ -489,8 +491,6 @@ class Orchestrator:
         if not obs:
             return "observed"
         result = (obs[-1].get("result") or "").strip()
-#        if len(result) > 400:
-#            result = result[:400] + "\n... (truncated)"
         return result or "observed"
 
     def _already_observed(self, plan, bash):
@@ -577,8 +577,6 @@ class Orchestrator:
             for item in task.get("observations") or []:
                 cmd = (item.get("bash") or "").strip()
                 result = (item.get("result") or "").strip()
-#                 if len(result) > 200:
-#                     result = result[:200] + "\n... (truncated)"
                 trace.append("%d. `%s`\n > %s" % (n, cmd, result))
                 n += 1
         if trace:
@@ -709,8 +707,6 @@ class Orchestrator:
             if not isinstance(item, dict):
                 return None, "task %d is not an object" % i
             intent = item.get("intent")
-#             if not isinstance(intent, str) or not intent.strip():
-#                 return None, "task %d needs a string intent" % i
             acceptance = item.get("acceptance") or ""
             if not isinstance(acceptance, str):
                 acceptance = str(acceptance)

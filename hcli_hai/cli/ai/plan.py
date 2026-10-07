@@ -116,8 +116,6 @@ class Plan:
             return {
                 "status": status,
                 "goal": self._state.goal,
-                "why": step.why,
-                "bash": bash,
                 "say": say,
                 "plan_status": self._state.plan_status,
                 "cursor": self._state.cursor,
