@@ -172,6 +172,12 @@ class AssistantRunner:
         if self.terminate:
             raise TerminationException("terminated")
 
+    def pause_voice(self):
+        self.voice.pause()
+
+    def resume_voice(self):
+        self.voice.resume()
+
     def abort(self):
         self.is_running = False
         self.terminate = False

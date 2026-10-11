@@ -175,6 +175,10 @@ class CLI:
                 self.service.assist(True)
             elif self.commands[2] == "stop":
                 self.service.assist(False)
+            elif self.commands[2] == "pause":
+                self.service.pause_voice()
+            elif self.commands[2] == "resume":
+                self.service.resume_voice()
             elif self.commands[2] == "enabled":
                 status = self.service.is_assisting()
                 return io.BytesIO(str(status).encode('utf-8'))

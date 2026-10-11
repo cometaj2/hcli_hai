@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add Ollama and GGUF models provider support
 - Add OpenAI provider support
 - Add X.AI provider support
+- Add summarizing voice assistance (start, stop, pause, resume)
+- Add audio ducking during voice assistance
 - Add python 3.13 and 3.14 support
 - Add better problem detail error handling responses to the client
 - Add better logging for various operations

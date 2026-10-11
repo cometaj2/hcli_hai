@@ -146,6 +146,14 @@
             "http": "post"
         },
         {
+            "command": "hai voice pause",
+            "http": "post"
+        },
+        {
+            "command": "hai voice resume",
+            "http": "post"
+        },
+        {
             "command": "hai provider",
             "http": "get"
         },
@@ -880,6 +888,16 @@
                     "href": "haivoicestop",
                     "name": "stop",
                     "description": "Stop receiving voice assistance."
+                },
+                {
+                    "href": "haivoicepause",
+                    "name": "pause",
+                    "description": "Pause voice assistance."
+                },
+                {
+                    "href": "haivoiceresume",
+                    "name": "resume",
+                    "description": "Resume voice assistance."
                 }
             ]
         },
@@ -934,6 +952,42 @@
                 {
                     "name": "description",
                     "description": "The \"stop\" command stops the voice assistant from summarizing conversations."
+                }
+            ]
+        },
+        {
+            "id": "haivoicepause",
+            "name": "pause",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "pause - pause the summarizing voice assistance."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai voice pause"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"pause\" command suspends the voice assistant from summarizing conversations."
+                }
+            ]
+        },
+        {
+            "id": "haivoiceresume",
+            "name": "resume",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "resume - resume the summarizing voice assistance."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai voice resume"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"resume\" command resumes suspended voice assistance."
                 }
             ]
         },

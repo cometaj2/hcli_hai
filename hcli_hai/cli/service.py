@@ -147,6 +147,12 @@ class Service:
     def assist(self, should_assist):
         self.assistantrunner.set_assist(should_assist)
 
+    def pause_voice(self):
+        self.assistantrunner.pause_voice()
+
+    def resume_voice(self):
+        self.assistantrunner.resume_voice()
+
     def is_assisting(self):
         return self.assistantrunner.is_assisting()
 
