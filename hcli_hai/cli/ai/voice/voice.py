@@ -115,7 +115,6 @@ class Voice:
         if cancel is not None:
             cancel.set()
 
-        # Wake a worker waiting while paused so it can terminate.
         self._resume_event.set()
 
         if not wait:
@@ -202,8 +201,8 @@ class Voice:
         if not self._pause_requested.is_set():
             return stream, True
 
-        # Close only the TTS stream. The AudioDucker remains active so
-        # background audio stays ducked during the pause.
+        # Close only the TTS stream. Keep the AudioDucker active so
+        # background audio remains reduced during the pause.
         self._close_worker_stream(stream)
         stream = None
 
@@ -270,8 +269,6 @@ class Voice:
                 if self._should_stop(cancel):
                     break
 
-                # Keep the ducker open during pauses so background audio
-                # remains reduced while TTS output is stopped.
                 if ducker is None:
                     ducker = self._open_ducker()
 
@@ -281,12 +278,14 @@ class Voice:
                     break
 
                 if stream is None:
+                    # Duck foreign streams that started while voice was
+                    # paused before opening the TTS stream.
+                    ducker.protect_new()
+
                     stream = self._open_stream(gen, cancel)
 
                     if stream is None:
                         break
-
-                    ducker.protect_new()
 
                 audio_chunk = np.frombuffer(
                     chunk.audio_int16_bytes,
