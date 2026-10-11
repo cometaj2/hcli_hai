@@ -47,7 +47,6 @@ class AI:
             self.contextmgr = c.ContextManager()
             self.provider = pr.Provider()
             self.initialized = True
-
             log.debug(f"AI initialization complete: config={bool(self.config)}, contextmgr={bool(self.contextmgr)}")
 
     # Consume the user prompt request into the context
@@ -127,55 +126,54 @@ class AI:
 
     # list all contexts
     def ls(self):
-        with self.rlock:
-            contexts = []
-            share = self.config.dot_hai_context
+        contexts = []
+        share = self.config.dot_hai_context
 
-            # Iterate through all items in the folder
-            for item in os.listdir(share):
-                item_path = os.path.join(share, item)
-                # Check if the item is a directory
-                if os.path.isdir(item_path):
+        # Iterate through all items in the folder
+        for item in os.listdir(share):
+            item_path = os.path.join(share, item)
+            # Check if the item is a directory
+            if os.path.isdir(item_path):
 
-                    context_file = os.path.join(item_path, 'context.json')
-                    if os.path.exists(context_file):
-                        try:
-                            with open(context_file, 'r') as f:
-                                context = c.Context(json.load(f))
-                                title = context.title
-                                name = context.name
-                                update_time = os.path.getmtime(context_file)
-                                contexts.append({
-                                    'context_id': item,
-                                    'title': title,
-                                    'name': name,
-                                    'update_time': update_time
-                                })
-                        except json.JSONDecodeError:
-                            # If there's an error reading the JSON, just use the directory name
+                context_file = os.path.join(item_path, 'context.json')
+                if os.path.exists(context_file):
+                    try:
+                        with open(context_file, 'r') as f:
+                            context = c.Context(json.load(f))
+                            title = context.title
+                            name = context.name
+                            update_time = os.path.getmtime(context_file)
                             contexts.append({
                                 'context_id': item,
-                                'title': 'N/A',
-                                'name': 'N/A',
-                                'update_time': os.path.getmtime(context_file) if os.path.exists(context_file) else 0
+                                'title': title,
+                                'name': name,
+                                'update_time': update_time
                             })
-                    else:
-                        # If context.json doesn't exist, use the directory name only
+                    except json.JSONDecodeError:
+                        # If there's an error reading the JSON, just use the directory name
                         contexts.append({
                             'context_id': item,
                             'title': 'N/A',
                             'name': 'N/A',
-                            'update_time': 0
+                            'update_time': os.path.getmtime(context_file) if os.path.exists(context_file) else 0
                         })
+                else:
+                    # If context.json doesn't exist, use the directory name only
+                    contexts.append({
+                        'context_id': item,
+                        'title': 'N/A',
+                        'name': 'N/A',
+                        'update_time': 0
+                    })
 
-            # Sort contexts by creation time, newest at the bottom of the list
-            sorted_contexts = sorted(contexts, key=lambda x: x['update_time'], reverse=False)
+        # Sort contexts by creation time, newest at the bottom of the list
+        sorted_contexts = sorted(contexts, key=lambda x: x['update_time'], reverse=False)
 
-            # Format the creation time and remove it from the final output
-            for context in sorted_contexts:
-                context['update_time'] = datetime.fromtimestamp(context['update_time']).strftime('%Y-%m-%d %H:%M:%S')
+        # Format the creation time and remove it from the final output
+        for context in sorted_contexts:
+            context['update_time'] = datetime.fromtimestamp(context['update_time']).strftime('%Y-%m-%d %H:%M:%S')
 
-            return sorted_contexts
+        return sorted_contexts
 
     # set the current context
     def set(self, context_id):
@@ -211,8 +209,7 @@ class AI:
 
     # get the current context ID
     def current(self):
-        with self.rlock:
-            return self.config.context
+        return self.config.context
 
     def generate_title(self, max_messages: int = 4):
         """
@@ -222,11 +219,6 @@ class AI:
         The title request/response is never added to the conversation context.
         """
         with self.rlock:
-            if self.config.model is None:
-                msg = "no model selected. select from the list of available models."
-                log.error(msg)
-                raise BadRequestError(detail=msg)
-
             all_messages = self.contextmgr.messages()
             if not all_messages:
                 return None
@@ -250,7 +242,7 @@ class AI:
 
             try:
                 response = self.provider.client.chat.completions.create(
-                    model=self.config.model,
+                    model=self.provider.get_model(),
                     messages=title_messages,
                     max_tokens=20,
                     temperature=0.2,
@@ -268,8 +260,7 @@ class AI:
 
     # get the context name
     def name(self):
-        with self.rlock:
-            return self.contextmgr.name()
+        return self.contextmgr.name()
 
     # set the context name
     def set_name(self, name):
@@ -278,8 +269,7 @@ class AI:
 
     # get the context title
     def title(self):
-        with self.rlock:
-            return self.contextmgr.title()
+        return self.contextmgr.title()
 
     # set the context title
     def set_title(self, title):
