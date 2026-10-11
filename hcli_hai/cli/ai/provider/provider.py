@@ -8,7 +8,6 @@ import config as c
 
 from hcli_problem_details import *
 
-
 log = logger.Logger()
 
 
@@ -22,12 +21,9 @@ class GuardedCompletions:
 
         requested_model = kwargs.get("model")
         if requested_model and requested_model != model:
-            raise BadRequestError(
-                detail=(
-                    f"Model '{requested_model}' is not the selected model. "
-                    f"Selected model: '{model}'."
-                )
-            )
+            msg="model " + requested_model + " is not the selected model. selected model: " + model + "."
+            log.error(msg)
+            raise BadRequestError(detail=msg)
 
         kwargs["model"] = model
         return self.completions.create(*args, **kwargs)
@@ -191,10 +187,11 @@ class Provider:
                 self.config.model = None
                 self.__init_provider()
 
-            except Exception:
+            except Exception as e:
+                raise e
+            finally:
                 self.config.provider = previous_provider
                 self.config.model = previous_model
-                raise
 
             msg = f"{self.config.provider} provider selected."
             log.info(msg)
