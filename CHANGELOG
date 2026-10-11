@@ -5,11 +5,14 @@ The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [4.0.0]
-- Add Ollama and GGUF models support
+- Add Ollama and GGUF models provider support
+- Add OpenAI provider support
+- Add X.AI provider support
 - Add python 3.13 and 3.14 support
 - Add better problem detail error handling responses to the client
 - Add better logging for various operations
 - Add agent orchestration and proposed bash command execution for clients (e.g. haillo)
+- Refactor to make use of a AI service provider class
 - Update tests to hcli_core 4.0.0 service configuration helper format and tox
 - Update tests to pin gunicorn to v23 to avoid v25 worker threadlock instability
 - Remove Anthropic support

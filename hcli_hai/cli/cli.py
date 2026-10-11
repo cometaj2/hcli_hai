@@ -120,7 +120,7 @@ class CLI:
 
     def _handle_provider(self) -> Optional[io.BytesIO]:
         if len(self.commands) == 2:
-            provider = self.service.provider()
+            provider = self.service.get_provider()
             return io.BytesIO((provider or "None").encode('utf-8'))
         if len(self.commands) == 3:
             if self.commands[2] == "--json":

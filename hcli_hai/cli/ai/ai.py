@@ -8,14 +8,15 @@ import traceback
 import shutil
 import time
 import threading
-
-import config as a
-import logger
-from ai import context as c
-from hcli_problem_details import *
-
-from datetime import datetime
 import openai
+
+import logger
+import config as a
+
+from ai import context as c
+from ai.provider import provider as pr
+from hcli_problem_details import *
+from datetime import datetime
 
 log = logger.Logger()
 
@@ -44,33 +45,10 @@ class AI:
             self.client = None
             self.config = a.Config()
             self.contextmgr = c.ContextManager()
-            if self.config.provider is not None:
-                self.__init_provider()
+            self.provider = pr.Provider()
             self.initialized = True
 
             log.debug(f"AI initialization complete: config={bool(self.config)}, contextmgr={bool(self.contextmgr)}")
-
-    def __init_provider(self):
-        with self.rlock:
-            log.debug("Initializing LLM service provider.")
-            if self.config.provider == "ollama":
-                self.client = openai.OpenAI(
-                    base_url=self.config.ollama_service_url,
-                    api_key="ollama",   # Ollama ignores the key
-                )
-                log.debug(f"using ollama at {self.config.ollama_service_url}")
-
-            elif self.config.provider == "xai":
-                self.client = openai.OpenAI(
-                    api_key=os.getenv("XAI_API_KEY"),
-                    base_url="https://api.x.ai/v1",
-                )
-                log.debug("using grok (xai) at https://api.x.ai/v1")
-
-            else:
-                msg = "no provider selected. select from the list of available providers."
-                log.error(msg)
-                raise BadRequestError(detail=msg)
 
     # Consume the user prompt request into the context
     def consume_request(self, text):
@@ -96,7 +74,7 @@ class AI:
                         model = self.config.model
 
                         messages = [msg for msg in self.contextmgr.messages()]
-                        response = self.client.chat.completions.create(
+                        response = self.provider.client.chat.completions.create(
                                                         model=model,
                                                         messages=messages
                                                    )
@@ -236,76 +214,6 @@ class AI:
         with self.rlock:
             return self.config.context
 
-    # list available models
-    def list_models(self):
-        with self.rlock:
-            try:
-                # OpenAI client data structure in support of both ollama and xai
-                installed_models = self.client.models.list()
-                models = {}
-
-                for model in installed_models.data:
-                    models[model.id] = {}
-
-                return models
-            except Exception as e:
-                log.error(traceback.format_exc())
-                msg = f"unable to list ollama models. is the ollama backend misconfigured ({self.config.ollama_service_url})?"
-                log.error(msg)
-                raise InternalServerError(detail=msg)
-
-    # get the model to use
-    def model(self):
-        return self.config.model
-
-    # set the model to use
-    def set_model(self, model):
-        with self.rlock:
-            models = self.list_models()
-            if model in models:
-                self.config.model = model
-                msg = f"{self.config.model} model selected."
-                log.info(msg)
-            else:
-                msg = "invalid model selected. select from the list of available models."
-                log.error(msg)
-                raise BadRequestError(detail=msg)
-
-    # list available providers
-    def list_providers(self):
-        with self.rlock:
-            try:
-                return self.config.providers
-            except Exception as e:
-                log.error(traceback.format_exc())
-                msg = f"unable to list LLM service providers. Is the configuration broken?"
-                log.error(msg)
-                raise InternalServerError(detail=msg)
-
-    # get the current LLM service provider to use
-    def provider(self):
-        with self.rlock:
-            return self.config.provider
-
-    # set the provider to use
-    def set_provider(self, provider):
-        with self.rlock:
-            providers = self.list_providers()
-            if provider in providers:
-                if self.config.provider != provider:
-                    self.config.model = None
-                self.config.provider = provider
-
-                if self.config.provider is not None:
-                    self.__init_provider()
-
-                msg = f"{self.config.provider} provider selected."
-                log.info(msg)
-            else:
-                msg = "invalid provider selected. select from the list of available providers."
-                log.error(msg)
-                raise BadRequestError(detail=msg)
-
     def generate_title(self, max_messages: int = 4):
         """
         Generate a concise title (<=10 words) using only the most recent messages.
@@ -341,7 +249,7 @@ class AI:
                              ]
 
             try:
-                response = self.client.chat.completions.create(
+                response = self.provider.client.chat.completions.create(
                     model=self.config.model,
                     messages=title_messages,
                     max_tokens=20,

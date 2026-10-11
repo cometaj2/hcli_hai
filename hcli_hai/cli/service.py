@@ -9,6 +9,7 @@ from ai import ai
 from ai import assistantrunner as asr
 from ai import orchestrator as orch
 from ai.router import froute
+from ai.provider import provider as p
 import threading
 
 from datetime import datetime
@@ -24,6 +25,7 @@ class Service:
     def __init__(self):
 
         self.ai = ai.AI()
+        self.provider = p.Provider()
 
         self.assistantrunner = asr.AssistantRunner()
         self.assistant_thread = threading.Thread(target=self.assistant)
@@ -100,23 +102,23 @@ class Service:
     def new(self):
         return self.ai.new()
 
-    def model(self):
-        return self.ai.model()
+    def get_model(self):
+        return self.provider.get_model()
 
     def list_models(self):
-        return self.ai.list_models()
+        return self.provider.list_models()
 
     def set_model(self, model):
-        return self.ai.set_model(model)
+        return self.provider.set_model(model)
 
-    def provider(self):
-        return self.ai.provider()
+    def get_provider(self):
+        return self.provider.get_provider()
 
     def list_providers(self):
-        return self.ai.list_providers()
+        return self.provider.list_providers()
 
     def set_provider(self, provider):
-        return self.ai.set_provider(provider)
+        return self.provider.set_provider(provider)
 
     def set(self, id):
         if self.assistantrunner.is_assisting() == True:

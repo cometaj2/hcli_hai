@@ -13,6 +13,7 @@ from hcli_problem_details import *
 from piper.voice import PiperVoice
 
 from ai.voice import voice as v
+from ai.provider import provider as pr
 
 log = logger.Logger()
 
@@ -39,6 +40,7 @@ class AssistantRunner:
             self.lock = threading.RLock()
             self.is_running = False
             self.config = a.Config()
+            self.provider = pr.Provider()
 
             self.model_path = self.config.assistant_tts_path
 
@@ -49,28 +51,6 @@ class AssistantRunner:
 
             self.previous_response = None
             self.voice = v.Voice()
-
-    def __init_provider(self):
-        with self.rlock:
-            log.debug("initializing llm service provider")
-            if self.config.provider == "ollama":
-                self.client = openai.OpenAI(
-                    base_url=self.config.ollama_service_url,
-                    api_key="ollama",   # Ollama ignores the key
-                )
-                log.debug(f"using ollama at {self.config.ollama_service_url}")
-
-            elif self.config.provider == "xai":
-                self.client = openai.OpenAI(
-                    api_key=os.getenv("XAI_API_KEY"),
-                    base_url="https://api.x.ai/v1",
-                )
-                log.debug("using grok (xai) at https://api.x.ai/v1")
-
-            else:
-                msg = "no provider selected. select from the list of available providers."
-                log.error(msg)
-                raise BadRequestError(detail=msg)
 
     def set_assist(self, should_assist):
         if should_assist == False:
@@ -143,10 +123,8 @@ class AssistantRunner:
             try:
                 model = self.config.model
 
-                if self.config.provider is not None and self.config.model is not None:
-                    self.__init_provider()
-
-                    response = self.client.chat.completions.create(
+                if self.provider.get_provider() is not None and self.provider.get_model() is not None:
+                    response = self.provider.client.chat.completions.create(
                                                     model=model,
                                                     messages=assistance
                                                )

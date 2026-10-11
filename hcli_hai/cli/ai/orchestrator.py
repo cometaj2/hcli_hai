@@ -8,6 +8,7 @@ import config as a
 from ai import ai
 from ai import plan as p
 from ai.policy import bash_error, empty_step
+from ai.provider import provider as pr
 from pathlib import Path
 
 log = logger.Logger()
@@ -44,6 +45,7 @@ class Orchestrator:
             self._is_vibing = False
             self.initialized = True
             self.ai = ai.AI()
+            self.provider = pr.Provider()
             self.plan = p.Plan()
             self.behavior = self._load_behavior()
 
@@ -290,25 +292,12 @@ class Orchestrator:
         }
 
     def _complete(self, messages):
-        model = self.config.model
-        if self.config.provider is None or model is None:
-            log.warning("no provider or model selected.")
-            return None
-
-        if self.config.provider == "ollama":
-            client = openai.OpenAI(base_url=self.config.ollama_service_url, api_key="ollama")
-        elif self.config.provider == "xai":
-            client = openai.OpenAI(api_key=os.getenv("XAI_API_KEY"), base_url="https://api.x.ai/v1")
-        else:
-            log.error("no provider selected.")
-            return None
-
-        kwargs = dict(model=model, messages=messages)
+        kwargs = dict(model=self.provider.get_model(), messages=messages)
         try:
-            response = client.chat.completions.create(response_format={"type": "json_object"}, **kwargs)
+            response = self.provider.client.chat.completions.create(response_format={"type": "json_object"}, **kwargs)
         except Exception as e:
             log.debug("json response_format unsupported; retrying without it: %s" % e)
-            response = client.chat.completions.create(**kwargs)
+            response = self.provider.client.chat.completions.create(**kwargs)
 
         text = response.choices[0].message.content
         log.info("model step: %s" % text)

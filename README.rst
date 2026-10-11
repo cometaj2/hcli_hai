@@ -3,7 +3,7 @@
 HCLI hai
 ========
 
-HCLI hai is a python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with the Ollama service and GGUF compatible models via terminal input and output streams.
+HCLI hai is a python package wrapper that contains an HCLI sample application (hai); hai is an HCLI for interacting with Ollama (remote or local), xAI, or OpenAI models via terminal input and output streams.
 
 ----
 

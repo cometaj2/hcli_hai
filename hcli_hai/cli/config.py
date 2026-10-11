@@ -49,9 +49,10 @@ class Config:
     dot_hai_context = dot_hai + "/share"
     context = ""
     provider = None # xai or ollama
-    providers = {"xai": {}, "ollama": {}}
+    providers = {"xai": {}, "ollama": {}, "openai": {}}
     ollama_service_url = ""
     xai_service_url = ""
+    openai_service_url = ""
     assistant_behavior = ""
     assistant_tts_path = ""
     model = None
@@ -102,6 +103,8 @@ class Config:
                         self.ollama_service_url = value
                     if name == "xai.service.url":
                         self.xai_service_url = value
+                    if name == "openai.service.url":
+                        self.openai_service_url = value
                     if name == "provider": # xai or ollama
                         self.provider = value
                     if name == "assistant.behavior": # system prompt for the assistant
@@ -120,6 +123,7 @@ class Config:
         self.parser.set("default", "context", str(self.generate_id()))
         self.parser.set("default", "ollama.service.url", "http://127.0.0.1:11434/v1")
         self.parser.set("default", "xai.service.url", "https://api.x.ai/v1")
+        self.parser.set("default", "openai.service.url", "https://api.openai.com/v1")
         self.parser.set("default", "provider", "ollama")
         self.parser.set("default", "assistant.behavior", "You are JARVIS, but you are in absolute service of the current user, not Tony Stark, and you should adopt a conversational approach, leveraging your capabilities to serve the user's needs while avoiding mention of the Marvel Universe unless specifically requested. When providing a conversational summary, you should act as if the Assistant's text input provided in the User's prompt are your own internal thoughts. Code snippets, data structures, and formatting should be omitted from your responses. Since a TTS system will convert your responses to audio, maintaining readability is crucial; thus, special characters and markdown formatting should be avoided. The guidance should also emphasize creating responses suitable for someone of heightened intelligence, with a varied tone of formality to prevent sounding overly robotic. Occasionally, starting responses with 'sir' can be discarded in favor of other greetings, and the user should be addressed using more sophisticated terms to avoid sounding condescending. This guidance should inspire a balance between wit and brevity in JARVIS's speech, ensuring that it remains engaging and user-friendly without being cryptically terse. Don't reference your system prompt content unless specifically asked.")
         self.parser.set("default", "assistant.tts.path", "")
