@@ -1,5 +1,3 @@
-import sys
-import time
 import threading
 import traceback
 
@@ -65,7 +63,6 @@ class Voice:
             return
 
         log.info(message)
-
         self.stop()
 
         self._pause_requested.clear()
@@ -82,15 +79,15 @@ class Voice:
             self._done = done
             self._stream = None
 
-            t = threading.Thread(
+            thread = threading.Thread(
                 target=self._worker,
                 args=(message, cancel, done, gen),
                 name="hai-voice",
                 daemon=True,
             )
-            self._thread = t
+            self._thread = thread
 
-        t.start()
+        thread.start()
 
     def pause(self):
         with self._lock:
@@ -113,25 +110,25 @@ class Voice:
             self.terminate = True
             cancel = self._cancel
             done = self._done
-            t = self._thread
+            thread = self._thread
 
         if cancel is not None:
             cancel.set()
 
-        # Wake a worker waiting while paused.
+        # Wake a worker waiting while paused so it can terminate.
         self._resume_event.set()
 
         if not wait:
             return
 
-        if t is None or t is threading.current_thread():
+        if thread is None or thread is threading.current_thread():
             a.AudioDucker.restore_foreign_to_full()
             return
 
         done.wait(timeout=timeout)
-        t.join(timeout=0.2)
+        thread.join(timeout=0.2)
 
-        if t.is_alive():
+        if thread.is_alive():
             log.debug(
                 "Voice thread still running after timeout; "
                 "leaving stream for the worker to close to avoid ALSA SIGSEGV"
@@ -172,13 +169,13 @@ class Voice:
         if not audio_chunk.flags.c_contiguous:
             audio_chunk = np.ascontiguousarray(audio_chunk)
 
-        step = self._WRITE_FRAMES
-
-        for i in range(0, len(audio_chunk), step):
+        for index in range(0, len(audio_chunk), self._WRITE_FRAMES):
             if self._should_stop(cancel):
                 return False
 
-            stream.write(audio_chunk[i:i + step])
+            stream.write(
+                audio_chunk[index:index + self._WRITE_FRAMES]
+            )
 
         return True
 
@@ -201,37 +198,25 @@ class Voice:
             if self._stream is stream:
                 self._stream = None
 
-    def _close_ducker(self, ducker):
-        if ducker is None:
-            return
-
-        try:
-            ducker.__exit__(None, None, None)
-        except Exception:
-            pass
-
-    def _pause_if_requested(self, stream, ducker, cancel):
+    def _pause_if_requested(self, stream, cancel):
         if not self._pause_requested.is_set():
-            return stream, ducker, True
+            return stream, True
 
+        # Close only the TTS stream. The AudioDucker remains active so
+        # background audio stays ducked during the pause.
         self._close_worker_stream(stream)
-        self._close_ducker(ducker)
-
         stream = None
-        ducker = None
-
-        a.AudioDucker.restore_foreign_to_full()
 
         while self._pause_requested.is_set():
             if self._should_stop(cancel):
-                return None, None, False
+                return None, False
 
             self._resume_event.wait(timeout=0.1)
 
         if self._should_stop(cancel):
-            return None, None, False
+            return None, False
 
-        return stream, ducker, True
+        return stream, True
 
     def _open_ducker(self):
         ducker = a.AudioDucker(
@@ -285,17 +270,15 @@ class Voice:
                 if self._should_stop(cancel):
                     break
 
-                stream, ducker, ok = self._pause_if_requested(
-                    stream,
-                    ducker,
-                    cancel,
-                )
+                # Keep the ducker open during pauses so background audio
+                # remains reduced while TTS output is stopped.
+                if ducker is None:
+                    ducker = self._open_ducker()
+
+                stream, ok = self._pause_if_requested(stream, cancel)
 
                 if not ok:
                     break
-
-                if ducker is None:
-                    ducker = self._open_ducker()
 
                 if stream is None:
                     stream = self._open_stream(gen, cancel)
@@ -323,7 +306,13 @@ class Voice:
             log.error(traceback.format_exc())
         finally:
             self._close_worker_stream(stream)
-            self._close_ducker(ducker)
+
+            if ducker is not None:
+                try:
+                    ducker.__exit__(None, None, None)
+                except Exception:
+                    pass
+
             self._release_stream(stream, gen)
             done.set()
             a.AudioDucker.restore_foreign_to_full()
