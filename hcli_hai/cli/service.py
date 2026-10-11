@@ -35,34 +35,37 @@ class Service:
         return
 
     def chat(self, inputstream):
-        is_vibing = self.orchestrator.is_vibing()
-        if is_vibing:
-            pending = self.orchestrator.pending_bash()
-            if pending:
-                # already emitted a command; do not plan again and do not talk
-                msg = "agent waiting for observation via hai agent next"
-                log.error(msg)
-                raise ConflictError(detail=msg)
+        try:
+            is_vibing = self.orchestrator.is_vibing()
+            if is_vibing:
+                pending = self.orchestrator.pending_bash()
+                if pending:
+                    # already emitted a command; do not plan again and do not talk
+                    msg = "agent waiting for observation via hai agent next"
+                    log.error(msg)
+                    raise ConflictError(detail=msg)
 
-        text = inputstream.read().decode('utf-8')
-        if text == "" or text is None:
-            return None
-
-        text = self.ai.consume_request(text)
-
-        if is_vibing:
-            decision = froute(text)
-            if decision == "do":
-                self.orchestrator.harness()
+            text = inputstream.read().decode('utf-8')
+            if text == "" or text is None:
                 return None
 
-        response = self.ai.process_request()
+            text = self.ai.consume_request(text)
 
-        if response is None:
-            return None
+            if is_vibing:
+                decision = froute(text)
+                if decision == "do":
+                    self.orchestrator.harness()
+                    return None
 
-        self.ai.commit_response(response)
-        return response
+            response = self.ai.process_request()
+
+            if response is None:
+                return None
+
+            self.ai.commit_response(response)
+            return response
+        except Exception as e:
+            raise e
 
     def async_chat(self, inputstream):
         data = inputstream.read()

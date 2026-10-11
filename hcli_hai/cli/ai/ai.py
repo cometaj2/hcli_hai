@@ -255,8 +255,7 @@ class AI:
                 return title
 
             except Exception as e:
-                log.error(traceback.format_exc())
-                return None
+                raise e
 
     # get the context name
     def name(self):

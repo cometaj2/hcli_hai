@@ -70,12 +70,17 @@ class CLI:
 
     def _handle_title(self) -> Optional[io.BytesIO]:
         if len(self.commands) == 2:
-            title = self.service.title()
-            return io.BytesIO((title or "None").encode('utf-8'))
+            response = self.service.title()
+            if response is not None:
+                return io.BytesIO((response).encode('utf-8'))
         if len(self.commands) == 3 and self.commands[2] == "auto":
-            self.service.auto_title()
+            response = self.service.auto_title()
+            if response is not None:
+                return io.BytesIO((response).encode('utf-8'))
         if len(self.commands) == 4 and self.commands[2] == "set":
-            self.service.set_title(self.commands[3])
+            response = self.service.set_title(self.commands[3])
+            if response is not None:
+                return io.BytesIO((response).encode('utf-8'))
 
         return None
 
@@ -100,11 +105,11 @@ class CLI:
 
     def _handle_model(self) -> Optional[io.BytesIO]:
         if len(self.commands) == 2:
-            model = self.service.model()
+            model = self.service.get_model()
             return io.BytesIO((model or "None").encode('utf-8'))
         if len(self.commands) == 3:
             if self.commands[2] == "--json":
-                model = self.service.model()
+                model = self.service.get_model()
                 return io.BytesIO(json.dumps([model or "None"], indent=4).encode('utf-8'))
             if self.commands[2] == "ls":
                 models = self.service.list_models()
