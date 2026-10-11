@@ -254,6 +254,28 @@ class AI:
                 log.info(f"Generated title: {title}")
                 return title
 
+            except openai.BadRequestError as e:
+
+                # Hard coded exception for newer OpenAI models like gpt-5.6-luna that
+                # don't handle max_tokens nor temperature
+                if "Use 'max_completion_tokens'" in str(e):
+                    log.warning("using 'max_completion_tokens' and removing 'temperature'")
+                    try:
+                        response = self.provider.client.chat.completions.create(
+                            model=self.provider.get_model(),
+                            messages=title_messages,
+                            max_completion_tokens=20,
+                        )
+
+                        raw_title = response.choices[0].message.content.strip()
+                        title = " ".join(raw_title.strip('"').split()[:10])
+
+                        log.info(f"Generated title: {title}")
+                        return title
+
+                    except Exception as e:
+                        raise e
+
             except Exception as e:
                 raise e
 
