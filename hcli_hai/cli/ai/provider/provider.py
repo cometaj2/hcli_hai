@@ -188,10 +188,9 @@ class Provider:
                 self.__init_provider()
 
             except Exception as e:
-                raise e
-            finally:
                 self.config.provider = previous_provider
                 self.config.model = previous_model
+                raise e
 
             msg = f"{self.config.provider} provider selected."
             log.info(msg)
