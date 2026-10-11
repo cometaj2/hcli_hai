@@ -11,7 +11,6 @@ import logger
 from utils import hutils
 from utils import formatting as f
 from hcli_problem_details import *
-from ai.policy import empty_step
 
 log = logger.Logger()
 

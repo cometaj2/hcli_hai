@@ -7,7 +7,6 @@ import inspect
 import logger
 from ai import ai
 from ai import assistantrunner as asr
-from ai import agentrunner as agr
 from ai import orchestrator as orch
 from ai.router import froute
 import threading
@@ -29,8 +28,6 @@ class Service:
         self.assistantrunner = asr.AssistantRunner()
         self.assistant_thread = threading.Thread(target=self.assistant)
         self.assistant_thread.start()
-
-        self.agentrunner = agr.AgentRunner()
         self.orchestrator = orch.Orchestrator()
 
         return
@@ -55,7 +52,6 @@ class Service:
             decision = froute(text)
             if decision == "do":
                 self.orchestrator.harness()
-                # plan is in hai agent plan; do not commit JSON into the chat transcript
                 return None
 
         response = self.ai.process_request()
@@ -163,7 +159,7 @@ class Service:
         finally:
             lock.release()
 
-    # Agent controls. The orchestrator plans tasks; AgentRunner executes the active task.
+    # Agent controls. The orchestrator plans tasks; AgentRunner executes the active step.
     def agent(self, should_vibe):
         self.orchestrator.set_vibe(should_vibe)
 
