@@ -342,15 +342,16 @@ class Orchestrator:
         goal = (plan.get("goal") or "").strip()
         observations = plan.get("observations") or []
 
-        if status == "done":
-            header = "**Task completed.**"
-        else:
-            header = "**Agent needs help.**"
+#         if status == "done":
+#             header = "**Task completed.**"
+#         else:
+#             header = "**Agent needs help.**"
+# 
+#         parts = [header]
+#         if goal:
+#             parts.append("**Goal:** %s" % goal)
 
-        parts = [header]
-        if goal:
-            parts.append("**Goal:** %s" % goal)
-
+        parts = []
         trace = []
         for i, item in enumerate(observations, 1):
             cmd = (item.get("bash") or "").strip()
@@ -359,7 +360,7 @@ class Orchestrator:
         if trace:
             parts.append("**Execution trace:**\n" + "\n\n".join(trace))
 
-        parts.append("**Result:**\n%s" % (say or ""))
+#         parts.append("**Result:**\n%s" % (say or ""))
 
         inceptive_user_message = self.ai.contextmgr.context._messages[-1]["content"]
         self.ai.contextmgr.context._messages.pop()
