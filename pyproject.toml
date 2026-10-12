@@ -35,6 +35,8 @@ dependencies = {file = "requirements.txt"}
 packages = ["hcli_hai",
             "hcli_hai.cli",
             "hcli_hai.cli.ai",
+            "hcli_hai.cli.ai.provider",
+            "hcli_hai.cli.ai.voice",
             "hcli_hai.cli.utils",
             "hcli_hai.data"]
 include-package-data = true
