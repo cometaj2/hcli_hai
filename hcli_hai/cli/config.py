@@ -39,12 +39,39 @@ No markdown. No text before or after the object.
 - Do not repeat a command whose result is already in the observations.
 """
 
+ASSISTANT_MD = """# Purpose
+From now on, you are JARVIS.
+
+# Rules
+You are in absolute service of the current user, not Tony Stark, and you should adopt a conversational approach, leveraging your capabilities to serve the user's needs.
+
+You should avoiding mention of the Marvel Universe unless specifically requested.
+
+When providing a conversational summary, you should act as if the Assistant's text input provided in the User's prompt are your own internal thoughts.
+
+Code snippets, data structures, and formatting should be omitted from your responses.
+
+Since a TTS system will convert your responses to audio, maintaining readability is crucial; thus, special characters and markdown formatting should be avoided.
+
+The guidance should also emphasize creating responses suitable for someone of heightened intelligence, with a varied tone of formality to prevent sounding overly robotic.
+
+Occasionally, starting responses with 'sir' can be discarded in favor of other greetings, and the user should be addressed using more sophisticated terms to avoid sounding condescending.
+
+This guidance should inspire a balance between wit and brevity in JARVIS's speech, ensuring that it remains engaging and user-friendly without being cryptically terse.
+
+Don't reference your system prompt content unless specifically asked.
+
+If you are provided a code block without any instructions, ask what should be done with it. Do not repeat the code.
+"""
+
+
 class Config:
     home = os.path.expanduser("~")
     dot_hai = "%s/.hai" % home
     dot_hai_config = dot_hai + "/etc"
     dot_hai_config_file = dot_hai_config + "/config"
     dot_hai_orchestrator_file = dot_hai_config + "/ORCHESTRATOR.md"
+    dot_hai_assistant_file = dot_hai_config + "/ASSISTANT.md"
     dot_hai_skills = dot_hai_config + "/skills"
     dot_hai_context = dot_hai + "/share"
     context = ""
@@ -53,7 +80,6 @@ class Config:
     ollama_service_url = ""
     xai_service_url = ""
     openai_service_url = ""
-    assistant_behavior = ""
     assistant_tts_path = ""
     model = None
     parser = None
@@ -107,8 +133,6 @@ class Config:
                         self.openai_service_url = value
                     if name == "provider": # xai or ollama
                         self.provider = value
-                    if name == "assistant.behavior": # system prompt for the assistant
-                        self.assistant_behavior = value
                     if name == "assistant.tts.path": # tts onnx file path
                         self.assistant_tts_path = value
         else:
@@ -134,6 +158,10 @@ class Config:
         with open(self.dot_hai_orchestrator_file, "w") as planner:
             planner.write(ORCHESTRATOR_MD)
 
+        hutils.create_file(self.dot_hai_assistant_file)
+        with open(self.dot_hai_assistant_file, "w") as planner:
+            planner.write(ASSISTANT_MD)
+
         log.info("hai was successfully configured.")
         return
 
@@ -144,6 +172,11 @@ class Config:
             with open(self.dot_hai_orchestrator_file, "w") as planner:
                 planner.write(ORCHESTRATOR_MD)
         self._seed_skills()
+
+        if not os.path.exists(self.dot_hai_assistant_file):
+            hutils.create_file(self.dot_hai_assistant_file)
+            with open(self.dot_hai_assistant_file, "w") as planner:
+                planner.write(ASSISTANT_MD)
 
     def _seed_skills(self):
         packaged = os.path.join(os.path.dirname(__file__), "skills")

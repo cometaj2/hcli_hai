@@ -11,6 +11,7 @@ import numpy as np
 import sounddevice as sd
 from hcli_problem_details import *
 from piper.voice import PiperVoice
+from pathlib import Path
 
 from ai.voice import voice as v
 from ai.provider import provider as pr
@@ -42,7 +43,6 @@ class AssistantRunner:
             self.config = a.Config()
             self.provider = pr.Provider()
 
-            self.model_path = self.config.assistant_tts_path
 
             self._is_assisting = False
             self.initialized = True
@@ -51,6 +51,9 @@ class AssistantRunner:
 
             self.previous_response = None
             self.voice = v.Voice()
+
+            self.model_path = self.config.assistant_tts_path
+            self.behavior = self._load_behavior()
 
     def set_assist(self, should_assist):
         if should_assist == False:
@@ -112,7 +115,8 @@ class AssistantRunner:
             q_content = messages[-2]['content']
             a_content = messages[-1]['content']
 
-            assistance = [{"role": "system", "content": self.config.assistant_behavior}]
+            assistance = [{"role": "system", "content": self.behavior}]
+            print(assistance)
             if self.previous_response is None:
                 question = { "role" : "user", "content" : "user question: " + q_content + "\n\nMy assistant response to the user question and thoughts to communicate: " + a_content }
             else:
@@ -182,6 +186,12 @@ class AssistantRunner:
         self.is_running = False
         self.terminate = False
         self.voice.stop()
+
+    def _load_behavior(self):
+        path = self.config.dot_hai_assistant_file
+        if os.path.exists(path):
+            return Path(path).read_text(encoding="utf-8")
+        return a.ASSISTANT_MD
 
 class TerminationException(Exception):
     pass
