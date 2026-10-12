@@ -145,7 +145,15 @@ class Service:
 
     # AssistantRunner controls
     def assist(self, should_assist):
-        self.assistantrunner.set_assist(should_assist)
+        data = should_assist
+
+        t = threading.Thread(
+            target=self.assistantrunner.set_assist,
+            args=(data,),
+            daemon=True
+        )
+
+        t.start()
 
     def pause_voice(self):
         self.assistantrunner.pause_voice()
@@ -172,7 +180,15 @@ class Service:
 
     # Agent controls. The orchestrator plans tasks; AgentRunner executes the active step.
     def agent(self, should_vibe):
-        self.orchestrator.set_vibe(should_vibe)
+        data = should_vibe
+
+        t = threading.Thread(
+            target=self.orchestrator.set_vibe,
+            args=(data,),
+            daemon=True
+        )
+
+        t.start()
 
     def status(self):
         return self.orchestrator.status()
