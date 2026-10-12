@@ -116,7 +116,6 @@ class AssistantRunner:
             a_content = messages[-1]['content']
 
             assistance = [{"role": "system", "content": self.behavior}]
-            print(assistance)
             if self.previous_response is None:
                 question = { "role" : "user", "content" : "user question: " + q_content + "\n\nMy assistant response to the user question and thoughts to communicate: " + a_content }
             else:
