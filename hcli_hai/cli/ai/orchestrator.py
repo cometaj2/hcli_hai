@@ -397,12 +397,12 @@ class Orchestrator:
                     except json.JSONDecodeError:
                         skills.append({
                             'skill_id': Path(item_path).name,
-                            'description': 'N/A']
+                            'description': 'N/A'
                         })
                 else:
                     skills.append({
                         'skill_id': Path(item_path).name,
-                        'description': 'N/A']
+                        'description': 'N/A'
                     })
         return skills
 
