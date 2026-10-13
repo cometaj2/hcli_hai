@@ -162,9 +162,18 @@ class CLI:
             elif self.commands[2] == "next":
                 response = self.service.async_next(self.inputstream)
                 return io.BytesIO("".encode("utf-8"))
-        if len(self.commands) == 4 and self.commands[2] == "next" and self.commands[3] == "mark":
-            response = self.service.mark()
-            return io.BytesIO("".encode("utf-8"))
+        if len(self.commands) == 4:
+            if self.commands[2] == "skills" and self.commands[3] == "ls":
+                response = self.service.list_skills()
+                return io.BytesIO(formatting.format_frontmatter_rows(response).encode('utf-8'))
+            if self.commands[2] == "skills" and self.commands[3] == "set":
+                response = self.service.set_skill(self.commands[4])
+                return io.BytesIO("".encode("utf-8"))
+        if len(self.commands) == 5:
+            if self.commands[2] == "skills" and self.commands[3] == "ls":
+                if self.commands[4] == "--json":
+                    return io.BytesIO(json.dumps(self.service.list_skills(), indent=4).encode('utf-8'))
+
         return None
 
     def _handle_assist(self) -> None:

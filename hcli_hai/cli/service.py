@@ -219,3 +219,9 @@ class Service:
 
     def is_vibing(self):
         return self.orchestrator.is_vibing()
+
+    def list_skills(self):
+        return self.orchestrator.list_skills()
+
+    def set_skill(self):
+        return self.orchestrator.set_skill()

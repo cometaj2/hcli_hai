@@ -1,4 +1,4 @@
-__version__ = "4.0.0"
+__version__ = "4.1.0"
 dependencies = ["tiktoken==0.12.0",
                 "openai==3.6.0",
                 "piper-tts==1.7.0",
@@ -6,6 +6,7 @@ dependencies = ["tiktoken==0.12.0",
                 "pulsectl==24.12.0",
                 "numpy==2.4.4",
                 "bashlex==0.18",
+                "frontmatter==3.0.8",
                 "huckle>=5.7.0,<6.0.0",
                 "hcli_problem_details>=0.2.0,<1.0.0",
                 "hcli_core>=4.0.0,<5.0.0"]

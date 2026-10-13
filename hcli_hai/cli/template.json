@@ -126,6 +126,22 @@
             "http": "post"
         },
         {
+            "command": "hai agent skills",
+            "http": "get"
+        },
+        {
+            "command": "hai agent skills ls",
+            "http": "get"
+        },
+        {
+            "command": "hai agent skills ls --json",
+            "http": "get"
+        },
+        {
+            "command": "hai agent skills set {p}",
+            "http": "post"
+        },
+        {
             "command": "hai agent next mark",
             "http": "post"
         },
@@ -689,6 +705,11 @@
                     "description": "Get agent harness processing status."
                 },
                 {
+                    "href": "haiagentskills",
+                    "name": "skills",
+                    "description": "Work with agent harness skills catalog."
+                },
+                {
                     "href": "haiagenttask",
                     "name": "task",
                     "description": "Get agent task."
@@ -769,13 +790,90 @@
                 },
                 {
                     "name": "synopsis",
-                    "description": "hai agent enabled"
+                    "description": "hai agent status"
                 },
                 {
                     "name": "description",
                     "description": "The \"status\" command allows you get status on whether the agent harness is 'inactive', 'busy', or ready for 'next'."
                 }
             ]
+        },
+        {
+            "id": "haiagentskills",
+            "name": "skills",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "skills - work with agent harness skills to steer agent behavior."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai agent skills"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"skills\" command allows you to work with the harness' skills catalog to help steer agent behavior."
+                }
+            ],
+            "command": [
+                {
+                    "href": "haiagentskillsls",
+                    "name": "ls",
+                    "description": "List agent harness skills stored in hai's home /etc/skills folder."
+                },
+                {
+                    "href": "haiagentskillsset",
+                    "name": "set",
+                    "description": "Sets a selected agent harness skill as per available skill in the skills catalog."
+                }
+            ]
+        },
+        {
+            "id": "haiagentskillsls",
+            "name": "ls",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "ls - List agent harness skills stored in hait's home /etc/skills folder."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai agent skills ls"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"ls\" command allows you to list the harness' skills catalog to help select a behavior to steer the agent."
+                }
+            ],
+            "option": [
+                {
+                    "href": "haiagentskillsls--json",
+                    "name": "--json",
+                    "description": "Return a JSON formatted output."
+                }
+            ]
+
+        },
+        {
+            "id": "haiagentskillsset",
+            "name": "set",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "set - sets the current LLM service provider."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai agent skills set <skill>"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"set\" command sets a skill for the agent to use when the harness is active."
+                }
+            ],
+            "parameter": {
+                "href": "haiagentskillssetparameter"
+            }
         },
         {
             "id": "haiagenttask",

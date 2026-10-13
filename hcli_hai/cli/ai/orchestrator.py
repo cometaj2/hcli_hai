@@ -10,6 +10,7 @@ from ai import plan as p
 from ai.policy import bash_error, empty_step
 from ai.provider import provider as pr
 from pathlib import Path
+from frontmatter import Frontmatter
 
 log = logger.Logger()
 
@@ -373,3 +374,37 @@ class Orchestrator:
             return None
 
         self.ai.commit_response(response)
+
+    # list all skills
+    def list_skills(self):
+        skills = []
+        etc = self.config.dot_hai_skills
+
+        # Iterate through all items in the folder
+        for item in os.listdir(etc):
+            item_path = os.path.join(etc, item)
+            # Check if the item is a directory
+            if os.path.isdir(item_path):
+                skill_file_path = os.path.join(item_path, 'SKILL.md')
+                if os.path.exists(skill_file_path):
+                    try:
+                        post = Frontmatter.read_file(skill_file_path)
+                        print(post)
+                        skills.append({
+                            'skill_id': Path(item_path).name,
+                            'description': post['attributes']['description']
+                        })
+                    except json.JSONDecodeError:
+                        skills.append({
+                            'skill_id': Path(item_path).name,
+                            'description': 'N/A']
+                        })
+                else:
+                    skills.append({
+                        'skill_id': Path(item_path).name,
+                        'description': 'N/A']
+                    })
+        return skills
+
+    def set_skill(self, skill):
+        return ""

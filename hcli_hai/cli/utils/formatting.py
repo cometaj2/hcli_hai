@@ -49,3 +49,35 @@ def format_rows(contexts):
 
     # Join rows with newlines
     return "\n".join(rows)
+
+# Format a single row with fixed-width columns for context_id, update_time, and name.
+# The title is output in full without any width constraints or trailing dots.
+def format_frontmatter_row(skill_id, description):
+
+    # Fixed column widths
+    id_width = 32
+
+    # Format fixed columns
+    id_formatted = skill_id[:id_width].ljust(id_width)
+
+    # Output the row with full title (no truncation or trailing dots)
+    return f"{id_formatted}  {description}"
+
+# Format multiple context rows with a header.
+# The title column is not constrained and has no trailing dots.
+def format_frontmatter_rows(contexts):
+
+    # Create header
+    header = format_frontmatter_row("SKILL_ID", "DESCRIPTION")
+
+    # Format each row
+    rows = [header]
+    for ctx in contexts:
+        row = format_frontmatter_row(
+            ctx.get("skill_id", ""),
+            ctx.get("description", "")
+        )
+        rows.append(row)
+
+    # Join rows with newlines
+    return "\n".join(rows)
