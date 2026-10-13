@@ -5,20 +5,26 @@ The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [4.0.0]
-- Add Ollama and GGUF models provider support
+- Add Ollama and GGUF model provider support
 - Add OpenAI provider support
 - Add X.AI provider support
-- Add summarizing voice assistance (start, stop, pause, resume)
+- Add provider selection and dynamic model discovery
+- Add summarizing voice assistance with start, stop, pause, and resume controls
 - Add audio ducking during voice assistance
-- Add python 3.13 and 3.14 support
+- Add agent orchestration and proposed bash command execution for clients (e.g. haillo)
+- Add task routing and minimal built-in Git, local, web, and HCLI agent skills
+- Add automatic and manual conversation titles
+- Add asynchronous chat support
+- Add context reset support
 - Add better problem detail error handling responses to the client
 - Add better logging for various operations
-- Add agent orchestration and proposed bash command execution for clients (e.g. haillo)
-- Refactor to make use of a AI service provider class
-- Update tests to hcli_core 4.0.0 service configuration helper format and tox
-- Update tests to pin gunicorn to v23 to avoid v25 worker threadlock instability
+- Refactor to use a unified AI service provider
+- Update CLI commands, including replacing `vibe` with `agent` and `clear` with `reset`
+- Update tests to use the hcli_core 4.0.0 service configuration helper format and tox
+- Update tests to pin Gunicorn to v23 to avoid v25 worker threadlock instability
+- Add Python 3.13 and 3.14 support
 - Remove Anthropic support
-- Remove prepended hai: string in problem details for the hcli client
+- Remove the prepended `hai:` string in problem details for the hcli client
 
 ## [3.4.2]
 - Fix to remove outstanding vibe status if the runner stops
