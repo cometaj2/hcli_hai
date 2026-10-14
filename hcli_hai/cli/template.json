@@ -126,19 +126,19 @@
             "http": "post"
         },
         {
-            "command": "hai agent skills",
+            "command": "hai agent skill",
             "http": "get"
         },
         {
-            "command": "hai agent skills ls",
+            "command": "hai agent skill ls",
             "http": "get"
         },
         {
-            "command": "hai agent skills ls --json",
+            "command": "hai agent skill ls --json",
             "http": "get"
         },
         {
-            "command": "hai agent skills set {p}",
+            "command": "hai agent skill set {p}",
             "http": "post"
         },
         {
@@ -705,9 +705,9 @@
                     "description": "Get agent harness processing status."
                 },
                 {
-                    "href": "haiagentskills",
-                    "name": "skills",
-                    "description": "Work with agent harness skills catalog."
+                    "href": "haiagentskill",
+                    "name": "skill",
+                    "description": "Work with the agent harness skills."
                 },
                 {
                     "href": "haiagenttask",
@@ -799,37 +799,37 @@
             ]
         },
         {
-            "id": "haiagentskills",
-            "name": "skills",
+            "id": "haiagentskill",
+            "name": "skill",
             "section": [
                 {
                     "name": "name",
-                    "description": "skills - work with agent harness skills to steer agent behavior."
+                    "description": "skill - work with agent harness skill to steer agent behavior."
                 },
                 {
                     "name": "synopsis",
-                    "description": "hai agent skills"
+                    "description": "hai agent skill"
                 },
                 {
                     "name": "description",
-                    "description": "The \"skills\" command allows you to work with the harness' skills catalog to help steer agent behavior."
+                    "description": "The \"skill\" command allows you to work with the harness' skills catalog to help steer agent behavior."
                 }
             ],
             "command": [
                 {
-                    "href": "haiagentskillsls",
+                    "href": "haiagentskillls",
                     "name": "ls",
                     "description": "List agent harness skills stored in hai's home /etc/skills folder."
                 },
                 {
-                    "href": "haiagentskillsset",
+                    "href": "haiagentskillset",
                     "name": "set",
-                    "description": "Sets a selected agent harness skill as per available skill in the skills catalog."
+                    "description": "Sets a selected agent harness skill as per available skills in the catalog."
                 }
             ]
         },
         {
-            "id": "haiagentskillsls",
+            "id": "haiagentskillls",
             "name": "ls",
             "section": [
                 {
@@ -838,7 +838,7 @@
                 },
                 {
                     "name": "synopsis",
-                    "description": "hai agent skills ls"
+                    "description": "hai agent skill ls"
                 },
                 {
                     "name": "description",
@@ -847,7 +847,7 @@
             ],
             "option": [
                 {
-                    "href": "haiagentskillsls--json",
+                    "href": "haiagentskillls--json",
                     "name": "--json",
                     "description": "Return a JSON formatted output."
                 }
@@ -855,12 +855,12 @@
 
         },
         {
-            "id": "haiagentskillsset",
+            "id": "haiagentskillset",
             "name": "set",
             "section": [
                 {
                     "name": "name",
-                    "description": "set - sets the current LLM service provider."
+                    "description": "set - sets a selected skill to use by the agent."
                 },
                 {
                     "name": "synopsis",
@@ -872,7 +872,7 @@
                 }
             ],
             "parameter": {
-                "href": "haiagentskillssetparameter"
+                "href": "haiagentskillsetparameter"
             }
         },
         {
