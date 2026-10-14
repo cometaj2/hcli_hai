@@ -223,5 +223,5 @@ class Service:
     def list_skills(self):
         return self.orchestrator.list_skills()
 
-    def set_skill(self):
-        return self.orchestrator.set_skill()
+    def set_skill(self, skill):
+        return self.orchestrator.set_skill(skill)

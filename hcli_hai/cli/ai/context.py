@@ -18,40 +18,40 @@ log = logger.Logger()
 # We create a default context and allow for it to be initialized in a few different ways to facilitate initialization from file
 class Context:
 
-    def __init__(self, model=None):
+    def __init__(self, context=None):
         self.rlock = threading.RLock()
         self._title = ""
         self._name = ""
         self._messages = [{"role": "system", "content": ""}]
 
         # If model is provided, load it
-        if model is not None:
+        if context is not None:
             with self.rlock:
-                self.__load_model(model)
+                self.__load_model(context)
 
-    def __load_model(self, model):
-        if isinstance(model, str):
+    def __load_model(self, context):
+        if isinstance(context, str):
             try:
-                data = json.loads(model)
+                data = json.loads(context)
                 self.__load_dict(data)
             except json.JSONDecodeError:
                 log.error("Invalid JSON string provided")
                 raise ValueError("Invalid JSON string provided")
 
-        # If model is already a dictionary
-        elif isinstance(model, dict):
-            self.__load_dict(model)
+        # If context is already a dictionary
+        elif isinstance(context, dict):
+            self.__load_dict(context)
 
-        # If model is another object
+        # If context is another object
         else:
             with self.rlock:
                 for key, value in vars(model).items():
                     if not key.startswith('_'):  # Skip private attributes
                         setattr(self, key, value)
 
-    def __load_dict(self, data):
+    def __load_dict(self, context):
         with self.rlock:
-            for key, value in data.items():
+            for key, value in context.items():
                 if not key.startswith('_'):  # Skip private attributes
                     setattr(self, key, value)
 

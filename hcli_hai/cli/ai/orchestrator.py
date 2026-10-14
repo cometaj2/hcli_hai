@@ -389,10 +389,9 @@ class Orchestrator:
                 if os.path.exists(skill_file_path):
                     try:
                         post = Frontmatter.read_file(skill_file_path)
-                        print(post)
                         skills.append({
                             'skill_id': Path(item_path).name,
-                            'description': post['attributes']['description']
+                            'description': post['attributes']['description'].rstrip()
                         })
                     except json.JSONDecodeError:
                         skills.append({
@@ -406,5 +405,10 @@ class Orchestrator:
                     })
         return skills
 
+    def get_skill(self, skill):
+        return self.config.skill
+
     def set_skill(self, skill):
-        return ""
+        with self.rlock:
+            self.config.skill = skill
+            log.info(f"skill id {skill} is set.")

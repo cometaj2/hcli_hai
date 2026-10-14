@@ -81,9 +81,12 @@ class Config:
     xai_service_url = ""
     openai_service_url = ""
     assistant_tts_path = ""
-    model = None
     parser = None
     instance = None
+
+    # Ephemeral attributes
+    model = None
+    skill = None
 
     def __new__(cls):
         if cls.instance is None:
@@ -149,7 +152,6 @@ class Config:
         self.parser.set("default", "xai.service.url", "https://api.x.ai/v1")
         self.parser.set("default", "openai.service.url", "https://api.openai.com/v1")
         self.parser.set("default", "provider", "ollama")
-        self.parser.set("default", "assistant.behavior", "You are JARVIS, but you are in absolute service of the current user, not Tony Stark, and you should adopt a conversational approach, leveraging your capabilities to serve the user's needs while avoiding mention of the Marvel Universe unless specifically requested. When providing a conversational summary, you should act as if the Assistant's text input provided in the User's prompt are your own internal thoughts. Code snippets, data structures, and formatting should be omitted from your responses. Since a TTS system will convert your responses to audio, maintaining readability is crucial; thus, special characters and markdown formatting should be avoided. The guidance should also emphasize creating responses suitable for someone of heightened intelligence, with a varied tone of formality to prevent sounding overly robotic. Occasionally, starting responses with 'sir' can be discarded in favor of other greetings, and the user should be addressed using more sophisticated terms to avoid sounding condescending. This guidance should inspire a balance between wit and brevity in JARVIS's speech, ensuring that it remains engaging and user-friendly without being cryptically terse. Don't reference your system prompt content unless specifically asked. If you are provided a code block without any instructions, never start reading the code, ask what should be done with it.")
         self.parser.set("default", "assistant.tts.path", "")
         with open(self.dot_hai_config_file, "w") as config:
             self.parser.write(config)

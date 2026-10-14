@@ -52,7 +52,7 @@ class AI:
     # Consume the user prompt request into the context
     def consume_request(self, text):
         with self.rlock:
-            if self.config.model is not None:
+            if self.provider.get_model() is not None:
                 if text != "":
                     text = text.rstrip()
                     question = { "role" : "user", "content" : text }
@@ -67,11 +67,10 @@ class AI:
     # Process the completion to return a response without adding to the context.
     def process_request(self):
         with self.rlock:
-            if self.config.model is not None:
+            if self.provider.get_model() is not None:
                 if self.contextmgr.counter.total_tokens != 0:
                     try:
-                        model = self.config.model
-
+                        model = self.provider.get_model()
                         messages = [msg for msg in self.contextmgr.messages()]
                         response = self.provider.client.chat.completions.create(
                                                         model=model,
