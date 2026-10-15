@@ -210,6 +210,32 @@ class Orchestrator:
                 executed.add(bash)
         return executed
 
+    def _load_selected_skill(self):
+        skill = getattr(self.config, "skill", None)
+        if not skill:
+            return ""
+
+        skills_root = Path(self.config.dot_hai_skills).resolve()
+        skill_dir = (skills_root / skill).resolve()
+        skill_file = skill_dir / "SKILL.md"
+
+        # Prevent a skill value from escaping the skills directory.
+        try:
+            skill_file.relative_to(skills_root)
+        except ValueError:
+            log.warning("invalid skill path: %s", skill)
+            return ""
+
+        if not skill_file.is_file():
+            log.warning("selected skill not found: %s", skill_file)
+            return ""
+
+        try:
+            return skill_file.read_text(encoding="utf-8")
+        except OSError as e:
+            log.warning("could not read selected skill %s: %s", skill_file, e)
+            return ""
+
     def _next_step(self, goal, observations, already=None, forbidden=None):
         """Direct model call with explicit history. No AgentRunner task/evidence scaffolding."""
         already = already or set()
@@ -222,8 +248,23 @@ class Orchestrator:
         history_text = "\n\n".join(history) if history else "(no observations yet)"
         already_text = ", ".join(sorted(already)) if already else "(none)"
 
+        skill_text = self._load_selected_skill()
+
+        skill_block = ""
+        if skill_text:
+            skill_block = (
+                "\n\n# Selected skill\n"
+                "The following SKILL.md contains instructions and procedures for this task. "
+                "Use it when deciding the next command. Follow the harness constraints below "
+                "even if the skill suggests otherwise.\n"
+                "<skill>\n"
+                + skill_text
+                + "\n</skill>"
+            )
+
         system = (
             self.behavior
+            + skill_block
             + "\n\n# Live constraints (enforced by harness)\n"
             + "Emit exactly one next step as a JSON object.\n"
             + "If there are no observations yet, you MUST emit status=continue with the first useful command.\n"
