@@ -407,18 +407,13 @@ class Orchestrator:
         return self.public()
 
     def _join(self, status, say):
-        # Minimal join back into the conversation. Keep the existing hijack pattern
-        # so the chat transcript sees the result; clean this up later if desired.
+
+        # We join the agent run back into the conversation
+        # with skill applied as needed.
+
         plan = self.plan.get_state()
         goal = (plan.get("goal") or "").strip()
         observations = plan.get("observations") or []
-
-#         if status == "done":
-#             header = "**Task completed.**"
-#         else:
-#             header = "**Agent needs help.**"
-#
-#         parts = [header]
 
         parts = []
         if goal:
@@ -432,13 +427,8 @@ class Orchestrator:
         if trace:
             parts.append("**Execution trace:**\n" + "\n\n".join(trace))
 
-#         parts.append("**Result:**\n%s" % (say or ""))
-
         inceptive_user_message = self.ai.contextmgr.context._messages[-1]["content"]
-#        self.ai.contextmgr.context._messages.pop()
         harnessed_user_message = inceptive_user_message + "\n\n" + "\n\n".join(parts)
-
-#        self.ai.consume_request(harnessed_user_message)
         response = self.process_request(harnessed_user_message)
 
         if response is None:
@@ -487,31 +477,30 @@ class Orchestrator:
 
     # Process the completion to return a response without adding to the context.
     def process_request(self, message):
-        with self.rlock:
-            if self.provider.get_model() is not None:
-                if len(message) != 0:
-                    try:
-                        request = [
-                            {"role": "system", "content": self._load_skill_system()},
-                            {"role": "user", "content": message},
-                        ]
+        if self.provider.get_model() is not None:
+            if len(message) != 0:
+                try:
+                    request = [
+                        {"role": "system", "content": self._load_skill_system()},
+                        {"role": "user", "content": message},
+                    ]
 
-                        model = self.provider.get_model()
-                        messages = request
+                    model = self.provider.get_model()
+                    messages = request
 
-                        response = self.provider.client.chat.completions.create(
-                                                        model=model,
-                                                        messages=messages
-                                                   )
-                        return response.choices[0].message.content
-                    except Exception as e:
-                        log.error(traceback.format_exc())
-                        return None
-                else:
+                    response = self.provider.client.chat.completions.create(
+                                                    model=model,
+                                                    messages=messages
+                                               )
+                    return response.choices[0].message.content
+                except Exception as e:
+                    log.error(traceback.format_exc())
                     return None
-
             else:
-                msg = "no model selected. select from the list of available models."
-                log.error(msg)
-                raise BadRequestError(detail=msg)
+                return None
+
+        else:
+            msg = "no model selected. select from the list of available models."
+            log.error(msg)
+            raise BadRequestError(detail=msg)
 
