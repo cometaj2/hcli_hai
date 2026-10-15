@@ -184,7 +184,7 @@ class AI:
                 log.info(f"context id {context_id} is set.")
             else:
                 msg = f"provided context id {context_id} was not found in available contexts."
-                log.error(msg)
+                log.warning(msg)
                 raise NotFoundError(detail=msg)
 
     # create a new context
@@ -202,9 +202,14 @@ class AI:
     def rm(self, context_id):
         with self.rlock:
             context_folder = os.path.join(self.config.dot_hai_context, context_id)
+
             if os.path.exists(context_folder):
                 shutil.rmtree(context_folder)
                 log.info("Removed " + context_folder)
+            else:
+                msg = f"provided context id {context_id} was not found in available contexts."
+                log.warning(msg)
+                raise NotFoundError(detail=msg)
 
     # get the current context ID
     def current(self):

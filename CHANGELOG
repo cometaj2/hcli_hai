@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [4.1.0]
 - Add skills file handling for agentic workflows
+- Add HAI_HOME environment variable alternative home support
+- Add hai cli command pytests
 
 ## [4.0.0]
 - Add Ollama and GGUF model provider support

@@ -66,8 +66,8 @@ If you are provided a code block without any instructions, ask what should be do
 
 
 class Config:
-    home = os.path.expanduser("~")
-    dot_hai = "%s/.hai" % home
+    home = os.getenv('HAI_HOME') or os.path.expanduser("~")
+    dot_hai = os.path.join(home, ".hai")
     dot_hai_config = dot_hai + "/etc"
     dot_hai_config_file = dot_hai_config + "/config"
     dot_hai_orchestrator_file = dot_hai_config + "/ORCHESTRATOR.md"

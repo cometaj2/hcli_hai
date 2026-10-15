@@ -15,10 +15,14 @@ def gunicorn_server():
     mkdir ~/.huckle_test
     rm -rf ~/.hcli_core_test
     mkdir ~/.hcli_core_test
+    rm -rf ~/.hai_test
+    mkdir ~/.hai_test
     export HCLI_CORE_HOME_TEST=$HCLI_CORE_HOME
     export HCLI_CORE_HOME=~/.hcli_core_test
     export HUCKLE_HOME_TEST=$HUCKLE_HOME
     export HUCKLE_HOME=~/.huckle_test
+    export HAI_HOME_TEST=$HAI_HOME
+    export HAI_HOME=~/.hai_test
     eval $(huckle env)
 
     echo "Cleanup preexisting huckle hcli installations..."
@@ -71,13 +75,15 @@ def cleanup():
 
     rm -rf ~/.huckle_test
     rm -rf ~/.hcli_core_test
+    rm -rf ~/.hai_test
     export HUCKLE_HOME=$HUCKLE_HOME_TEST
     export HCLI_CORE_HOME=$HCLI_CORE_HOME_TEST
+    export HAI_HOME=$HAI_HOME_TEST
 
     # Force kill any remaining processes
 
     #ps aux | grep '[g]unicorn' | awk '{print $2}' | xargs pkill -9 -f
-    pkill -9 -f 'gunicorn.*hcli_core:connector'
+    pkill -9 -f '[g]unicorn.*18080 hcli_core:connector'
     """
 
     # Run cleanup and capture output
@@ -112,6 +118,30 @@ def cleanup():
         os.remove('./credentials')
     if os.path.exists('./credentials.lock'):
         os.remove('./credentials.lock')
+    if os.path.exists('./contexts.json'):
+        os.remove('./contexts.json')
+    if os.path.exists('./contexts.txt'):
+        os.remove('./contexts.txt')
+    if os.path.exists('./context.json'):
+        os.remove('./context.json')
+    if os.path.exists('error.txt'):
+        os.remove('error.txt')
+    if os.path.exists('new.json'):
+        os.remove('new.json')
+    if os.path.exists('new.json'):
+        os.remove('new.json')
+    if os.path.exists('providers.json'):
+        os.remove('providers.json')
+    if os.path.exists('skills.json'):
+        os.remove('skills.json')
+    if os.path.exists('help.txt'):
+        os.remove('help.txt')
+    if os.path.exists('output.txt'):
+        os.remove('output.txt')
+    if os.path.exists('providers.txt'):
+        os.remove('providers.txt')
+    if os.path.exists('skills.txt'):
+        os.remove('skills.txt')
 
     # Verify files are gone
     assert not os.path.exists('./gunicorn-error.log'), "gunicorn-error.log still exists"
