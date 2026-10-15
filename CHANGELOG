@@ -5,8 +5,8 @@ The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [4.1.0]
-- Add skills file handling for agentic workflows
 - Add HAI_HOME environment variable alternative home support
+- Add skills handling for agentic workflows
 - Add hai cli command pytests
 
 ## [4.0.0]

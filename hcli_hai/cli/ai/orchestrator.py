@@ -3,7 +3,6 @@ import threading
 import os
 import re
 import json
-import openai
 import config as a
 from ai import ai
 from ai import plan as p
@@ -11,6 +10,9 @@ from ai.policy import bash_error, empty_step
 from ai.provider import provider as pr
 from pathlib import Path
 from frontmatter import Frontmatter
+import traceback
+from hcli_problem_details import BadRequestError
+
 
 log = logger.Logger()
 
@@ -49,12 +51,61 @@ class Orchestrator:
             self.provider = pr.Provider()
             self.plan = p.Plan()
             self.behavior = self._load_behavior()
+            self.system = None
 
     def _load_behavior(self):
         path = self.config.dot_hai_orchestrator_file
         if os.path.exists(path):
             return Path(path).read_text(encoding="utf-8")
         return a.ORCHESTRATOR_MD
+
+    def _load_harness_system(self):
+        with self.rlock:
+            if self.system is not None:
+                return self.system
+
+            skill_text = self._load_selected_skill()
+
+            skill_block = ""
+            if skill_text:
+                skill_block = (
+                    "\n\n# Selected skill\n"
+                    "The following SKILL.md contains instructions and procedures for this task. "
+                    "Use it when deciding the next command. Follow the harness constraints below "
+                    "even if the skill suggests otherwise.\n"
+                    "<skill>\n"
+                    + skill_text
+                    + "\n</skill>"
+                )
+
+            self.system = (
+                self.behavior
+                + skill_block
+                + "\n\n# Live constraints (enforced by harness)\n"
+                + "Emit exactly one next step as a JSON object.\n"
+                + "If there are no observations yet, you MUST emit status=continue with the first useful command.\n"
+                + "Do not emit need_help merely because nothing has been observed.\n"
+                + "Never re-emit a command that has already been executed.\n"
+                + "Output one JSON object with keys status, goal, why, bash, say. Nothing else."
+            )
+
+            return self.system
+
+    def _load_skill_system(self):
+        skill_text = self._load_selected_skill()
+
+        skill_block = ""
+        if skill_text:
+            skill_block = (
+                "\n\n# Selected skill\n"
+                "The following SKILL.md contains instructions and procedures for this task. "
+                "Use it when meeting the user's stated goal.\n"
+                "<skill>\n"
+                + skill_text
+                + "\n</skill>"
+            )
+
+        return skill_block
 
     def set_vibe(self, should_vibe):
         with self.rlock:
@@ -64,6 +115,7 @@ class Orchestrator:
                 log.info("orchestrator started.")
             else:
                 log.info("orchestrator stopped.")
+                self.system = None
 
     def is_vibing(self):
         with self.rlock:
@@ -122,6 +174,7 @@ class Orchestrator:
             log.info("orchestrator starting bare-bones harness.")
             self.plan.clear()
             self._set_plan_status("planning", user)
+
             return self._advance()
 
     def next(self, observation):
@@ -147,6 +200,7 @@ class Orchestrator:
             # Clear the pending step so _advance can emit a new one or finish.
             self.plan.clear_step()
             log.info("orchestrator advancing after observation.")
+
             return self._advance()
 
     def _set_plan_status(self, plan_status, goal=None):
@@ -248,31 +302,6 @@ class Orchestrator:
         history_text = "\n\n".join(history) if history else "(no observations yet)"
         already_text = ", ".join(sorted(already)) if already else "(none)"
 
-        skill_text = self._load_selected_skill()
-
-        skill_block = ""
-        if skill_text:
-            skill_block = (
-                "\n\n# Selected skill\n"
-                "The following SKILL.md contains instructions and procedures for this task. "
-                "Use it when deciding the next command. Follow the harness constraints below "
-                "even if the skill suggests otherwise.\n"
-                "<skill>\n"
-                + skill_text
-                + "\n</skill>"
-            )
-
-        system = (
-            self.behavior
-            + skill_block
-            + "\n\n# Live constraints (enforced by harness)\n"
-            + "Emit exactly one next step as a JSON object.\n"
-            + "If there are no observations yet, you MUST emit status=continue with the first useful command.\n"
-            + "Do not emit need_help merely because nothing has been observed.\n"
-            + "Never re-emit a command that has already been executed.\n"
-            + "Output one JSON object with keys status, goal, why, bash, say. Nothing else."
-        )
-
         user = (
             "Goal:\n%s\n\n"
             "Observations so far:\n%s\n\n"
@@ -291,7 +320,7 @@ class Orchestrator:
             )
 
         text = self._complete([
-            {"role": "system", "content": system},
+            {"role": "system", "content": self._load_harness_system()},
             {"role": "user", "content": user},
         ])
         if text is None:
@@ -388,12 +417,13 @@ class Orchestrator:
 #             header = "**Task completed.**"
 #         else:
 #             header = "**Agent needs help.**"
-# 
+#
 #         parts = [header]
-#         if goal:
-#             parts.append("**Goal:** %s" % goal)
 
         parts = []
+        if goal:
+            parts.append("**Goal:** %s" % goal)
+
         trace = []
         for i, item in enumerate(observations, 1):
             cmd = (item.get("bash") or "").strip()
@@ -405,11 +435,11 @@ class Orchestrator:
 #         parts.append("**Result:**\n%s" % (say or ""))
 
         inceptive_user_message = self.ai.contextmgr.context._messages[-1]["content"]
-        self.ai.contextmgr.context._messages.pop()
+#        self.ai.contextmgr.context._messages.pop()
         harnessed_user_message = inceptive_user_message + "\n\n" + "\n\n".join(parts)
 
-        self.ai.consume_request(harnessed_user_message)
-        response = self.ai.process_request()
+#        self.ai.consume_request(harnessed_user_message)
+        response = self.process_request(harnessed_user_message)
 
         if response is None:
             return None
@@ -452,4 +482,36 @@ class Orchestrator:
     def set_skill(self, skill):
         with self.rlock:
             self.config.skill = skill
+            self.system = None
             log.info(f"skill id {skill} is set.")
+
+    # Process the completion to return a response without adding to the context.
+    def process_request(self, message):
+        with self.rlock:
+            if self.provider.get_model() is not None:
+                if len(message) != 0:
+                    try:
+                        request = [
+                            {"role": "system", "content": self._load_skill_system()},
+                            {"role": "user", "content": message},
+                        ]
+
+                        model = self.provider.get_model()
+                        messages = request
+
+                        response = self.provider.client.chat.completions.create(
+                                                        model=model,
+                                                        messages=messages
+                                                   )
+                        return response.choices[0].message.content
+                    except Exception as e:
+                        log.error(traceback.format_exc())
+                        return None
+                else:
+                    return None
+
+            else:
+                msg = "no model selected. select from the list of available models."
+                log.error(msg)
+                raise BadRequestError(detail=msg)
+
