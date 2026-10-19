@@ -43,9 +43,7 @@ class AssistantRunner:
             self.config = a.Config()
             self.provider = pr.Provider()
 
-
             self._is_assisting = False
-            self.initialized = True
             self.terminate = False
             self.assist_key = None
 
@@ -54,6 +52,8 @@ class AssistantRunner:
 
             self.model_path = self.config.assistant_tts_path
             self.behavior = self._load_behavior()
+
+            self.initialized = True
 
     def set_assist(self, should_assist):
         if should_assist == False:

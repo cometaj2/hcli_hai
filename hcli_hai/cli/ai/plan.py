@@ -13,13 +13,16 @@ class Step:
     say: str = ""
 
 
+
 @dataclass
 class PlanState:
+    run_id: str = ""
     goal: str = ""
     plan_status: str = "idle"
     step: Step = field(default_factory=Step)
     observations: List[Dict[str, str]] = field(default_factory=list)
     say: str = ""
+
 
 
 class Plan:
@@ -66,6 +69,7 @@ class Plan:
             if status == "continue":
                 say = ""
             return {
+                "run_id": self._state.run_id,
                 "status": status,
                 "goal": self._state.goal,
                 "say": say,
@@ -112,6 +116,7 @@ class Plan:
 
     def _from_dict(self, data: Dict[str, Any]) -> PlanState:
         state = PlanState(
+            run_id=data.get("run_id", ""),
             goal=data.get("goal", ""),
             plan_status=data.get("plan_status", "idle"),
             say=data.get("say", ""),
@@ -129,9 +134,15 @@ class Plan:
 
     def _to_dict(self, state: PlanState) -> Dict[str, Any]:
         return {
+            "run_id": state.run_id,
             "goal": state.goal,
             "plan_status": state.plan_status,
             "step": asdict(state.step),
             "observations": list(state.observations),
             "say": state.say,
         }
+
+    def set_run_id(self, run_id: str) -> None:
+        with self._lock:
+            self._state.run_id = run_id or ""
+
