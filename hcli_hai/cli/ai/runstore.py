@@ -4,7 +4,7 @@ import os
 import re
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 
@@ -16,8 +16,12 @@ _SECRET_PATTERNS = (
 )
 
 
-def utc_now():
-    return datetime.now(timezone.utc).isoformat()
+def local_now():
+    """
+    Return the current local time as an ISO 8601 timestamp including the
+    local UTC offset.
+    """
+    return datetime.now().astimezone().isoformat()
 
 
 def redact(value):
@@ -214,7 +218,7 @@ class RunStore:
                 "originating_message_sha256": (
                     originating_message_sha256
                 ),
-                "created_at": utc_now(),
+                "created_at": local_now(),
             }
 
             self._append_path(
@@ -259,7 +263,7 @@ class RunStore:
                 or clean_event.get("event")
                 or "event"
             )
-            clean_event["recorded_at"] = utc_now()
+            clean_event["recorded_at"] = local_now()
 
             for field in (
                 "bash",
@@ -303,7 +307,7 @@ class RunStore:
                 "response_message_index": (
                     response_message_index
                 ),
-                "completed_at": utc_now(),
+                "completed_at": local_now(),
             },
         )
 

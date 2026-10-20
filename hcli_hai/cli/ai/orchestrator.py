@@ -1002,22 +1002,17 @@ class Orchestrator:
 
             return None
 
+
         compact_trace = []
 
         for index, item in enumerate(
             observations,
             1,
         ):
-            command = " ".join(
-                (item.get("bash") or "").strip().split()
-            )
-            observation = " ".join(
-                (item.get("result") or "").strip().split()
-            )
-
+            command = (item.get("bash") or "").strip()
+            observation = (item.get("result") or "").strip()
             if len(observation) > 160:
                 observation = observation[:157] + "..."
-
             compact_trace.append(
                 "%d. `%s` -> %s"
                 % (
@@ -1026,13 +1021,12 @@ class Orchestrator:
                     observation or "(empty)",
                 )
             )
-
         if compact_trace:
             response_trace = (
-                "**Execution trace:**\n"
-                "Run: `%s`\n"
+                "**Execution trace:**\n\n"
+                "Run: `%s`\n\n"
                 % run_id
-                + "\n".join(compact_trace)
+                + "\n\n".join(compact_trace)
             )
         else:
             response_trace = (
@@ -1040,7 +1034,6 @@ class Orchestrator:
                 "Run: `%s`; no commands executed."
                 % run_id
             )
-
         final_response = (
             response.rstrip()
             + "\n\n"
