@@ -34,6 +34,7 @@ dependencies = {file = "requirements.txt"}
 [tool.setuptools]
 packages = ["hcli_hai",
             "hcli_hai.cli",
+            "hcli_hai.cli.skills",
             "hcli_hai.cli.ai",
             "hcli_hai.cli.ai.provider",
             "hcli_hai.cli.ai.voice",

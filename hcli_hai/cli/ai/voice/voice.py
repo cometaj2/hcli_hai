@@ -259,9 +259,9 @@ class Voice:
                 return
 
             syn = SynthesisConfig(
-                length_scale=1.08,
-                noise_scale=0.28,
-                noise_w_scale=0.35,
+                length_scale=1.15,
+                noise_scale=0.28,        # 0.28
+                noise_w_scale=0.35,      # 0.35
                 normalize_audio=True,
             )
 
