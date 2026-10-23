@@ -136,6 +136,8 @@ class Config:
                         self.openai_service_url = value
                     if name == "provider": # xai or ollama
                         self.provider = value
+                    if name == "model":
+                        self.model = value or None
                     if name == "assistant.tts.path": # tts onnx file path
                         self.assistant_tts_path = value
         else:
@@ -152,6 +154,7 @@ class Config:
         self.parser.set("default", "xai.service.url", "https://api.x.ai/v1")
         self.parser.set("default", "openai.service.url", "https://api.openai.com/v1")
         self.parser.set("default", "provider", "ollama")
+        self.parser.set("default", "model", "")
         self.parser.set("default", "assistant.tts.path", "")
         with open(self.dot_hai_config_file, "w") as config:
             self.parser.write(config)
