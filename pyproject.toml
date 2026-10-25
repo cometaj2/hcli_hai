@@ -46,4 +46,4 @@ include-package-data = true
 "hcli_hai" = ["**/*"]
 
 [tool.setuptools.exclude-package-data]
-"*" = ["*.pyc", "*.pyo", "*.pyd", "__pycache__"]
+"*" = ["*.pyc", "*.pyo", "*.pyd", "**/__pycache__", "**/__pycache__/*"]

@@ -162,14 +162,42 @@ class CLI:
             elif self.commands[2] == "next":
                 response = self.service.async_next(self.inputstream)
                 return io.BytesIO("".encode("utf-8"))
+
         if len(self.commands) == 4:
+            if self.commands[2] == "artifact":
+                if self.commands[3] == "ls":
+                    artifacts = self.service.list_artifacts()
+                    return io.BytesIO(json.dumps(artifacts, indent=4).encode('utf-8'))
+
+                if self.inputstream:
+                    response = self.service.artifact(
+                        self.inputstream,
+                        self.commands[3]
+                    )
+                    return io.BytesIO(json.dumps(response, indent=4).encode('utf-8'))
+
             if self.commands[2] == "skill" and self.commands[3] == "ls":
                 response = self.service.list_skills()
                 return io.BytesIO(formatting.format_frontmatter_rows(response).encode('utf-8'))
+
         if len(self.commands) == 5:
+            if self.commands[2] == "artifact" and self.commands[3] == "pull":
+                response = self.service.pull_artifact(self.commands[4])
+
+                if isinstance(response, tuple):
+                    metadata, inputstream = response
+                else:
+                    inputstream = response
+
+                try:
+                    return io.BytesIO(inputstream.read())
+                finally:
+                    inputstream.close()
+
             if self.commands[2] == "skill" and self.commands[3] == "ls":
                 if self.commands[4] == "--json":
                     return io.BytesIO(json.dumps(self.service.list_skills(), indent=4).encode('utf-8'))
+
             if self.commands[2] == "skill" and self.commands[3] == "set":
                 response = self.service.set_skill(self.commands[4])
                 return io.BytesIO("".encode("utf-8"))

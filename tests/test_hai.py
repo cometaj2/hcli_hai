@@ -503,3 +503,142 @@ def test_hai_help_exposes_primary_commands(
     """
 
     run_hai_script(hello)
+
+def test_hai_agent_artifact_in_adds_and_lists_artifact(
+    gunicorn_server,
+    cleanup,
+):
+    hello = """
+    hai new > /dev/null
+    hai agent artifact in reset > /dev/null
+
+    printf 'input artifact content\\n' | hai agent artifact in input.txt > /dev/null
+    hai agent artifact in ls > artifacts.txt
+
+    test -s artifacts.txt
+    grep -q "input.txt" artifacts.txt
+    """
+
+    run_hai_script(hello)
+
+
+def test_hai_agent_artifact_in_rm_removes_artifact(
+    gunicorn_server,
+    cleanup,
+):
+    hello = """
+    hai new > /dev/null
+    hai agent artifact in reset > /dev/null
+
+    artifact_id=$(printf 'input artifact content\\n' | hai agent artifact in input.txt)
+
+    test -n "$artifact_id"
+
+    hai agent artifact in ls > artifacts.txt
+    grep -q "input.txt" artifacts.txt
+
+    hai agent artifact in rm "$artifact_id" > /dev/null
+    hai agent artifact in ls > artifacts_after_rm.txt
+
+    ! grep -q "input.txt" artifacts_after_rm.txt
+    """
+
+    run_hai_script(hello)
+
+
+def test_hai_agent_artifact_in_reset_removes_all_artifacts(
+    gunicorn_server,
+    cleanup,
+):
+    hello = """
+    hai new > /dev/null
+    hai agent artifact in reset > /dev/null
+
+    printf 'first input artifact\\n' | hai agent artifact in first.txt > /dev/null
+    printf 'second input artifact\\n' | hai agent artifact in second.txt > /dev/null
+
+    hai agent artifact in ls > artifacts.txt
+    grep -q "first.txt" artifacts.txt
+    grep -q "second.txt" artifacts.txt
+
+    hai agent artifact in reset > /dev/null
+    hai agent artifact in ls > artifacts_after_reset.txt
+
+    ! grep -q "first.txt" artifacts_after_reset.txt
+    ! grep -q "second.txt" artifacts_after_reset.txt
+    """
+
+    run_hai_script(hello)
+
+
+def test_hai_agent_artifact_out_is_available(
+    gunicorn_server,
+    cleanup,
+):
+    hello = """
+    hai new > /dev/null
+    hai agent artifact out > artifacts.txt
+
+    test -f artifacts.txt
+    """
+
+    run_hai_script(hello)
+
+
+def test_hai_agent_artifact_out_ls_is_available(
+    gunicorn_server,
+    cleanup,
+):
+    hello = """
+    hai new > /dev/null
+    hai agent artifact out ls > artifacts.txt
+
+    test -f artifacts.txt
+    """
+
+    run_hai_script(hello)
+
+
+def test_hai_agent_artifact_out_reset_is_available(
+    gunicorn_server,
+    cleanup,
+):
+    hello = """
+    hai new > /dev/null
+    hai agent artifact out reset > /dev/null
+    hai agent artifact out ls > artifacts.txt
+
+    test -f artifacts.txt
+    """
+
+    run_hai_script(hello)
+
+
+def test_hai_agent_artifact_out_pull_rejects_unknown_artifact(
+    gunicorn_server,
+    cleanup,
+):
+    hello = """
+    hai new > /dev/null
+
+    if hai agent artifact out pull DOES_NOT_EXIST > output.txt 2> error.txt; then
+        exit 1
+    fi
+    """
+
+    run_hai_script(hello)
+
+
+def test_hai_agent_artifact_out_rm_rejects_unknown_artifact(
+    gunicorn_server,
+    cleanup,
+):
+    hello = """
+    hai new > /dev/null
+
+    if hai agent artifact out rm DOES_NOT_EXIST > output.txt 2> error.txt; then
+        exit 1
+    fi
+    """
+
+    run_hai_script(hello)

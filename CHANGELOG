@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [4.2.0]
+- Add agent artifact support
+- Fix new setuptool warnings about __pycache__ packages and exclusion
+
 ## [4.1.0]
 - Add HAI_HOME environment variable alternative home support
 - Add skills handling for agentic workflows

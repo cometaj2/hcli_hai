@@ -10,6 +10,7 @@ from ai import plan as p
 from ai.policy import bash_error, empty_step
 from ai.provider import provider as pr
 from ai.runstore import RunStore
+from ai.artifactstore import ArtifactStore
 
 from pathlib import Path
 from frontmatter import Frontmatter
@@ -80,6 +81,7 @@ class Orchestrator:
             self.provider = pr.Provider()
             self.plan = p.Plan()
             self.run_store = RunStore()
+            self.artifacts = ArtifactStore()
 
             self.behavior = self._load_behavior()
             self.system = None
@@ -1197,3 +1199,37 @@ class Orchestrator:
 
         log.error(msg)
         raise BadRequestError(detail=msg)
+
+    def add_artifact(self, inputstream, filename=None):
+        if inputstream is None:
+            raise BadRequestError(
+                detail="an artifact must be provided on stdin"
+            )
+
+        context_id = self.ai.current()
+
+        return self.artifacts.add_input(
+            context_id=context_id,
+            stream=inputstream,
+            filename=filename,
+        )
+
+    def list_artifacts(self):
+        context_id = self.ai.current()
+        return self.artifacts.list_output(context_id)
+
+    def pull_artifact(self, artifact_id):
+        context_id = self.ai.current()
+
+        result = self.artifacts.open_output(
+            context_id=context_id,
+            artifact_id=artifact_id,
+        )
+
+        if result is None:
+            raise BadRequestError(
+                detail=f"artifact not found: {artifact_id}"
+            )
+
+        return result
+

@@ -225,3 +225,15 @@ class Service:
 
     def set_skill(self, skill):
         return self.orchestrator.set_skill(skill)
+
+    def artifact(self, inputstream, filename=None):
+        return self.orchestrator.add_artifact(
+            inputstream=inputstream,
+            filename=filename,
+        )
+
+    def list_artifacts(self):
+        return self.orchestrator.list_artifacts()
+
+    def pull_artifact(self, artifact_id):
+        return self.orchestrator.pull_artifact(artifact_id)

@@ -1,0 +1,11 @@
+hai agent artifact in <name>
+hai agent artifact in ls
+hai agent artifact in rm <artifact id>
+hai agent artifact in reset
+
+hai agent artifact out
+hai agent artifact out ls
+hai agent artifact out pull <artifact id>
+hai agent artifact out rm <artifact id>
+hai agent artifact out reset
+
