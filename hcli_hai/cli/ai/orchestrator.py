@@ -1200,7 +1200,7 @@ class Orchestrator:
         log.error(msg)
         raise BadRequestError(detail=msg)
 
-    def add_artifact(self, inputstream, filename=None):
+    def add_input_artifact(self, inputstream, filename=None):
         if inputstream is None:
             raise BadRequestError(
                 detail="an artifact must be provided on stdin"
@@ -1208,17 +1208,36 @@ class Orchestrator:
 
         context_id = self.ai.current()
 
-        return self.artifacts.add_input(
+        return self.artifacts.add_input_artifact(
             context_id=context_id,
             stream=inputstream,
             filename=filename,
         )
 
-    def list_artifacts(self):
+    def list_input_artifacts(self):
+        context_id = self.ai.current()
+        return self.artifacts.list_input(context_id)
+
+    def remove_input_artifact(self, artifact_id):
+        context_id = self.ai.current()
+
+        return self.artifacts.remove_input(
+            context_id=context_id,
+            artifact_id=artifact_id,
+        )
+
+    def reset_input_artifacts(self):
+        context_id = self.ai.current()
+
+        return self.artifacts.reset_input(
+            context_id=context_id,
+        )
+
+    def list_output_artifacts(self):
         context_id = self.ai.current()
         return self.artifacts.list_output(context_id)
 
-    def pull_artifact(self, artifact_id):
+    def pull_output_artifact(self, artifact_id):
         context_id = self.ai.current()
 
         result = self.artifacts.open_output(
@@ -1233,3 +1252,23 @@ class Orchestrator:
 
         return result
 
+    def remove_output_artifact(self, artifact_id):
+        context_id = self.ai.current()
+
+        return self.artifacts.remove_output(
+            context_id=context_id,
+            artifact_id=artifact_id,
+        )
+
+    def reset_output_artifacts(self):
+        context_id = self.ai.current()
+
+        return self.artifacts.reset_output(
+            context_id=context_id,
+        )
+
+    def list_artifacts(self):
+        return self.list_output_artifacts()
+
+    def pull_artifact(self, artifact_id):
+        return self.pull_output_artifact(artifact_id)

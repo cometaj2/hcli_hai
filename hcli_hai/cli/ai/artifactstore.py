@@ -1,9 +1,10 @@
+import hashlib
 import json
 import mimetypes
 import os
 import re
 import shutil
-import uuid
+import tempfile
 import config as a
 
 from pathlib import Path
@@ -33,55 +34,83 @@ class ArtifactStore:
         name = re.sub(r"[^A-Za-z0-9._-]", "_", name)
         return name or "artifact"
 
-    def add_input(self, context_id, stream, filename=None):
-        artifact_id = uuid.uuid4().hex
+    def add_input_artifact(self, context_id, stream, filename=None):
         filename = self._safe_name(filename)
+        input_dir = self._input_dir(context_id)
 
-        artifact_dir = self._input_dir(context_id) / artifact_id
-        artifact_dir.mkdir(parents=True, exist_ok=False)
-
-        data_path = artifact_dir / filename
-        metadata_path = artifact_dir / "metadata.json"
-
+        temporary_path = None
+        digest = hashlib.sha1()
         size = 0
 
-        with data_path.open("wb") as output:
-            while True:
-                chunk = stream.read(1024 * 1024)
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="wb",
+                dir=input_dir,
+                prefix=".artifact-",
+                delete=False,
+            ) as temporary_file:
+                temporary_path = Path(temporary_file.name)
 
-                if not chunk:
-                    break
+                while True:
+                    chunk = stream.read(1024 * 1024)
 
-                output.write(chunk)
-                size += len(chunk)
+                    if not chunk:
+                        break
 
-        metadata = {
-            "artifact_id": artifact_id,
-            "filename": filename,
-            "size": size,
-            "mime_type": (
-                mimetypes.guess_type(filename)[0]
-                or "application/octet-stream"
-            ),
-            "kind": "input",
-        }
+                    temporary_file.write(chunk)
+                    digest.update(chunk)
+                    size += len(chunk)
 
-        metadata_path.write_text(
-            json.dumps(metadata, indent=2),
-            encoding="utf-8",
-        )
+            artifact_id = digest.hexdigest()
+            artifact_dir = input_dir / artifact_id
+            data_path = artifact_dir / filename
+            metadata_path = artifact_dir / "metadata.json"
 
-        return metadata
+            try:
+                artifact_dir.mkdir(parents=False, exist_ok=False)
+            except FileExistsError:
+                existing = self._find_input(context_id, artifact_id)
 
-    def list_output(self, context_id):
-        output_dir = self._output_dir(context_id)
+                if existing is not None:
+                    return existing[0]["artifact_id"]
+
+                raise
+
+            os.replace(temporary_path, data_path)
+            temporary_path = None
+
+            metadata = {
+                "artifact_id": artifact_id,
+                "filename": filename,
+                "size": size,
+                "mime_type": (
+                    mimetypes.guess_type(filename)[0]
+                    or "application/octet-stream"
+                ),
+                "kind": "input",
+            }
+
+            metadata_path.write_text(
+                json.dumps(metadata, indent=2),
+                encoding="utf-8",
+            )
+
+            return metadata["artifact_id"]
+        finally:
+            if temporary_path is not None:
+                try:
+                    temporary_path.unlink()
+                except FileNotFoundError:
+                    pass
+
+    def _list(self, artifact_dir):
         artifacts = []
 
-        for artifact_dir in sorted(output_dir.iterdir()):
-            if not artifact_dir.is_dir():
+        for artifact_path in sorted(artifact_dir.iterdir()):
+            if not artifact_path.is_dir():
                 continue
 
-            metadata_path = artifact_dir / "metadata.json"
+            metadata_path = artifact_path / "metadata.json"
 
             if not metadata_path.is_file():
                 continue
@@ -97,30 +126,95 @@ class ArtifactStore:
 
         return artifacts
 
-    def _find_output(self, context_id, artifact_id):
-        if not re.fullmatch(r"[A-Za-z0-9_-]+", artifact_id or ""):
+    def list_input(self, context_id):
+        return self._list(self._input_dir(context_id))
+
+    def list_output(self, context_id):
+        return self._list(self._output_dir(context_id))
+
+    def _find(self, artifact_dir, artifact_id):
+        if not re.fullmatch(r"[0-9a-f]{40}", artifact_id or ""):
             return None
 
-        artifact_dir = self._output_dir(context_id) / artifact_id
+        artifact_path = artifact_dir / artifact_id
 
-        if not artifact_dir.is_dir():
+        if not artifact_path.is_dir():
             return None
 
-        metadata_path = artifact_dir / "metadata.json"
+        metadata_path = artifact_path / "metadata.json"
 
         if not metadata_path.is_file():
             return None
 
-        metadata = json.loads(
-            metadata_path.read_text(encoding="utf-8")
-        )
+        try:
+            metadata = json.loads(
+                metadata_path.read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError):
+            return None
 
-        data_path = artifact_dir / metadata["filename"]
+        if metadata.get("artifact_id") != artifact_id:
+            return None
+
+        filename = self._safe_name(metadata.get("filename"))
+
+        if not filename or filename != metadata.get("filename"):
+            return None
+
+        data_path = artifact_path / filename
 
         if not data_path.is_file():
             return None
 
         return metadata, data_path
+
+    def _find_input(self, context_id, artifact_id):
+        return self._find(
+            self._input_dir(context_id),
+            artifact_id,
+        )
+
+    def _find_output(self, context_id, artifact_id):
+        return self._find(
+            self._output_dir(context_id),
+            artifact_id,
+        )
+
+    def remove_input(self, context_id, artifact_id):
+        artifact_dir = self._input_dir(context_id) / artifact_id
+
+        if self._find_input(context_id, artifact_id) is None:
+            return False
+
+        shutil.rmtree(artifact_dir)
+        return True
+
+    def remove_output(self, context_id, artifact_id):
+        artifact_dir = self._output_dir(context_id) / artifact_id
+
+        if self._find_output(context_id, artifact_id) is None:
+            return False
+
+        shutil.rmtree(artifact_dir)
+        return True
+
+    def reset_input(self, context_id):
+        input_dir = self._input_dir(context_id)
+
+        for artifact_dir in input_dir.iterdir():
+            if artifact_dir.is_dir():
+                shutil.rmtree(artifact_dir)
+
+        return True
+
+    def reset_output(self, context_id):
+        output_dir = self._output_dir(context_id)
+
+        for artifact_dir in output_dir.iterdir():
+            if artifact_dir.is_dir():
+                shutil.rmtree(artifact_dir)
+
+        return True
 
     def open_output(self, context_id, artifact_id):
         result = self._find_output(context_id, artifact_id)

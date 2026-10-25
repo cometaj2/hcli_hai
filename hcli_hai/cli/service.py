@@ -226,14 +226,29 @@ class Service:
     def set_skill(self, skill):
         return self.orchestrator.set_skill(skill)
 
-    def artifact(self, inputstream, filename=None):
-        return self.orchestrator.add_artifact(
+    def add_input_artifact(self, inputstream, filename=None):
+        return self.orchestrator.add_input_artifact(
             inputstream=inputstream,
             filename=filename,
         )
 
-    def list_artifacts(self):
-        return self.orchestrator.list_artifacts()
+    def list_input_artifacts(self):
+        return self.orchestrator.list_input_artifacts()
 
-    def pull_artifact(self, artifact_id):
-        return self.orchestrator.pull_artifact(artifact_id)
+    def remove_input_artifact(self, artifact_id):
+        return self.orchestrator.remove_input_artifact(artifact_id)
+
+    def reset_input_artifacts(self):
+        return self.orchestrator.reset_input_artifacts()
+
+    def list_output_artifacts(self):
+        return self.orchestrator.list_output_artifacts()
+
+    def pull_output_artifact(self, artifact_id):
+        return self.orchestrator.pull_output_artifact(artifact_id)
+
+    def remove_output_artifact(self, artifact_id):
+        return self.orchestrator.remove_output_artifact(artifact_id)
+
+    def reset_output_artifacts(self):
+        return self.orchestrator.reset_output_artifacts()

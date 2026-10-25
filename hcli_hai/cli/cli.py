@@ -143,7 +143,7 @@ class CLI:
 
         return None
 
-    def _handle_agent(self) -> None:
+    def _handle_agent(self) -> Optional[io.BytesIO]:
         if len(self.commands) == 3:
             if self.commands[2] == "start":
                 self.service.agent(True)
@@ -164,35 +164,39 @@ class CLI:
                 return io.BytesIO("".encode("utf-8"))
 
         if len(self.commands) == 4:
-            if self.commands[2] == "artifact":
-                if self.commands[3] == "ls":
-                    artifacts = self.service.list_artifacts()
-                    return io.BytesIO(json.dumps(artifacts, indent=4).encode('utf-8'))
-
-                if self.inputstream:
-                    response = self.service.artifact(
-                        self.inputstream,
-                        self.commands[3]
-                    )
-                    return io.BytesIO(json.dumps(response, indent=4).encode('utf-8'))
+            if self.commands[2] == "artifact" and self.commands[3] == "out":
+                artifacts = self.service.list_output_artifacts()
+                return io.BytesIO(json.dumps(artifacts, indent=4).encode('utf-8'))
 
             if self.commands[2] == "skill" and self.commands[3] == "ls":
                 response = self.service.list_skills()
                 return io.BytesIO(formatting.format_frontmatter_rows(response).encode('utf-8'))
 
         if len(self.commands) == 5:
-            if self.commands[2] == "artifact" and self.commands[3] == "pull":
-                response = self.service.pull_artifact(self.commands[4])
+            if self.commands[2] == "artifact" and self.commands[3] == "in":
+                if self.commands[4] == "ls":
+                    artifacts = self.service.list_input_artifacts()
+                    return io.BytesIO(json.dumps(artifacts, indent=4).encode('utf-8'))
 
-                if isinstance(response, tuple):
-                    metadata, inputstream = response
-                else:
-                    inputstream = response
+                if self.commands[4] == "reset":
+                    self.service.reset_input_artifacts()
+                    return io.BytesIO("".encode("utf-8"))
 
-                try:
-                    return io.BytesIO(inputstream.read())
-                finally:
-                    inputstream.close()
+                if self.inputstream:
+                    response = self.service.add_input_artifact(
+                        self.inputstream,
+                        self.commands[4]
+                    )
+                    return io.BytesIO(str(response).encode('utf-8'))
+
+            if self.commands[2] == "artifact" and self.commands[3] == "out":
+                if self.commands[4] == "ls":
+                    artifacts = self.service.list_output_artifacts()
+                    return io.BytesIO(json.dumps(artifacts, indent=4).encode('utf-8'))
+
+                if self.commands[4] == "reset":
+                    self.service.reset_output_artifacts()
+                    return io.BytesIO("".encode("utf-8"))
 
             if self.commands[2] == "skill" and self.commands[3] == "ls":
                 if self.commands[4] == "--json":
@@ -201,6 +205,30 @@ class CLI:
             if self.commands[2] == "skill" and self.commands[3] == "set":
                 response = self.service.set_skill(self.commands[4])
                 return io.BytesIO("".encode("utf-8"))
+
+        if len(self.commands) == 6:
+            if self.commands[2] == "artifact" and self.commands[3] == "in":
+                if self.commands[4] == "rm":
+                    self.service.remove_input_artifact(self.commands[5])
+                    return io.BytesIO("".encode("utf-8"))
+
+            if self.commands[2] == "artifact" and self.commands[3] == "out":
+                if self.commands[4] == "pull":
+                    response = self.service.pull_artifact(self.commands[5])
+
+                    if isinstance(response, tuple):
+                        metadata, inputstream = response
+                    else:
+                        inputstream = response
+
+                    try:
+                        return io.BytesIO(inputstream.read())
+                    finally:
+                        inputstream.close()
+
+                if self.commands[4] == "rm":
+                    self.service.remove_output_artifact(self.commands[5])
+                    return io.BytesIO("".encode("utf-8"))
 
         return None
 

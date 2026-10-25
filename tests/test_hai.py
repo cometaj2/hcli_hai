@@ -530,17 +530,26 @@ def test_hai_agent_artifact_in_rm_removes_artifact(
     hai new > /dev/null
     hai agent artifact in reset > /dev/null
 
-    artifact_id=$(printf 'input artifact content\\n' | hai agent artifact in input.txt)
+    content='input artifact content'
+    artifact_id=$(printf '%s\\n' "$content" | sha1sum | awk '{print $1}')
 
-    test -n "$artifact_id"
+    actual_id=$(
+        printf '%s\\n' "$content" |
+        hai agent artifact in input.txt
+    )
+
+    test "$actual_id" = "$artifact_id"
+    test "${#actual_id}" -eq 40
 
     hai agent artifact in ls > artifacts.txt
     grep -q "input.txt" artifacts.txt
+    grep -q "$artifact_id" artifacts.txt
 
     hai agent artifact in rm "$artifact_id" > /dev/null
     hai agent artifact in ls > artifacts_after_rm.txt
 
     ! grep -q "input.txt" artifacts_after_rm.txt
+    ! grep -q "$artifact_id" artifacts_after_rm.txt
     """
 
     run_hai_script(hello)
