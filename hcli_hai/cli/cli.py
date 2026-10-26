@@ -209,8 +209,8 @@ class CLI:
         if len(self.commands) == 6:
             if self.commands[2] == "artifact" and self.commands[3] == "in":
                 if self.commands[4] == "rm":
-                    self.service.remove_input_artifact(self.commands[5])
-                    return io.BytesIO("".encode("utf-8"))
+                    response = self.service.remove_input_artifact(self.commands[5])
+                    return io.BytesIO(str(response).encode("utf-8"))
 
             if self.commands[2] == "artifact" and self.commands[3] == "out":
                 if self.commands[4] == "pull":
@@ -227,8 +227,8 @@ class CLI:
                         inputstream.close()
 
                 if self.commands[4] == "rm":
-                    self.service.remove_output_artifact(self.commands[5])
-                    return io.BytesIO("".encode("utf-8"))
+                    response = self.service.remove_output_artifact(self.commands[5])
+                    return io.BytesIO(str(response).encode("utf-8"))
 
         return None
 

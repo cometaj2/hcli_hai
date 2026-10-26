@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [4.2.0]
 - Add agent artifact support
+- Update tests to account for artifacts
+- Update to yield better warning messages to the client for not found errors
 - Fix new setuptool warnings about __pycache__ packages and exclusion
 
 ## [4.1.0]

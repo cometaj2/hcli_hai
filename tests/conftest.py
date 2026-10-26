@@ -146,6 +146,8 @@ def cleanup():
         os.remove('artifacts.txt')
     if os.path.exists('artifacts_after_reset.txt'):
         os.remove('artifacts_after_reset.txt')
+    if os.path.exists('artifacts_after_rm.txt'):
+        os.remove('artifacts_after_rm.txt')
 
     # Verify files are gone
     assert not os.path.exists('./gunicorn-error.log'), "gunicorn-error.log still exists"

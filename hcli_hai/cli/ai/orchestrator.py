@@ -16,8 +16,7 @@ from pathlib import Path
 from frontmatter import Frontmatter
 import traceback
 
-from hcli_problem_details import BadRequestError
-
+from hcli_problem_details import *
 
 log = logger.Logger()
 
@@ -1221,10 +1220,17 @@ class Orchestrator:
     def remove_input_artifact(self, artifact_id):
         context_id = self.ai.current()
 
-        return self.artifacts.remove_input(
+        result = self.artifacts.remove_input(
             context_id=context_id,
             artifact_id=artifact_id,
         )
+
+        if result == False:
+            msg = f"cannot remove '{artifact_id}': no such input artifact."
+            log.warning(msg)
+            raise NotFoundError(detail=msg)
+
+        return ""
 
     def reset_input_artifacts(self):
         context_id = self.ai.current()
@@ -1255,10 +1261,17 @@ class Orchestrator:
     def remove_output_artifact(self, artifact_id):
         context_id = self.ai.current()
 
-        return self.artifacts.remove_output(
+        result = self.artifacts.remove_output(
             context_id=context_id,
             artifact_id=artifact_id,
         )
+
+        if result == False:
+            msg = f"cannot remove '{artifact_id}': no such output artifact."
+            log.warning(msg)
+            raise NotFoundError(detail=msg)
+
+        return ""
 
     def reset_output_artifacts(self):
         context_id = self.ai.current()

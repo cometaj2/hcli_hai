@@ -183,7 +183,7 @@ class AI:
                 self.contextmgr.set(context_id)
                 log.info(f"context id {context_id} is set.")
             else:
-                msg = f"provided context id {context_id} was not found in available contexts."
+                msg = f"cannot set '{context_id}': no such context."
                 log.warning(msg)
                 raise NotFoundError(detail=msg)
 
@@ -207,7 +207,7 @@ class AI:
                 shutil.rmtree(context_folder)
                 log.info("Removed " + context_folder)
             else:
-                msg = f"provided context id {context_id} was not found in available contexts."
+                msg = f"cannot remove '{context_id}': no such context."
                 log.warning(msg)
                 raise NotFoundError(detail=msg)
 
