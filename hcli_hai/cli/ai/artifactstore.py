@@ -132,10 +132,7 @@ class ArtifactStore:
     def list_output(self, context_id):
         return self._list(self._output_dir(context_id))
 
-    def _find(self, artifact_dir, artifact_id):
-        if not re.fullmatch(r"[0-9a-f]{40}", artifact_id or ""):
-            return None
-
+    def _find_exact(self, artifact_dir, artifact_id):
         artifact_path = artifact_dir / artifact_id
 
         if not artifact_path.is_dir():
@@ -168,6 +165,43 @@ class ArtifactStore:
 
         return metadata, data_path
 
+    def _find(self, artifact_dir, artifact_id):
+        if not re.fullmatch(
+            r"(?:[0-9a-f]{7}|[0-9a-f]{40})",
+            artifact_id or "",
+        ):
+            return None
+
+        if len(artifact_id) == 40:
+            return self._find_exact(artifact_dir, artifact_id)
+
+        matches = []
+
+        for artifact_path in artifact_dir.iterdir():
+            if not artifact_path.is_dir():
+                continue
+
+            full_artifact_id = artifact_path.name
+
+            if not re.fullmatch(r"[0-9a-f]{40}", full_artifact_id):
+                continue
+
+            if not full_artifact_id.startswith(artifact_id):
+                continue
+
+            result = self._find_exact(
+                artifact_dir,
+                full_artifact_id,
+            )
+
+            if result is not None:
+                matches.append(result)
+
+        if len(matches) != 1:
+            return None
+
+        return matches[0]
+
     def _find_input(self, context_id, artifact_id):
         return self._find(
             self._input_dir(context_id),
@@ -181,21 +215,23 @@ class ArtifactStore:
         )
 
     def remove_input(self, context_id, artifact_id):
-        artifact_dir = self._input_dir(context_id) / artifact_id
+        result = self._find_input(context_id, artifact_id)
 
-        if self._find_input(context_id, artifact_id) is None:
+        if result is None:
             return False
 
-        shutil.rmtree(artifact_dir)
+        _, data_path = result
+        shutil.rmtree(data_path.parent)
         return True
 
     def remove_output(self, context_id, artifact_id):
-        artifact_dir = self._output_dir(context_id) / artifact_id
+        result = self._find_output(context_id, artifact_id)
 
-        if self._find_output(context_id, artifact_id) is None:
+        if result is None:
             return False
 
-        shutil.rmtree(artifact_dir)
+        _, data_path = result
+        shutil.rmtree(data_path.parent)
         return True
 
     def reset_input(self, context_id):

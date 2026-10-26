@@ -176,7 +176,7 @@ class CLI:
             if self.commands[2] == "artifact" and self.commands[3] == "in":
                 if self.commands[4] == "ls":
                     artifacts = self.service.list_input_artifacts()
-                    return io.BytesIO(json.dumps(artifacts, indent=4).encode('utf-8'))
+                    return io.BytesIO(formatting.format_artifact_rows(artifacts).encode('utf-8'))
 
                 if self.commands[4] == "reset":
                     self.service.reset_input_artifacts()
@@ -187,12 +187,16 @@ class CLI:
                         self.inputstream,
                         self.commands[4]
                     )
+
+                    if len(response) == 40:
+                        response = response[:7]
+
                     return io.BytesIO(str(response).encode('utf-8'))
 
             if self.commands[2] == "artifact" and self.commands[3] == "out":
                 if self.commands[4] == "ls":
                     artifacts = self.service.list_output_artifacts()
-                    return io.BytesIO(json.dumps(artifacts, indent=4).encode('utf-8'))
+                    return io.BytesIO(formatting.format_artifact_rows(artifacts).encode('utf-8'))
 
                 if self.commands[4] == "reset":
                     self.service.reset_output_artifacts()

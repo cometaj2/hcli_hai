@@ -5,7 +5,7 @@ The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [4.2.0]
-- Add agent artifact support
+- Add agent artifact suppor
 - Update tests to account for artifacts
 - Update to yield better warning messages to the client for not found errors
 - Fix new setuptool warnings about __pycache__ packages and exclusion

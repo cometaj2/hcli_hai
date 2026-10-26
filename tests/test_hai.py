@@ -504,6 +504,7 @@ def test_hai_help_exposes_primary_commands(
 
     run_hai_script(hello)
 
+
 def test_hai_agent_artifact_in_adds_and_lists_artifact(
     gunicorn_server,
     cleanup,
@@ -512,11 +513,19 @@ def test_hai_agent_artifact_in_adds_and_lists_artifact(
     hai new > /dev/null
     hai agent artifact in reset > /dev/null
 
-    printf 'input artifact content\\n' | hai agent artifact in input.txt > /dev/null
+    content='input artifact content'
+    artifact_id=$(printf '%s\\n' "$content" | sha1sum | awk '{print $1}')
+
+    printf '%s\\n' "$content" |
+        hai agent artifact in input.txt > /dev/null
+
     hai agent artifact in ls > artifacts.txt
 
     test -s artifacts.txt
+    grep -q "ID" artifacts.txt
+    grep -q "FILENAME" artifacts.txt
     grep -q "input.txt" artifacts.txt
+    grep -q "${artifact_id:0:7}" artifacts.txt
     """
 
     run_hai_script(hello)
@@ -532,6 +541,7 @@ def test_hai_agent_artifact_in_rm_removes_artifact(
 
     content='input artifact content'
     artifact_id=$(printf '%s\\n' "$content" | sha1sum | awk '{print $1}')
+    artifact_prefix="${artifact_id:0:7}"
 
     actual_id=$(
         printf '%s\\n' "$content" |
@@ -543,13 +553,13 @@ def test_hai_agent_artifact_in_rm_removes_artifact(
 
     hai agent artifact in ls > artifacts.txt
     grep -q "input.txt" artifacts.txt
-    grep -q "$artifact_id" artifacts.txt
+    grep -q "$artifact_prefix" artifacts.txt
 
     hai agent artifact in rm "$artifact_id" > /dev/null
     hai agent artifact in ls > artifacts_after_rm.txt
 
     ! grep -q "input.txt" artifacts_after_rm.txt
-    ! grep -q "$artifact_id" artifacts_after_rm.txt
+    ! grep -q "$artifact_prefix" artifacts_after_rm.txt
     """
 
     run_hai_script(hello)

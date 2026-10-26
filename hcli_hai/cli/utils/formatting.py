@@ -81,3 +81,65 @@ def format_frontmatter_rows(contexts):
 
     # Join rows with newlines
     return "\n".join(rows)
+
+def format_artifact_row(artifact_id, filename):
+    """Format a single artifact row for text output."""
+    artifact_id_width = 7
+
+    artifact_id = "" if artifact_id is None else str(artifact_id)[:7]
+    filename = "" if filename is None else str(filename)
+
+    artifact_id_formatted = artifact_id[:artifact_id_width].ljust(
+        artifact_id_width
+    )
+
+    return f"{artifact_id_formatted}  {filename}"
+
+
+def format_artifact_rows(artifacts, output_format="text"):
+    """
+    Format artifact information.
+
+    Text output:
+        ARTIFACT_ID                             FILENAME
+        abc123...                               example.txt
+
+    Dictionary output:
+        {
+            "artifacts": [
+                {
+                    "artifact_id": "...",
+                    "filename": "example.txt"
+                }
+            ]
+        }
+    """
+    artifact_data = [
+        {
+            "artifact_id": artifact.get("artifact_id", ""),
+            "filename": artifact.get("filename", ""),
+        }
+        for artifact in artifacts
+    ]
+
+    if output_format == "dict":
+        return {
+            "artifacts": artifact_data,
+        }
+
+    if output_format != "text":
+        raise ValueError("output_format must be 'text' or 'dict'")
+
+    rows = [
+        format_artifact_row("ID", "FILENAME")
+    ]
+
+    rows.extend(
+        format_artifact_row(
+            artifact["artifact_id"],
+            artifact["filename"],
+        )
+        for artifact in artifact_data
+    )
+
+    return "\n".join(rows)
