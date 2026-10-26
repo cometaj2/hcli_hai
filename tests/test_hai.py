@@ -548,14 +548,14 @@ def test_hai_agent_artifact_in_rm_removes_artifact(
         hai agent artifact in input.txt
     )
 
-    test "$actual_id" = "$artifact_id"
-    test "${#actual_id}" -eq 40
+    test "$actual_id" = "$artifact_prefix"
+    test "${#actual_id}" -eq 7
 
     hai agent artifact in ls > artifacts.txt
     grep -q "input.txt" artifacts.txt
     grep -q "$artifact_prefix" artifacts.txt
 
-    hai agent artifact in rm "$artifact_id" > /dev/null
+    hai agent artifact in rm "$actual_id" > /dev/null
     hai agent artifact in ls > artifacts_after_rm.txt
 
     ! grep -q "input.txt" artifacts_after_rm.txt
