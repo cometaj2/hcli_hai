@@ -70,19 +70,25 @@ Supports
   - This allows for capabilities enhancements (e.g. web search, git repo interaction, terminal use, etc.).
 - hcli-problem-details use to help relay RFC 9457 problem details back to the HCLI client.
 - Assistant audio summary and commentary for the last received context response.
+- Supports changing of the orchestrator behavior.
+- Supports HAI_HOME as environment variable and otherwise defaults to the user's home.
+- Supports agents reading from the artifact input store
 
 To Do
 -----
 
-- Add HAI_HOME environment variable support.
 - Add individualized multiuser conversation context support.
 - A memory layer for the the AI HCLI (hai).
     - Automatic context switching per NLP on received input stream.
     - Context blending to mary different contexts.
     - Automatic context compression to yield a more substantial memory footprint per context window.
-- A shell mode for the AI HCLI (hai) to enable shell CLI execution per sought goal.
-- Changing the vibing behavior should be made possible; it is currently locked in to HCLI integration and planning.
 - Support multi-process and multi-context to allow for multiple parallel vibes or conversations without conflict.
+
+- Prevent `metadata.json`, `.`, and `..` as uploaded filenames.
+- Validate `context_id` against path traversal.
+- Make artifact creation atomic.
+- Switch to SHA-256 or explicitly document SHA-1 as a deduplication-only identifier.
+- Validate metadata and reject symlinks if the storage directory is not fully trusted.
 
 Bugs
 ----

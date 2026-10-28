@@ -214,6 +214,36 @@ class ArtifactStore:
             artifact_id,
         )
 
+    def read_input_text(
+        self,
+        context_id,
+        artifact_id,
+        max_bytes=50000,
+    ):
+        result = self._find_input(context_id, artifact_id)
+
+        if result is None:
+            return None
+
+        metadata, data_path = result
+
+        with data_path.open("rb") as stream:
+            data = stream.read(max_bytes + 1)
+
+        return {
+            "artifact_id": metadata["artifact_id"],
+            "filename": metadata["filename"],
+            "mime_type": metadata.get(
+                "mime_type",
+                "application/octet-stream",
+            ),
+            "text": data[:max_bytes].decode(
+                "utf-8",
+                errors="replace",
+            ),
+            "truncated": len(data) > max_bytes,
+        }
+
     def remove_input(self, context_id, artifact_id):
         result = self._find_input(context_id, artifact_id)
 

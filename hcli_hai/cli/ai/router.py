@@ -22,6 +22,28 @@ _PATH = re.compile(
     r"|[a-z0-9._-]+\.(py|sh|bash|zsh|json|yaml|yml|toml|md|txt|log|cfg|ini|conf)"
     r")\b"
 )
+_ARTIFACT_OBJECTS = re.compile(
+    r"(?i)\b("
+    r"artifact|artifacts|artifact store|artifact input|artifact inputs|"
+    r"stored artifact|output artifact|input artifact"
+    r")\b"
+)
+_ARTIFACT_ACTIONS = re.compile(
+    r"(?i)\b("
+    r"read|open|inspect|examine|fetch|retrieve|pull|download|"
+    r"list|show|view|access|load|look at|summarize"
+    r")\b.{0,40}\b("
+    r"artifact|artifacts|artifact store|artifact input|artifact inputs|"
+    r"stored artifact|output artifact|input artifact"
+    r")\b|"
+    r"\b("
+    r"artifact|artifacts|artifact store|artifact input|artifact inputs|"
+    r"stored artifact|output artifact|input artifact"
+    r")\b.{0,40}\b("
+    r"read|open|inspect|examine|fetch|retrieve|pull|download|"
+    r"list|show|view|access|load|look at|summarize"
+    r")\b"
+)
 
 # --- code detection (improved) -------------------------------------------
 def _looks_like_code_dump(text: str) -> bool:
@@ -198,6 +220,8 @@ def _score(text):
     file_v = bool(_FILE_VERBS.search(t))
     file_o = bool(_FILE_OBJECTS.search(t))
     hcli_o = bool(_HCLI_OBJECTS.search(t))
+    artifact_o = bool(_ARTIFACT_OBJECTS.search(t))
+    artifact_action = bool(_ARTIFACT_ACTIONS.search(t))
     asked = bool(_REQUEST.search(t))
     has_url = bool(_URL.search(t))
     has_path = bool(_PATH.search(t))
@@ -206,8 +230,8 @@ def _score(text):
     talk = bool(_TALK_CUES.search(t))
     hypo = bool(_HYPOTHETICAL.search(t))
 
-    concrete = has_cli or has_url or has_path or has_git_cmd
-    actionish = web_v or git_v or sh_v or file_v or concrete
+    concrete = has_cli or has_url or has_path or has_git_cmd or artifact_action
+    actionish = web_v or git_v or sh_v or file_v or artifact_action or concrete
 
     if has_cli:
         s += 0.90
@@ -243,6 +267,11 @@ def _score(text):
         s += 0.25
     if file_o and asked:
         s += 0.20
+
+    if artifact_action:
+        s += 0.70
+    elif artifact_o and asked:
+        s += 0.35
 
     if hcli_o and (sh_v or asked):
         s += 0.20
@@ -311,8 +340,12 @@ def skill_area(text):
         return None
     file_v = bool(_FILE_VERBS.search(t))
     file_o = bool(_FILE_OBJECTS.search(t))
+    artifact_o = bool(_ARTIFACT_OBJECTS.search(t))
+    artifact_action = bool(_ARTIFACT_ACTIONS.search(t))
     if _LOCAL.search(t) and (file_v or file_o):
         return "LOCAL"
+    if artifact_action or artifact_o:
+        return "ARTIFACT"
     if _WEB_VERBS.search(t) or _URL.search(t) or _ONLINE.search(t):
         return "WEB"
     if _GIT_VERBS.search(t) or _GIT_OBJECTS.search(t) or _GIT_CMD.search(t):

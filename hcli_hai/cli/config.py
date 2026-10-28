@@ -72,6 +72,7 @@ class Config:
     dot_hai_config_file = dot_hai_config + "/config"
     dot_hai_orchestrator_file = dot_hai_config + "/ORCHESTRATOR.md"
     dot_hai_assistant_file = dot_hai_config + "/ASSISTANT.md"
+    dot_hai_orchestrator_skills = dot_hai_config + "/orchestrator/skills"
     dot_hai_skills = dot_hai_config + "/skills"
     dot_hai_context = dot_hai + "/share"
     context = ""
@@ -176,6 +177,7 @@ class Config:
             hutils.create_file(self.dot_hai_orchestrator_file)
             with open(self.dot_hai_orchestrator_file, "w") as planner:
                 planner.write(ORCHESTRATOR_MD)
+        self._seed_orchestrator_skills()
         self._seed_skills()
 
         if not os.path.exists(self.dot_hai_assistant_file):
@@ -183,22 +185,47 @@ class Config:
             with open(self.dot_hai_assistant_file, "w") as planner:
                 planner.write(ASSISTANT_MD)
 
-    def _seed_skills(self):
-        packaged = os.path.join(os.path.dirname(__file__), "skills")
+    def _seed_skill_tree(self, packaged, destination):
         if not os.path.isdir(packaged):
             return
-        hutils.create_folder(self.dot_hai_skills)
+
+        hutils.create_folder(destination)
+
         for name in os.listdir(packaged):
-            if not name.endswith(".md"):
+            source = os.path.join(packaged, name)
+            target = os.path.join(destination, name)
+
+            if not os.path.isdir(source):
                 continue
-            dest = os.path.join(self.dot_hai_skills, name)
-            if os.path.exists(dest):
+
+            skill_file = os.path.join(source, "SKILL.md")
+
+            if not os.path.isfile(skill_file):
                 continue
-            with open(os.path.join(packaged, name), "r", encoding="utf-8") as src:
+
+            hutils.create_folder(target)
+
+            target_file = os.path.join(target, "SKILL.md")
+
+            if os.path.exists(target_file):
+                continue
+
+            with open(skill_file, "r", encoding="utf-8") as src:
                 text = src.read()
-            hutils.create_file(dest)
-            with open(dest, "w", encoding="utf-8") as out:
+
+            hutils.create_file(target_file)
+
+            with open(target_file, "w", encoding="utf-8") as out:
                 out.write(text)
+
+    def _seed_orchestrator_skills(self):
+        packaged = os.path.join(os.path.dirname(__file__), "ai", "orchestrator", "skills",)
+        self._seed_skill_tree(packaged, self.dot_hai_orchestrator_skills,)
+
+
+    def _seed_skills(self):
+        packaged = os.path.join(os.path.dirname(__file__), "skills",)
+        self._seed_skill_tree(packaged, self.dot_hai_skills,)
 
     def save(self):
         if os.path.exists(self.dot_hai_config_file):
