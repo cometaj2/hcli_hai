@@ -38,6 +38,13 @@ packages = ["hcli_hai",
             "hcli_hai.cli.ai",
             "hcli_hai.cli.ai.provider",
             "hcli_hai.cli.ai.voice",
+            "hcli_hai.cli.ai.orchestrator",
+            "hcli_hai.cli.ai.orchestrator.skills",
+            "hcli_hai.cli.ai.orchestrator.skills.artifact",
+            "hcli_hai.cli.ai.orchestrator.skills.local",
+            "hcli_hai.cli.ai.orchestrator.skills.git",
+            "hcli_hai.cli.ai.orchestrator.skills.web",
+            "hcli_hai.cli.ai.orchestrator.skills.hcli",
             "hcli_hai.cli.utils",
             "hcli_hai.data"]
 include-package-data = true
