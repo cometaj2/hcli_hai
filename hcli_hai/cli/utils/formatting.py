@@ -34,7 +34,7 @@ def format_row(context_id, update_time, name, title):
 def format_rows(contexts):
 
     # Create header
-    header = format_row("CONTEXT_ID", "UPDATE_TIME", "NAME", "TITLE")
+    header = format_row("ID", "UPDATE_TIME", "NAME", "TITLE")
 
     # Format each row
     rows = [header]
