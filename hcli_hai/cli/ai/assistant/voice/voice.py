@@ -7,7 +7,8 @@ import logger
 import config as c
 from scipy.signal import butter, sosfilt, sosfilt_zi, tf2sos
 from piper.voice import PiperVoice, SynthesisConfig
-from ai.voice import audioducker as a
+
+from ai.assistant.voice import audioducker as a
 
 
 log = logger.Logger()

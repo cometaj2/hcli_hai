@@ -6,9 +6,9 @@ import time
 import inspect
 import logger
 from ai import ai
-from ai import assistantrunner as asr
-from ai import orchestrator as orch
-from ai.router import froute
+from ai.assistant import assistant as asr
+from ai.orchestrator import orchestrator as o
+from ai.orchestrator.router import froute, skill_area
 from ai.provider import provider as p
 import threading
 
@@ -27,10 +27,10 @@ class Service:
         self.ai = ai.AI()
         self.provider = p.Provider()
 
-        self.assistantrunner = asr.AssistantRunner()
-        self.assistant_thread = threading.Thread(target=self.assistant)
+        self.assistant = asr.Assistant()
+        self.assistant_thread = threading.Thread(target=self.run_assist)
         self.assistant_thread.start()
-        self.orchestrator = orch.Orchestrator()
+        self.orchestrator = o.Orchestrator()
 
         return
 
@@ -124,7 +124,7 @@ class Service:
         return self.provider.set_provider(provider)
 
     def set(self, id):
-        if self.assistantrunner.is_assisting() == True:
+        if self.assistant.is_assisting() == True:
             self.previous_response = None
         return self.ai.set(id)
 
@@ -141,14 +141,14 @@ class Service:
         inputstream = inputstream.read().decode('utf-8')
         if inputstream != "":
             inputstream = inputstream.rstrip()
-            return self.assistantrunner.speak(inputstream)
+            return self.assistant.speak(inputstream)
 
-    # AssistantRunner controls
+    # Assistant controls
     def assist(self, should_assist):
         data = should_assist
 
         t = threading.Thread(
-            target=self.assistantrunner.set_assist,
+            target=self.assistant.set_assist,
             args=(data,),
             daemon=True
         )
@@ -156,21 +156,21 @@ class Service:
         t.start()
 
     def pause_voice(self):
-        self.assistantrunner.pause_voice()
+        self.assistant.pause_voice()
 
     def resume_voice(self):
-        self.assistantrunner.resume_voice()
+        self.assistant.resume_voice()
 
     def is_assisting(self):
-        return self.assistantrunner.is_assisting()
+        return self.assistant.is_assisting()
 
-    def assistant(self):
-        lock = self.assistantrunner.lock
+    def run_assist(self):
+        lock = self.assistant.lock
         if not lock.acquire(blocking=False):
             log.debug("assistant already running; exiting")
             return
         try:
-            ar = self.assistantrunner
+            ar = self.assistant
             while True:
                 if not ar.is_running and ar.is_assisting():
                     ar.try_assist(self.ai.contextmgr.messages())
@@ -178,7 +178,7 @@ class Service:
         finally:
             lock.release()
 
-    # Agent controls. The orchestrator plans tasks; AgentRunner executes the active step.
+    # Orchestrator controls.
     def agent(self, should_vibe):
         data = should_vibe
 

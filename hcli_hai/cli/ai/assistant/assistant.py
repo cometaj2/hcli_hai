@@ -6,21 +6,17 @@ import time
 import re
 import os
 import config as a
-import openai
-import numpy as np
-import sounddevice as sd
 from hcli_problem_details import *
-from piper.voice import PiperVoice
 from pathlib import Path
 
-from ai.voice import voice as v
+from ai.assistant.voice import voice as v
 from ai.provider import provider as pr
 
 log = logger.Logger()
 
 
-# Singleton AssistantRunner
-class AssistantRunner:
+# Singleton Assistant
+class Assistant:
     _instance = None
     _init_lock = threading.RLock()
 
@@ -63,11 +59,11 @@ class AssistantRunner:
             self._is_assisting = should_assist
             if should_assist is True:
                 self.terminate = False
-                log.info(f"voice assistant runner started.")
+                log.info(f"voice assistant started.")
             else:
                 self.terminate = True
                 self.assist_key = None
-                log.info(f"voice assistant runner stopped.")
+                log.info(f"voice assistant stopped.")
 
     def __assisted_key(self):
         with self.rlock:

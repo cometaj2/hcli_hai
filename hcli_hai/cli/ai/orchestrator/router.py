@@ -365,18 +365,3 @@ def froute(text):
         decision = "talk"
         log.info("fast classification " + decision)
     return decision
-
-
-def sroute(client, model, text):
-    score = _score(text)
-    log.info("fast score relative to 'doing': " + str(score))
-    if score >= 0.70:
-        decision = "do"
-        log.info("fast classification: " + decision)
-    elif score <= 0.40:
-        decision = "talk"
-        log.info("fast classification: " + decision)
-    else:
-        decision = route_ollama(client, model, text)
-        log.info("model classification: " + decision)
-    return decision
