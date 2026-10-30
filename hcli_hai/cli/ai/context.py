@@ -24,12 +24,12 @@ class Context:
         self._name = ""
         self._messages = [{"role": "system", "content": ""}]
 
-        # If model is provided, load it
+        # If context is provided, load it
         if context is not None:
             with self.rlock:
-                self.__load_model(context)
+                self.__load_context(context)
 
-    def __load_model(self, context):
+    def __load_context(self, context):
         if isinstance(context, str):
             try:
                 data = json.loads(context)
@@ -45,7 +45,7 @@ class Context:
         # If context is another object
         else:
             with self.rlock:
-                for key, value in vars(model).items():
+                for key, value in vars(context).items():
                     if not key.startswith('_'):  # Skip private attributes
                         setattr(self, key, value)
 
@@ -130,7 +130,8 @@ class ContextManager:
             self.context = self.config.get_context()
 
     def trim(self):
-        self.counter.trim(self.context)
+        with self.rlock:
+            self.counter.trim(self.context)
 
     def reset(self):
         with self.rlock:
@@ -231,15 +232,6 @@ class ContextManager:
     def set_title(self, title):
         with self.rlock:
             self.context.title = title
-            self.save()
-
-    def provider(self):
-        with self.rlock:
-            return self.context.provider
-
-    def set_provider(self, provider):
-        with self.rlock:
-            self.context.provider = provider
             self.save()
 
 class TrimCounter:
