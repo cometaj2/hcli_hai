@@ -77,17 +77,23 @@ Supports
 To Do
 -----
 
-- Add individualized multiuser conversation context support.
-- A memory layer for the the AI HCLI (hai).
+- Support multi-process and multi-context agent runs or conversations without conflict (multi-user).
+- Support individualized multiuser conversation context support.
+    - Password protected multi-user support via huckle and hcli_core facilities.
+- Support a memory layer for the the AI HCLI (hai).
     - Automatic context switching per NLP on received input stream.
     - Context blending to mary different contexts.
     - Automatic context compression to yield a more substantial memory footprint per context window.
-- Support multi-process and multi-context to allow for multiple parallel vibes or conversations without conflict.
+    - Context reuse (e.g. reuse of a previously captured code base to avoid reprocessing context).
+    - Artifact and run store search to locate previously observed contexts
+- Move voice playback to the client-side (e.g. Haillo)
+  - Support summarizing assistance storage alongside related context with client-side retrieval.
+  - Support voice synthesis from summaries and audio retrieval client-side
 
 - Prevent `metadata.json`, `.`, and `..` as uploaded filenames.
 - Validate `context_id` against path traversal.
 - Make artifact creation atomic.
-- Switch to SHA-256 or explicitly document SHA-1 as a deduplication-only identifier.
+- Document SHA-1 as a deduplication-only identifier.
 - Validate metadata and reject symlinks if the storage directory is not fully trusted.
 
 Bugs
