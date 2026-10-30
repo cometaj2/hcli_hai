@@ -1,12 +1,13 @@
 import json
 import io
-import os
 import logger
 import tiktoken
 import config as c
 import resource
 import threading
 import logger
+import hashlib
+import os
 
 from utils import hutils
 from utils import formatting as f
@@ -15,6 +16,9 @@ from hcli_problem_details import *
 log = logger.Logger()
 
 
+def generate_id() -> str:
+    return hashlib.sha1(os.urandom(32)).hexdigest()
+
 # We create a default context and allow for it to be initialized in a few different ways to facilitate initialization from file
 class Context:
 
@@ -22,12 +26,24 @@ class Context:
         self.rlock = threading.RLock()
         self._title = ""
         self._name = ""
-        self._messages = [{"role": "system", "content": ""}]
+        self._messages = [{"role": "system", "content": "", "id": generate_id()}]
 
         # If context is provided, load it
         if context is not None:
             with self.rlock:
                 self.__load_context(context)
+
+    def __normalize_messages(self) -> None:
+        for message in self._messages:
+            if not message.get("id"):
+                message["id"] = generate_id()
+
+        if not self._messages:
+            self._messages.append({
+                "role": "system",
+                "content": "",
+                "id": generate_id(),
+            })
 
     def __load_context(self, context):
         if isinstance(context, str):
@@ -54,6 +70,8 @@ class Context:
             for key, value in context.items():
                 if not key.startswith('_'):  # Skip private attributes
                     setattr(self, key, value)
+
+        self.__normalize_messages()
 
     @property
     def title(self):
@@ -143,7 +161,11 @@ class ContextManager:
         with self.rlock:
             inputstream = inputstream.read().decode('utf-8').rstrip()
             if inputstream != "":
-                behavior = { "role" : "system", "content" : inputstream }
+                behavior = {
+                    "role": "system",
+                    "content": inputstream,
+                    "id": generate_id(),
+                }
 
                 current_messages = self.context.messages
                 current_messages[0] = behavior
@@ -166,6 +188,9 @@ class ContextManager:
             if question['content'].strip() == '':
                 log.warning("Skipping attempt to add empty message")
                 return
+
+            if not question.get("id"):
+                question["id"] = generate_id()
 
             log.debug(question)
             current_messages = self.context.messages
@@ -234,6 +259,8 @@ class ContextManager:
             self.context.title = title
             self.save()
 
+
+
 class TrimCounter:
 
     def __init__(self):
@@ -284,3 +311,4 @@ class TrimCounter:
 
     def get_stats(self, context):
         return self.get_token_counts(context.messages)
+

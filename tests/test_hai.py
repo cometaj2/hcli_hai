@@ -1,6 +1,8 @@
 import subprocess
 import os
 import pytest
+import json
+import re
 
 
 
@@ -43,20 +45,21 @@ def test_hai_context(gunicorn_server, cleanup):
     """
 
     result = run_hai_script(hello)
+    context = json.loads(result.stdout)
 
-    assert (
-        '{\n'
-        '    "messages": [\n'
-        '        {\n'
-        '            "content": "",\n'
-        '            "role": "system"\n'
-        '        }\n'
-        '    ],\n'
-        '    "name": "",\n'
-        '    "title": ""\n'
-        '}\n'
-        == result.stdout
-    )
+    assert context["name"] == ""
+    assert context["title"] == ""
+
+    assert len(context["messages"]) == 1
+
+    system_message = context["messages"][0]
+
+    assert system_message["role"] == "system"
+    assert system_message["content"] == ""
+
+    message_id = system_message["id"]
+    assert len(message_id) == 40
+    assert re.fullmatch(r"[0-9a-f]{40}", message_id)
 
 
 def test_hai_name(gunicorn_server, cleanup):
