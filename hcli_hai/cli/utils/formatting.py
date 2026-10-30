@@ -68,7 +68,7 @@ def format_frontmatter_row(skill_id, description):
 def format_frontmatter_rows(contexts):
 
     # Create header
-    header = format_frontmatter_row("SKILL_ID", "DESCRIPTION")
+    header = format_frontmatter_row("ID", "DESCRIPTION")
 
     # Format each row
     rows = [header]
@@ -101,7 +101,7 @@ def format_artifact_rows(artifacts, output_format="text"):
     Format artifact information.
 
     Text output:
-        ARTIFACT_ID                             FILENAME
+        ID                                      FILENAME
         abc123...                               example.txt
 
     Dictionary output:
