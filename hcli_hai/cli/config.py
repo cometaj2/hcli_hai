@@ -178,7 +178,9 @@ class Config:
             with open(self.dot_hai_orchestrator_file, "w") as planner:
                 planner.write(ORCHESTRATOR_MD)
         self._seed_orchestrator_skills()
-        self._seed_skills()
+
+        if not os.path.isdir(self.dot_hai_skills):
+            hutils.create_folder(self.dot_hai_skills)
 
         if not os.path.exists(self.dot_hai_assistant_file):
             hutils.create_file(self.dot_hai_assistant_file)
@@ -221,11 +223,6 @@ class Config:
     def _seed_orchestrator_skills(self):
         packaged = os.path.join(os.path.dirname(__file__), "ai", "orchestrator", "skills",)
         self._seed_skill_tree(packaged, self.dot_hai_orchestrator_skills,)
-
-
-    def _seed_skills(self):
-        packaged = os.path.join(os.path.dirname(__file__), "skills",)
-        self._seed_skill_tree(packaged, self.dot_hai_skills,)
 
     def save(self):
         if os.path.exists(self.dot_hai_config_file):
