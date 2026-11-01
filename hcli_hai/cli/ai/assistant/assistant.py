@@ -9,8 +9,10 @@ import config as a
 from hcli_problem_details import *
 from pathlib import Path
 
+from ai import ai
 from ai.assistant.voice import voice as v
 from ai.provider import provider as pr
+from ai.assistant import summarystore as s
 
 log = logger.Logger()
 
@@ -42,6 +44,9 @@ class Assistant:
             self._is_assisting = False
             self.terminate = False
             self.assist_key = None
+
+            self.ai = ai.AI()
+            self.summary_store = s.SummaryStore()
 
             self.previous_response = None
             self.voice = v.Voice()
@@ -141,6 +146,7 @@ class Assistant:
                 new_response = response.choices[0].message.content
                 new_response = self.strip_non_conversational(new_response)
                 self.previous_response = new_response
+                self.store_summary(new_response)
                 self.voice.speak(new_response)
 
         except TerminationException as e:
@@ -187,6 +193,49 @@ class Assistant:
         if os.path.exists(path):
             return Path(path).read_text(encoding="utf-8")
         return a.ASSISTANT_MD
+
+    def store_summary(self, summary):
+        with self.rlock:
+            context_id = self.ai.current()
+
+        if not context_id:
+            log.warning(
+                "cannot store assistant summary: no context id is set."
+            )
+            return None
+
+        try:
+            return self.summary_store.add(
+                context_id,
+                io.BytesIO(summary.encode("utf-8")),
+            )
+        except Exception:
+            log.error(traceback.format_exc())
+            return None
+
+    def list_summaries(self):
+        with self.rlock:
+            context_id = self.ai.current()
+
+        if not context_id:
+            log.warning(
+                "cannot locate assistant summary: no context id is set."
+            )
+            return None
+
+        return self.summary_store.list_summaries(context_id)
+
+    def pull_summary(self, summary_id):
+        with self.rlock:
+            context_id = self.ai.current()
+
+        if not context_id:
+            log.warning(
+                "cannot locate assistant summary: no context id is set."
+            )
+            return None
+
+        return self.summary_store.read_summary_text(context_id, summary_id)
 
 class TerminationException(Exception):
     pass

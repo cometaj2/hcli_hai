@@ -143,3 +143,40 @@ def format_artifact_rows(artifacts, output_format="text"):
     )
 
     return "\n".join(rows)
+
+def format_summary_row(summary_id, update_time, summary):
+    summary_id_width = 7
+    time_width = 19
+
+    summary_id = "" if summary_id is None else str(summary_id)
+    update_time = "" if update_time is None else str(update_time)
+    summary = "" if summary is None else str(summary)
+
+    summary_id_formatted = summary_id[:summary_id_width].ljust(
+        summary_id_width
+    )
+    time_formatted = update_time[:time_width].ljust(
+        time_width
+    )
+
+    return f"{summary_id_formatted}  {time_formatted}  {summary}"
+
+def format_summary_rows(summaries):
+    header = format_summary_row(
+        "ID",
+        "UPDATE_TIME",
+        "SUMMARY",
+    )
+
+    rows = [header]
+
+    for summary in summaries:
+        rows.append(
+            format_summary_row(
+                summary.get("summary_id", ""),
+                summary.get("update_time", ""),
+                summary.get("summary", ""),
+            )
+        )
+
+    return "\n".join(rows)

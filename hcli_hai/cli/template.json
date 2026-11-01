@@ -224,6 +224,14 @@
         {
             "command": "hai provider set {p}",
             "http": "post"
+        },
+        {
+            "command": "hai summary ls",
+            "http": "get"
+        },
+        {
+            "command": "hai summary pull {p}",
+            "http": "get"
         }
     ],
     "cli": [
@@ -318,6 +326,11 @@
                     "href": "haiprovider",
                     "name": "provider",
                     "description": "The \"provider\" command allows you to work with providers to list them, list the current provider, and to set a new provider."
+                },
+                {
+                    "href": "haisummary",
+                    "name": "summary",
+                    "description": "The \"summary\" command allows you to list and retrieve assistant summaries for the current context."
                 }
             ],
             "option": [
@@ -1453,6 +1466,75 @@
             ],
             "parameter": {
                 "href": "haiprovidersetparameter"
+            }
+        },
+        {
+            "id": "haisummary",
+            "name": "summary",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "summary - work with assistant summaries."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai summary <ls | pull>"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"summary\" command allows you to list and retrieve assistant summaries stored for the current context."
+                }
+            ],
+            "command": [
+                {
+                    "href": "haisummaryls",
+                    "name": "ls",
+                    "description": "List assistant summaries for the current context."
+                },
+                {
+                    "href": "haisummarypull",
+                    "name": "pull",
+                    "description": "Retrieve an assistant summary by its full ID or unique seven-character ID prefix."
+                }
+            ]
+        },
+        {
+            "id": "haisummaryls",
+            "name": "ls",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "ls - lists assistant summaries."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai summary ls"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"ls\" command lists the IDs of all assistant summaries stored for the current context."
+                }
+            ]
+        },
+        {
+            "id": "haisummarypull",
+            "name": "pull",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "pull - retrieves an assistant summary."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai summary pull <summary id>"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"pull\" command retrieves an assistant summary from the current context using its full SHA-1 ID or a unique seven-character ID prefix."
+                }
+            ],
+            "parameter": {
+                "href": "haisummarypullparameter"
             }
         }
     ]

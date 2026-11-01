@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [4.2.0]
 - Add agent artifact support for use during agent runs.
+- Add summary storage support for use with client voice support.
 - Update tests to account for artifacts
 - Update to yield better warning messages to the client for not found errors
 - Fix new setuptool warnings about __pycache__ packages and exclusions
@@ -31,11 +32,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add context reset support
 - Add better problem detail error handling responses to the client
 - Add better logging for various operations
+- Add Python 3.13 and 3.14 support
 - Refactor to use a unified AI service provider
 - Update CLI commands, including replacing `vibe` with `agent` and `clear` with `reset`
 - Update tests to use the hcli_core 4.0.0 service configuration helper format and tox
 - Update tests to pin Gunicorn to v23 to avoid v25 worker threadlock instability
-- Add Python 3.13 and 3.14 support
 - Remove Anthropic support
 - Remove the prepended `hai:` string in problem details for the hcli client
 

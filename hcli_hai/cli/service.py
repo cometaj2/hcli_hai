@@ -252,3 +252,10 @@ class Service:
 
     def reset_output_artifacts(self):
         return self.orchestrator.reset_output_artifacts()
+
+    def list_summaries(self):
+        return self.assistant.list_summaries()
+
+    def pull_summary(self, summary_id):
+        return self.assistant.pull_summary(summary_id)
+

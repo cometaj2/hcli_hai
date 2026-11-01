@@ -29,7 +29,8 @@ class CLI:
             'rm': lambda: self.service.rm(self.commands[2]) if len(self.commands) == 3 else None,
             'agent': self._handle_agent,
             'voice': self._handle_assist,
-            'provider': self._handle_provider
+            'provider': self._handle_provider,
+            'summary': self._handle_summary
         }
 
     def execute(self) -> Optional[io.BytesIO]:
@@ -252,3 +253,27 @@ class CLI:
                 status = self.service.is_assisting()
                 return io.BytesIO(str(status).encode('utf-8'))
         return None
+
+    def _handle_summary(self) -> Optional[io.BytesIO]:
+        # hai summary ls
+        if len(self.commands) == 3:
+            if self.commands[2] == "ls":
+                summaries = self.service.list_summaries()
+
+                return io.BytesIO(formatting.format_summary_rows(summaries).encode("utf-8"))
+
+        # hai summary pull <summary-id>
+        if len(self.commands) == 4:
+            if self.commands[2] == "pull":
+                summary_stream = self.service.pull_summary(self.commands[3])
+
+                if summary_stream is None:
+                    return None
+
+                try:
+                    return io.BytesIO((str(summary_stream)).encode("utf-8"))
+                finally:
+                    None
+
+        return None
+
