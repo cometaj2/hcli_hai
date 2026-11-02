@@ -85,6 +85,7 @@ class Assistant:
     def speak(self, message):
         if self.terminate:
             return
+
         self.voice.speak(message)
 
     def __latest_pair_key(self, messages):

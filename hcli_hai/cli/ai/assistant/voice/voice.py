@@ -57,10 +57,7 @@ class Voice:
 
             # iter_pcm() yields processed int16 PCM chunks as Piper produces
             # them. Each chunk is immediately sent to the player.
-            for pcm_data in self.synth.iter_pcm(
-                message,
-                cancel_event=cancel,
-            ):
+            for pcm_data in self.synth.iter_pcm(message, cancel_event=cancel):
                 if self._is_cancelled(cancel, generation):
                     return
 

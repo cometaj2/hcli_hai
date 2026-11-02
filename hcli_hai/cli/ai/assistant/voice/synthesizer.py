@@ -1,6 +1,7 @@
 import io
 import threading
 import wave
+import random
 from pathlib import Path
 
 import numpy as np
@@ -8,67 +9,6 @@ from piper.voice import PiperVoice, SynthesisConfig
 from scipy.signal import butter, sosfilt, sosfilt_zi, tf2sos
 
 import config as c
-
-
-class SynthesisCancelled(Exception):
-    pass
-
-
-class VoiceSmoother:
-    """
-    Removes low-frequency rumble, limits excessive high frequencies,
-    and prevents sample peaks above approximately -0.2 dBFS.
-    """
-
-    def __init__(self, sample_rate):
-        sample_rate = float(sample_rate)
-        nyquist = sample_rate / 2.0
-
-        self.sos_hp = butter(
-            2,
-            90.0 / nyquist,
-            btype="highpass",
-            output="sos",
-        )
-
-        self.sos_lp = butter(
-            3,
-            8500.0 / nyquist,
-            btype="lowpass",
-            output="sos",
-        )
-
-        self.zi_hp = sosfilt_zi(self.sos_hp)
-        self.zi_lp = sosfilt_zi(self.sos_lp)
-
-    def process(self, audio_i16):
-        if audio_i16.size == 0:
-            return audio_i16
-
-        x = audio_i16.astype(np.float32) / 32768.0
-
-        x, self.zi_hp = sosfilt(
-            self.sos_hp,
-            x,
-            zi=self.zi_hp,
-        )
-
-        x, self.zi_lp = sosfilt(
-            self.sos_lp,
-            x,
-            zi=self.zi_lp,
-        )
-
-        peak = float(np.max(np.abs(x))) + 1e-8
-
-        if peak > 0.98:
-            x *= 0.98 / peak
-
-        return np.clip(
-            x * 32767.0,
-            -32768,
-            32767,
-        ).astype(np.int16)
 
 
 def _rbj_peaking_sos(sr, f0, q, gain_db):
@@ -211,6 +151,192 @@ def _rbj_highshelf_sos(sr, f0, q, gain_db):
         ],
     )
 
+
+class VoiceSynthesizer:
+    """
+    Server-side Piper text-to-WAV synthesizer.
+
+    Pipeline:
+
+        text
+          -> Piper
+          -> VoiceSmoother
+          -> VoiceEnhancer
+          -> mono 16-bit PCM WAV
+
+    This class does not play audio.
+    """
+
+    def __init__(self, model_path=None):
+        self.config = c.Config()
+
+        self.model_path = (
+            model_path
+            or self.config.assistant_tts_path
+        )
+
+        self.voice = None
+        self.sample_rate = None
+
+        self._voice_lock = threading.RLock()
+        self._synthesis_lock = threading.RLock()
+
+    def _ensure_voice(self):
+        with self._voice_lock:
+            if self.voice is not None:
+                return
+
+            if not self.model_path:
+                raise RuntimeError(
+                    "No assistant TTS model path configured"
+                )
+
+            self.voice = PiperVoice.load(self.model_path)
+            self.sample_rate = self.voice.config.sample_rate
+
+    def make_silence(self, sample_rate, duration_s):
+        frames = int(sample_rate * duration_s)
+
+        return np.zeros(
+            frames,
+            dtype=np.int16,
+        ).tobytes()
+
+    def synthesize(self, text, cancel_event=None):
+        """
+        Return a complete WAV file as bytes.
+        """
+
+        if not text or not text.strip():
+            return b""
+
+        self._ensure_voice()
+
+        # Both processors maintain state between chunks.
+        # They must be local to this synthesis operation.
+        enhancer = VoiceEnhancer(self.sample_rate)
+
+        output = io.BytesIO()
+
+        syn = SynthesisConfig(
+            length_scale=1.20,
+            noise_scale=0.28,
+            noise_w_scale=0.35,
+            normalize_audio=True,
+        )
+
+        # Piper synthesis is serialized for this instance.
+        with self._synthesis_lock:
+            with wave.open(output, "wb") as wav:
+                wav.setnchannels(1)
+                wav.setsampwidth(2)  # signed 16-bit PCM
+                wav.setframerate(self.sample_rate)
+
+                chunks = self.voice.synthesize(
+                    text,
+                    syn_config=syn,
+                )
+
+                for chunk in chunks:
+                    if (
+                        cancel_event is not None
+                        and cancel_event.is_set()
+                    ):
+                        raise SynthesisCancelled()
+
+                    audio = np.frombuffer(
+                        chunk.audio_int16_bytes,
+                        dtype=np.int16,
+                    )
+
+                    if audio.size == 0:
+                        continue
+
+                    # Apply smoothing first, then enhancement.
+                    audio = enhancer.process(audio)
+
+                    wav.writeframes(audio.tobytes())
+
+        return output.getvalue()
+
+    def iter_pcm(self, text, cancel_event=None):
+        """
+        Yield processed signed 16-bit mono PCM chunks as they are generated.
+
+        Each yielded value is raw PCM audio, not a WAV file.
+        """
+
+        if not text or not text.strip():
+            return
+
+        self._ensure_voice()
+
+        enhancer = VoiceEnhancer(self.sample_rate)
+
+        syn = SynthesisConfig(
+            length_scale=1.20,
+            noise_scale=0.28,
+            noise_w_scale=0.35,
+            normalize_audio=True,
+        )
+
+        with self._synthesis_lock:
+            for chunk in self.voice.synthesize(
+                text,
+                syn_config=syn,
+            ):
+                if (
+                    cancel_event is not None
+                    and cancel_event.is_set()
+                ):
+                    raise SynthesisCancelled()
+
+                audio = np.frombuffer(
+                    chunk.audio_int16_bytes,
+                    dtype=np.int16,
+                )
+
+                if audio.size == 0:
+                    continue
+
+                audio = enhancer.process(audio)
+
+                # Ensure the bytes are safe to send directly.
+                if not audio.flags.c_contiguous:
+                    audio = np.ascontiguousarray(audio)
+
+                yield audio.tobytes()
+
+                silence = random.uniform(0.75, 1.2)
+                yield self.make_silence(self.sample_rate, silence)
+
+    def synthesize_to_file(
+        self,
+        text,
+        output_path,
+        cancel_event=None,
+    ):
+        """
+        Synthesize text and write the generated WAV to output_path.
+        """
+
+        output_path = Path(output_path)
+        output_path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        wav_data = self.synthesize(
+            text,
+            cancel_event=cancel_event,
+        )
+
+        output_path.write_bytes(wav_data)
+        return output_path
+
+    def get_sample_rate(self):
+        self._ensure_voice()
+        return self.sample_rate
 
 class VoiceEnhancer:
     """
@@ -386,182 +512,7 @@ class VoiceEnhancer:
         return output
 
 
-class VoiceSynthesizer:
-    """
-    Server-side Piper text-to-WAV synthesizer.
+class SynthesisCancelled(Exception):
+    pass
 
-    Pipeline:
-
-        text
-          -> Piper
-          -> VoiceSmoother
-          -> VoiceEnhancer
-          -> mono 16-bit PCM WAV
-
-    This class does not play audio.
-    """
-
-    def __init__(self, model_path=None):
-        self.config = c.Config()
-
-        self.model_path = (
-            model_path
-            or self.config.assistant_tts_path
-        )
-
-        self.voice = None
-        self.sample_rate = None
-
-        self._voice_lock = threading.RLock()
-        self._synthesis_lock = threading.RLock()
-
-    def _ensure_voice(self):
-        with self._voice_lock:
-            if self.voice is not None:
-                return
-
-            if not self.model_path:
-                raise RuntimeError(
-                    "No assistant TTS model path configured"
-                )
-
-            self.voice = PiperVoice.load(self.model_path)
-            self.sample_rate = self.voice.config.sample_rate
-
-    def synthesize(self, text, cancel_event=None):
-        """
-        Return a complete WAV file as bytes.
-        """
-
-        if not text or not text.strip():
-            return b""
-
-        self._ensure_voice()
-
-        # Both processors maintain state between chunks.
-        # They must be local to this synthesis operation.
-#         smoother = VoiceSmoother(self.sample_rate)
-        enhancer = VoiceEnhancer(self.sample_rate)
-
-        output = io.BytesIO()
-
-        syn = SynthesisConfig(
-            length_scale=1.15,
-            noise_scale=0.28,
-            noise_w_scale=0.35,
-            normalize_audio=True,
-        )
-
-        # Piper synthesis is serialized for this instance.
-        with self._synthesis_lock:
-            with wave.open(output, "wb") as wav:
-                wav.setnchannels(1)
-                wav.setsampwidth(2)  # signed 16-bit PCM
-                wav.setframerate(self.sample_rate)
-
-                chunks = self.voice.synthesize(
-                    text,
-                    syn_config=syn,
-                )
-
-                for chunk in chunks:
-                    if (
-                        cancel_event is not None
-                        and cancel_event.is_set()
-                    ):
-                        raise SynthesisCancelled()
-
-                    audio = np.frombuffer(
-                        chunk.audio_int16_bytes,
-                        dtype=np.int16,
-                    )
-
-                    if audio.size == 0:
-                        continue
-
-                    # Apply smoothing first, then enhancement.
-#                     audio = smoother.process(audio)
-                    audio = enhancer.process(audio)
-
-                    wav.writeframes(audio.tobytes())
-
-        return output.getvalue()
-
-    def iter_pcm(self, text, cancel_event=None):
-        """
-        Yield processed signed 16-bit mono PCM chunks as they are generated.
-
-        Each yielded value is raw PCM audio, not a WAV file.
-        """
-
-        if not text or not text.strip():
-            return
-
-        self._ensure_voice()
-
-        smoother = VoiceSmoother(self.sample_rate)
-        enhancer = VoiceEnhancer(self.sample_rate)
-
-        syn = SynthesisConfig(
-            length_scale=1.15,
-            noise_scale=0.28,
-            noise_w_scale=0.35,
-            normalize_audio=True,
-        )
-
-        with self._synthesis_lock:
-            for chunk in self.voice.synthesize(
-                text,
-                syn_config=syn,
-            ):
-                if (
-                    cancel_event is not None
-                    and cancel_event.is_set()
-                ):
-                    raise SynthesisCancelled()
-
-                audio = np.frombuffer(
-                    chunk.audio_int16_bytes,
-                    dtype=np.int16,
-                )
-
-                if audio.size == 0:
-                    continue
-
-                audio = smoother.process(audio)
-                audio = enhancer.process(audio)
-
-                # Ensure the bytes are safe to send directly.
-                if not audio.flags.c_contiguous:
-                    audio = np.ascontiguousarray(audio)
-
-                yield audio.tobytes()
-
-    def synthesize_to_file(
-        self,
-        text,
-        output_path,
-        cancel_event=None,
-    ):
-        """
-        Synthesize text and write the generated WAV to output_path.
-        """
-
-        output_path = Path(output_path)
-        output_path.parent.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        wav_data = self.synthesize(
-            text,
-            cancel_event=cancel_event,
-        )
-
-        output_path.write_bytes(wav_data)
-        return output_path
-
-    def get_sample_rate(self):
-        self._ensure_voice()
-        return self.sample_rate
 
