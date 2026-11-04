@@ -28,7 +28,7 @@ class CLI:
             'set': lambda: self.service.set(self.commands[2]) if len(self.commands) == 3 else None,
             'rm': lambda: self.service.rm(self.commands[2]) if len(self.commands) == 3 else None,
             'agent': self._handle_agent,
-            'voice': self._handle_assist,
+            'voice': self._handle_voice,
             'provider': self._handle_provider,
             'summary': self._handle_summary
         }
@@ -237,29 +237,23 @@ class CLI:
 
         return None
 
-    def _handle_assist(self) -> None:
+    def _handle_voice(self) -> None:
         if len(self.commands) == 2:
             return self.service.speak(self.inputstream)
-        elif len(self.commands) == 3:
-            if self.commands[2] == "start":
-                self.service.assist(True)
-            elif self.commands[2] == "stop":
-                self.service.assist(False)
-            elif self.commands[2] == "pause":
-                self.service.pause_voice()
-            elif self.commands[2] == "resume":
-                self.service.resume_voice()
-            elif self.commands[2] == "enabled":
-                status = self.service.is_assisting()
-                return io.BytesIO(str(status).encode('utf-8'))
         return None
 
     def _handle_summary(self) -> Optional[io.BytesIO]:
         # hai summary ls
         if len(self.commands) == 3:
-            if self.commands[2] == "ls":
+            if self.commands[2] == "start":
+                self.service.assist(True)
+            elif self.commands[2] == "stop":
+                self.service.assist(False)
+            elif self.commands[2] == "enabled":
+                status = self.service.is_assisting()
+                return io.BytesIO(str(status).encode('utf-8'))
+            elif self.commands[2] == "ls":
                 summaries = self.service.list_summaries()
-
                 return io.BytesIO(formatting.format_summary_rows(summaries).encode("utf-8"))
 
         # hai summary pull <summary-id>

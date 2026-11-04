@@ -186,26 +186,6 @@
             "http": "post"
         },
         {
-            "command": "hai voice enabled",
-            "http": "get"
-        },
-        {
-            "command": "hai voice start",
-            "http": "post"
-        },
-        {
-            "command": "hai voice stop",
-            "http": "post"
-        },
-        {
-            "command": "hai voice pause",
-            "http": "post"
-        },
-        {
-            "command": "hai voice resume",
-            "http": "post"
-        },
-        {
             "command": "hai provider",
             "http": "get"
         },
@@ -223,6 +203,18 @@
         },
         {
             "command": "hai provider set {p}",
+            "http": "post"
+        },
+        {
+            "command": "hai summary enabled",
+            "http": "get"
+        },
+        {
+            "command": "hai summary start",
+            "http": "post"
+        },
+        {
+            "command": "hai summary stop",
             "http": "post"
         },
         {
@@ -320,7 +312,7 @@
                 {
                     "href": "haivoice",
                     "name": "voice",
-                    "description": "The \"voice\" command allows you to interact with an overview voice assistant that targets the last received response in a conversation."
+                    "description": "The \"voice\" command allows you to interact with a voice assistant that voices the received input text."
                 },
                 {
                     "href": "haiprovider",
@@ -1256,7 +1248,7 @@
             "section": [
                 {
                     "name": "name",
-                    "description": "voice - receive voice summarizing assistance for the last received response in a conversation context, or, attempts to read an input stream out loud."
+                    "description": "voice - receive voice assistance for the provided input text. The output is a mono 22050 hertz PCM stream"
                 },
                 {
                     "name": "synopsis",
@@ -1265,123 +1257,6 @@
                 {
                     "name": "description",
                     "description": "The \"voice\" command allows you receive summarizing voice assistance for the last received response in your current conversation context."
-                }
-            ],
-            "command": [
-                {
-                    "href": "haivoiceenabled",
-                    "name": "enabled",
-                    "description": "Returns status on whether voice assistance is enabled or not."
-                },
-                {
-                    "href": "haivoicestart",
-                    "name": "start",
-                    "description": "Start receiving voice assistance with the current conversation."
-                },
-                {
-                    "href": "haivoicestop",
-                    "name": "stop",
-                    "description": "Stop receiving voice assistance."
-                },
-                {
-                    "href": "haivoicepause",
-                    "name": "pause",
-                    "description": "Pause voice assistance."
-                },
-                {
-                    "href": "haivoiceresume",
-                    "name": "resume",
-                    "description": "Resume voice assistance."
-                }
-            ]
-        },
-        {
-            "id": "haivoiceenabled",
-            "name": "enabled",
-            "section": [
-                {
-                    "name": "name",
-                    "description": "enabled - returns status on whether voice assistance is enabled or not."
-                },
-                {
-                    "name": "synopsis",
-                    "description": "hai voice enabled"
-                },
-                {
-                    "name": "description",
-                    "description": "The \"enabled\" command allows you get status on whether the summarizing voice asisstant is enabled or not."
-                }
-            ]
-        },
-        {
-            "id": "haivoicestart",
-            "name": "start",
-            "section": [
-                {
-                    "name": "name",
-                    "description": "start - start receiving summarizing voice assistance."
-                },
-                {
-                    "name": "synopsis",
-                    "description": "hai voice start"
-                },
-                {
-                    "name": "description",
-                    "description": "The \"start\" command allows you to enable getting voice summarized context assistance for the current latest received context response, but with less technically tedious information (such as code) that isn't well conveyed in a conversation."
-                }
-            ]
-        },
-        {
-            "id": "haivoicestop",
-            "name": "stop",
-            "section": [
-                {
-                    "name": "name",
-                    "description": "stop - stop receiving summarizing voice assistance."
-                },
-                {
-                    "name": "synopsis",
-                    "description": "hai voice stop"
-                },
-                {
-                    "name": "description",
-                    "description": "The \"stop\" command stops the voice assistant from summarizing conversations."
-                }
-            ]
-        },
-        {
-            "id": "haivoicepause",
-            "name": "pause",
-            "section": [
-                {
-                    "name": "name",
-                    "description": "pause - pause the summarizing voice assistance."
-                },
-                {
-                    "name": "synopsis",
-                    "description": "hai voice pause"
-                },
-                {
-                    "name": "description",
-                    "description": "The \"pause\" command suspends the voice assistant from summarizing conversations."
-                }
-            ]
-        },
-        {
-            "id": "haivoiceresume",
-            "name": "resume",
-            "section": [
-                {
-                    "name": "name",
-                    "description": "resume - resume the summarizing voice assistance."
-                },
-                {
-                    "name": "synopsis",
-                    "description": "hai voice resume"
-                },
-                {
-                    "name": "description",
-                    "description": "The \"resume\" command resumes suspended voice assistance."
                 }
             ]
         },
@@ -1487,6 +1362,21 @@
             ],
             "command": [
                 {
+                    "href": "haisummaryenabled",
+                    "name": "enabled",
+                    "description": "Returns status on whether summary assistance is enabled or not."
+                },
+                {
+                    "href": "haisummarystart",
+                    "name": "start",
+                    "description": "Start creating summaries for voice assistance with the current conversation."
+                },
+                {
+                    "href": "haisummarystop",
+                    "name": "stop",
+                    "description": "Stop receiving summary assistance."
+                },
+                {
                     "href": "haisummaryls",
                     "name": "ls",
                     "description": "List assistant summaries for the current context."
@@ -1495,6 +1385,60 @@
                     "href": "haisummarypull",
                     "name": "pull",
                     "description": "Retrieve an assistant summary by its full ID or unique seven-character ID prefix."
+                }
+            ]
+        },
+        {
+            "id": "haisummaryenabled",
+            "name": "enabled",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "enabled - returns status on whether summary assistance is enabled or not."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai summary enabled"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"enabled\" command allows you get status on whether the summarizing asisstant is enabled or not."
+                }
+            ]
+        },
+        {
+            "id": "haisummarystart",
+            "name": "start",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "start - start generating summaries for voice assistance."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai summary start"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"start\" command allows you to enable the creation of summarized context assistance for the current latest conversation context response, but with less technically tedious information (such as code) that isn't well conveyed in a voice conversation."
+                }
+            ]
+        },
+        {
+            "id": "haisummarystop",
+            "name": "stop",
+            "section": [
+                {
+                    "name": "name",
+                    "description": "stop - stop generating summaries for voice assistance."
+                },
+                {
+                    "name": "synopsis",
+                    "description": "hai summary stop"
+                },
+                {
+                    "name": "description",
+                    "description": "The \"stop\" command stops the summary assistant from summarizing conversations."
                 }
             ]
         },
