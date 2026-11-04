@@ -137,7 +137,7 @@ class Service:
     def reset(self):
         return self.ai.reset()
 
-    def assist_speak(self, inputstream):
+    def speak(self, inputstream):
         inputstream = inputstream.read().decode('utf-8')
         if inputstream != "":
             inputstream = inputstream.rstrip()

@@ -2,13 +2,11 @@ import threading
 import traceback
 
 from ai.assistant.voice import synthesizer as s
-from ai.assistant.voice import player as p
 
 
 class Voice:
     def __init__(self):
         self.synth = s.VoiceSynthesizer()
-        self.player = p.AudioPlayer()
 
         self._lock = threading.RLock()
         self._thread = None
@@ -28,16 +26,7 @@ class Voice:
             generation = self._generation
             self._cancel = cancel
 
-            thread = threading.Thread(
-                target=self._speak_worker,
-                args=(message, cancel, generation),
-                name="hai-voice",
-                daemon=True,
-            )
-
-            self._thread = thread
-
-        thread.start()
+            return self._speak_worker(message, cancel, generation)
 
     def _speak_worker(self, message, cancel, generation):
         try:
@@ -48,34 +37,19 @@ class Voice:
             if self._is_cancelled(cancel, generation):
                 return
 
-            # Open the client/local playback stream before synthesis has
-            # completed.
-            self.player.start(
-                sample_rate=sample_rate,
-                channels=1,
-            )
-
             # iter_pcm() yields processed int16 PCM chunks as Piper produces
             # them. Each chunk is immediately sent to the player.
             for pcm_data in self.synth.iter_pcm(message, cancel_event=cancel):
                 if self._is_cancelled(cancel, generation):
                     return
 
-                self.player.feed(pcm_data)
-
-            if not self._is_cancelled(cancel, generation):
-                self.player.finish()
+                yield pcm_data
 
         except s.SynthesisCancelled:
             pass
 
         except Exception:
             traceback.print_exc()
-
-            # Do not stop a newer speech operation if this worker has
-            # already been replaced.
-            if self._is_current(generation):
-                self.player.stop()
 
         finally:
             with self._lock:
@@ -88,16 +62,7 @@ class Voice:
             return self._generation == generation
 
     def _is_cancelled(self, cancel, generation):
-        return (
-            cancel.is_set()
-            or not self._is_current(generation)
-        )
-
-    def pause(self):
-        self.player.pause()
-
-    def resume(self):
-        self.player.resume()
+        return (cancel.is_set() or not self._is_current(generation))
 
     def stop(self):
         with self._lock:
@@ -112,18 +77,5 @@ class Voice:
         if cancel is not None:
             cancel.set()
 
-        # This also wakes/stops the playback worker if it is waiting for
-        # more PCM data.
-        self.player.stop()
-
-        if (
-            thread is not None
-            and thread is not threading.current_thread()
-        ):
+        if (thread is not None and thread is not threading.current_thread()):
             thread.join(timeout=0.2)
-
-    def is_speaking(self):
-        return self.player.is_speaking()
-
-    def is_paused(self):
-        return self.player.is_paused()

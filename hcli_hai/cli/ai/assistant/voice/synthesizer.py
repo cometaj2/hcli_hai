@@ -202,6 +202,17 @@ class VoiceSynthesizer:
             dtype=np.int16,
         ).tobytes()
 
+    def pcm_to_wav(self, pcm_data):
+        output = io.BytesIO()
+
+        with wave.open(output, "wb") as wav:
+            wav.setnchannels(1)
+            wav.setsampwidth(2)
+            wav.setframerate(self.sample_rate)
+            wav.writeframes(pcm_data)
+
+        return output.getvalue()
+
     def synthesize(self, text, cancel_event=None):
         """
         Return a complete WAV file as bytes.
@@ -310,33 +321,10 @@ class VoiceSynthesizer:
                 silence = random.uniform(0.75, 1.2)
                 yield self.make_silence(self.sample_rate, silence)
 
-    def synthesize_to_file(
-        self,
-        text,
-        output_path,
-        cancel_event=None,
-    ):
-        """
-        Synthesize text and write the generated WAV to output_path.
-        """
-
-        output_path = Path(output_path)
-        output_path.parent.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        wav_data = self.synthesize(
-            text,
-            cancel_event=cancel_event,
-        )
-
-        output_path.write_bytes(wav_data)
-        return output_path
-
     def get_sample_rate(self):
         self._ensure_voice()
         return self.sample_rate
+
 
 class VoiceEnhancer:
     """
@@ -510,7 +498,6 @@ class VoiceEnhancer:
 
         self.rms = rms
         return output
-
 
 class SynthesisCancelled(Exception):
     pass

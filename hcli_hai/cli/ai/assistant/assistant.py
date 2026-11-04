@@ -86,7 +86,7 @@ class Assistant:
         if self.terminate:
             return
 
-        self.voice.speak(message)
+        return self.voice.speak(message)
 
     def __latest_pair_key(self, messages):
         if not messages or len(messages) < 2:
@@ -100,11 +100,14 @@ class Assistant:
     def try_assist(self, messages):
         if self.is_running or not self.is_assisting():
             return False
+
         key = self.__latest_pair_key(messages)
         if key is None or key == self.__assisted_key():
             return False
+
         self.__mark_assisted(key)  # before run, so a crash cannot loop
         self.__run(messages)
+
         return True
 
     def __run(self, messages):
@@ -177,12 +180,6 @@ class Assistant:
     def check_termination(self):
         if self.terminate:
             raise TerminationException("terminated")
-
-    def pause_voice(self):
-        self.voice.pause()
-
-    def resume_voice(self):
-        self.voice.resume()
 
     def abort(self):
         self.is_running = False

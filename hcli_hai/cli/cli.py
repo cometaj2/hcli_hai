@@ -239,7 +239,7 @@ class CLI:
 
     def _handle_assist(self) -> None:
         if len(self.commands) == 2:
-            self.service.assist_speak(self.inputstream)
+            return self.service.speak(self.inputstream)
         elif len(self.commands) == 3:
             if self.commands[2] == "start":
                 self.service.assist(True)
