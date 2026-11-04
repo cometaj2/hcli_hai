@@ -16,17 +16,17 @@ class CLI:
         self.inputstream = inputstream
         self.service = service.Service()
         self.handlers: Dict[str, Callable] = {
-            'reset': lambda: self.service.reset(),
+            'reset': lambda: self.service.reset_context(),
             'context': self._handle_context,
             'ls':  self._handle_ls,
             'new': self._handle_new,
-            'current': lambda: io.BytesIO(self.service.current().encode('utf-8')),
+            'current': lambda: io.BytesIO(self.service.current_context().encode('utf-8')),
             'behavior': lambda: self.service.behavior(self.inputstream) if self.inputstream else None,
             'name': self._handle_name,
             'title': self._handle_title,
             'model': self._handle_model,
-            'set': lambda: self.service.set(self.commands[2]) if len(self.commands) == 3 else None,
-            'rm': lambda: self.service.rm(self.commands[2]) if len(self.commands) == 3 else None,
+            'set': lambda: self.service.set_context(self.commands[2]) if len(self.commands) == 3 else None,
+            'rm': lambda: self.service.remove_context(self.commands[2]) if len(self.commands) == 3 else None,
             'agent': self._handle_agent,
             'voice': self._handle_voice,
             'provider': self._handle_provider,
@@ -97,10 +97,10 @@ class CLI:
 
     def _handle_new(self) -> Optional[io.BytesIO]:
         if len(self.commands) == 2:
-            return io.BytesIO(self.service.new().encode('utf-8'))
+            return io.BytesIO(self.service.new_context().encode('utf-8'))
         if len(self.commands) == 3:
             if self.commands[2] == "--json":
-                return io.BytesIO(json.dumps([self.service.new()], indent=4).encode('utf-8'))
+                return io.BytesIO(json.dumps([self.service.new_context()], indent=4).encode('utf-8'))
 
         return None
 

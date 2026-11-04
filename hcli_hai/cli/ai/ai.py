@@ -112,7 +112,7 @@ class AI:
         return self.contextmgr.get_readable_context()
 
     # reset the current context (clean slate)
-    def reset(self):
+    def reset_context(self):
         with self.rlock:
             self.contextmgr.reset()
             self.config.context
@@ -175,7 +175,7 @@ class AI:
         return sorted_contexts
 
     # set the current context
-    def set(self, context_id):
+    def set_context(self, context_id):
         with self.rlock:
             contexts = self.ls()
             context_ids = [context['context_id'] for context in contexts]
@@ -188,7 +188,7 @@ class AI:
                 raise NotFoundError(detail=msg)
 
     # create a new context
-    def new(self):
+    def new_context(self):
         with self.rlock:
             if not os.path.exists(self.config.dot_hai_config_file):
                 self.config.init()
@@ -196,10 +196,10 @@ class AI:
                 self.config.context = str(self.config.generate_id())
                 self.config.save()
             self.contextmgr.init()
-            return self.current()
+            return self.current_context()
 
     # delete the context_id context
-    def rm(self, context_id):
+    def remove_context(self, context_id):
         with self.rlock:
             context_folder = os.path.join(self.config.dot_hai_context, context_id)
 
@@ -212,7 +212,7 @@ class AI:
                 raise NotFoundError(detail=msg)
 
     # get the current context ID
-    def current(self):
+    def current_context(self):
         return self.config.context
 
     def generate_title(self, max_messages: int = 4):

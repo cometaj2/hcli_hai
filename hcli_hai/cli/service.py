@@ -34,6 +34,7 @@ class Service:
 
         return
 
+    # Context integration
     def chat(self, inputstream):
         try:
             is_vibing = self.orchestrator.is_vibing()
@@ -102,9 +103,24 @@ class Service:
     def behavior(self, inputstream):
         return self.ai.behavior(inputstream)
 
-    def new(self):
-        return self.ai.new()
+    def new_context(self):
+        return self.ai.new_context()
 
+    def current_context(self):
+        return self.ai.current_context()
+
+    def remove_context(self, id):
+        return self.ai.remove_context(id)
+
+    def reset_context(self):
+        return self.ai.reset_context()
+
+    def set_context(self, id):
+        if self.assistant.is_assisting() == True:
+            self.previous_response = None
+        return self.ai.set_context(id)
+
+    # Provider integration
     def get_model(self):
         return self.provider.get_model()
 
@@ -123,26 +139,6 @@ class Service:
     def set_provider(self, provider):
         return self.provider.set_provider(provider)
 
-    def set(self, id):
-        if self.assistant.is_assisting() == True:
-            self.previous_response = None
-        return self.ai.set(id)
-
-    def current(self):
-        return self.ai.current()
-
-    def rm(self, id):
-        return self.ai.rm(id)
-
-    def reset(self):
-        return self.ai.reset()
-
-    def speak(self, inputstream):
-        inputstream = inputstream.read().decode('utf-8')
-        if inputstream != "":
-            inputstream = inputstream.rstrip()
-            return self.assistant.speak(inputstream)
-
     # Assistant controls
     def assist(self, should_assist):
         data = should_assist
@@ -154,12 +150,6 @@ class Service:
         )
 
         t.start()
-
-    def pause_voice(self):
-        self.assistant.pause_voice()
-
-    def resume_voice(self):
-        self.assistant.resume_voice()
 
     def is_assisting(self):
         return self.assistant.is_assisting()
@@ -178,7 +168,13 @@ class Service:
         finally:
             lock.release()
 
-    # Orchestrator controls.
+    def speak(self, inputstream):
+        inputstream = inputstream.read().decode('utf-8')
+        if inputstream != "":
+            inputstream = inputstream.rstrip()
+            return self.assistant.speak(inputstream)
+
+    # Orchestrator integration.
     def agent(self, should_vibe):
         data = should_vibe
 

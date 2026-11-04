@@ -232,7 +232,7 @@ class Orchestrator:
         Keep trace and snapshot files associated with the context in which
         the active run started.
         """
-        return self._active_context_id or self.ai.current()
+        return self._active_context_id or self.ai.current_context()
 
     def _originating_message_reference(self):
         """
@@ -253,7 +253,7 @@ class Orchestrator:
         )
 
     def _start_trace(self, goal):
-        context_id = self.ai.current()
+        context_id = self.ai.current_context()
 
         message_index, message_sha256 = (
             self._originating_message_reference()
@@ -331,7 +331,7 @@ class Orchestrator:
     def list_traces(self):
         return self.run_store.list_runs(
             config=self.config,
-            context_id=self.ai.current(),
+            context_id=self.ai.current_context(),
         )
 
     def trace(self, run_id=None):
@@ -1258,7 +1258,7 @@ class Orchestrator:
                 detail="an artifact must be provided on stdin"
             )
 
-        context_id = self.ai.current()
+        context_id = self.ai.current_context()
 
         return self.artifacts.add_input_artifact(
             context_id=context_id,
@@ -1267,11 +1267,11 @@ class Orchestrator:
         )
 
     def list_input_artifacts(self):
-        context_id = self.ai.current()
+        context_id = self.ai.current_context()
         return self.artifacts.list_input(context_id)
 
     def remove_input_artifact(self, artifact_id):
-        context_id = self.ai.current()
+        context_id = self.ai.current_context()
 
         result = self.artifacts.remove_input(
             context_id=context_id,
@@ -1289,18 +1289,18 @@ class Orchestrator:
         return ""
 
     def reset_input_artifacts(self):
-        context_id = self.ai.current()
+        context_id = self.ai.current_context()
 
         return self.artifacts.reset_input(
             context_id=context_id,
         )
 
     def list_output_artifacts(self):
-        context_id = self.ai.current()
+        context_id = self.ai.current_context()
         return self.artifacts.list_output(context_id)
 
     def pull_output_artifact(self, artifact_id):
-        context_id = self.ai.current()
+        context_id = self.ai.current_context()
 
         result = self.artifacts.open_output(
             context_id=context_id,
@@ -1315,7 +1315,7 @@ class Orchestrator:
         return result
 
     def remove_output_artifact(self, artifact_id):
-        context_id = self.ai.current()
+        context_id = self.ai.current_context()
 
         result = self.artifacts.remove_output(
             context_id=context_id,
@@ -1333,7 +1333,7 @@ class Orchestrator:
         return ""
 
     def reset_output_artifacts(self):
-        context_id = self.ai.current()
+        context_id = self.ai.current_context()
 
         return self.artifacts.reset_output(
             context_id=context_id,
@@ -1347,7 +1347,7 @@ class Orchestrator:
 
     def _input_artifact_manifest(self):
         artifacts = self.artifacts.list_input(
-            self.ai.current()
+            self.ai.current_context()
         )
 
         return [
@@ -1364,7 +1364,7 @@ class Orchestrator:
         ]
 
     def _input_artifact_evidence(self, max_bytes=50000):
-        context_id = self.ai.current()
+        context_id = self.ai.current_context()
         evidence = []
 
         for artifact in self._input_artifact_manifest():
