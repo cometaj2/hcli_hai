@@ -83,9 +83,6 @@ class Assistant:
             return self._is_assisting
 
     def speak(self, message):
-        if self.terminate:
-            return
-
         return self.voice.speak(message)
 
     def __latest_pair_key(self, messages):
