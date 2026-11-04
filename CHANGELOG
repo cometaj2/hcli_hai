@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add agent artifact support for use during agent runs.
 - Add summary text storage support for use with client voice support.
 - Add pcm voice streaming from text input for use with client voice support.
+- Refactor voice enabled, start, stop commands to summary command.
 - Update tests to account for artifacts
 - Update to yield better warning messages to the client for not found errors
 - Fix new setuptool warnings about __pycache__ packages and exclusions
