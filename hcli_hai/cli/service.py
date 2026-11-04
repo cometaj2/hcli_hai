@@ -113,11 +113,20 @@ class Service:
         return self.ai.remove_context(id)
 
     def reset_context(self):
+        context_id = self.assistant.ai.current_context()
+
+        if not context_id:
+            return None
+
+        self.assistant.summary_store.reset(context_id)
+        self.ai.set_title("")
+        self.assistant.previous_response = None
+
         return self.ai.reset_context()
 
     def set_context(self, id):
         if self.assistant.is_assisting() == True:
-            self.previous_response = None
+            self.assistant.previous_response = None
         return self.ai.set_context(id)
 
     # Provider integration

@@ -191,7 +191,7 @@ class Assistant:
 
     def store_summary(self, summary):
         with self.rlock:
-            context_id = self.ai.current()
+            context_id = self.ai.current_context()
 
         if not context_id:
             log.warning(
@@ -210,7 +210,7 @@ class Assistant:
 
     def list_summaries(self):
         with self.rlock:
-            context_id = self.ai.current()
+            context_id = self.ai.current_context()
 
         if not context_id:
             log.warning(
@@ -222,7 +222,7 @@ class Assistant:
 
     def pull_summary(self, summary_id):
         with self.rlock:
-            context_id = self.ai.current()
+            context_id = self.ai.current_context()
 
         if not context_id:
             log.warning(
