@@ -42,6 +42,8 @@ class Assistant:
             self.provider = pr.Provider()
 
             self._is_assisting = False
+            self._last_context_id = None
+
             self.terminate = False
             self.assist_key = None
 
@@ -64,11 +66,13 @@ class Assistant:
             self._is_assisting = should_assist
             if should_assist is True:
                 self.terminate = False
-                log.info(f"voice assistant started.")
+                current_context_id = self.ai.current_context()
+                self._last_context_id = current_context_id
+                log.info(f"summarizing assistant started.")
             else:
                 self.terminate = True
                 self.assist_key = None
-                log.info(f"voice assistant stopped.")
+                log.info(f"summarizing assistant stopped.")
 
     def __assisted_key(self):
         with self.rlock:
@@ -102,7 +106,14 @@ class Assistant:
         if key is None or key == self.__assisted_key():
             return False
 
+        current_context_id = self.ai.current_context()
+        if self._last_context_id is not None and self._last_context_id != current_context_id:
+            self.__mark_assisted(key)
+            self._last_context_id = current_context_id
+            return False
+
         self.__mark_assisted(key)  # before run, so a crash cannot loop
+        self._last_context_id = current_context_id
         self.__run(messages)
 
         return True
