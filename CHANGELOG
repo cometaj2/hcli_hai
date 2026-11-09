@@ -5,7 +5,7 @@ The format is loosely based on [Keep a Changelog](http://keepachangelog.com/en/1
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [5.0.0]
-- Add agent artifact support for use during agent runs.
+- Add agent artifact support for retrieval and use during agent runs.
 - Add summary text storage support for use with client voice support.
 - Add pcm voice streaming from text input for use with client voice support.
 - Refactor voice enabled, start, stop commands to summary command.
