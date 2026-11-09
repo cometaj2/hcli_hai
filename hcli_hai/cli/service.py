@@ -263,4 +263,3 @@ class Service:
 
     def pull_summary(self, summary_id):
         return self.assistant.pull_summary(summary_id)
-
