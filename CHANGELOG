@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Update to yield better warning messages to the client for not found errors
 - Fix new setuptool warnings about __pycache__ packages and exclusions
 - Fix to prevent summarizing against the user/assistant pair when a new context is set
+- Fix to prevent multiple simultaneous user message submissions when submitting async
 
 ## [4.1.0]
 - Add HAI_HOME environment variable alternative home support

@@ -70,6 +70,20 @@ class Service:
 
     def async_chat(self, inputstream):
         data = inputstream.read()
+
+        # if already awaiting, warn and abort without starting a thread
+        with self.ai.rlock:
+            msgs = self.ai.contextmgr.messages()
+            awaiting = False
+            for msg in reversed(msgs):
+                if msg.get("role") == "system":
+                    continue
+                awaiting = msg.get("role") == "user"
+                break
+            if awaiting:
+                log.warning("dropping user message: a user message is awaiting a response.")
+                return
+
         t = threading.Thread(target=self.chat, args=(io.BytesIO(data),), daemon=True)
         t.start()
         return
