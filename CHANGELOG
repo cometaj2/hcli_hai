@@ -11,9 +11,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Refactor voice enabled, start, stop commands to summary command.
 - Update tests to account for artifacts
 - Update to yield better warning messages to the client for not found errors
+- Update dependency version for hcli_core
 - Fix new setuptool warnings about __pycache__ packages and exclusions
 - Fix to prevent summarizing against the user/assistant pair when a new context is set
 - Fix to prevent multiple simultaneous user message submissions when submitting async
+- Remove unused dependencies given the removal of sound output
+- Remove support for python 3.10
 
 ## [4.1.0]
 - Add HAI_HOME environment variable alternative home support
